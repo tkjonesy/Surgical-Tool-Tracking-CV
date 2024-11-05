@@ -55,7 +55,7 @@ public class LogQueue {
      *
      * @return The latest {@code Log} object, or {@code null} if no logs are available.
      */
-    public Log getLatestLog(){
+    public Log getNextLog(){
         return logs.poll();
     }
 }

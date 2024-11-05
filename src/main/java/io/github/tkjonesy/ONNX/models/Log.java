@@ -12,17 +12,16 @@ import java.awt.Graphics;
  * It provides methods for generating logs with a timestamp and displaying them in a UI component.
  */
 @Getter
-@AllArgsConstructor
 public class Log {
 
     /** The type of the log, defining its level and color (e.g., ERROR, INFO, SUCCESS). */
-    private LogEnum logType;
+    private final LogEnum logType;
 
     /** The message associated with the log entry. */
-    private String message;
+    private final String message;
 
     /** The timestamp indicating when the log was created. */
-    private String timeStamp;
+    private final String timeStamp;
 
     /**
      * Creates a {@code Log} with a specified type and message, setting the timestamp to the current time.

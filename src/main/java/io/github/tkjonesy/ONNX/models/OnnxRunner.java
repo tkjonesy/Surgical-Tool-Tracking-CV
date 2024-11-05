@@ -85,8 +85,8 @@ public class OnnxRunner {
      *
      * @return The latest {@link Log} entry from {@code logs}.
      */
-    public Log getLatestLog(){
-        Log log = logger.getLatestLog();
+    public Log getNextLog(){
+        Log log = logger.getNextLog();
         if (log == null) {
             log = new Log(LogEnum.DEFAULT, "No logs available");
         }
