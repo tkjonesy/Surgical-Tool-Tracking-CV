@@ -1,6 +1,7 @@
 package io.github.tkjonesy.ONNX;
 
-import ai.onnxruntime.OrtException;
+import io.github.tkjonesy.ONNX.models.OnnxOutput;
+import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -9,7 +10,6 @@ import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
 
 import javax.swing.*;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,21 +33,8 @@ import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
 
 public class VideoApp  {
 
-    private Yolo inferenceSession;
-
-    public VideoApp() {
-        ModelFactory modelFactory = new ModelFactory();
-        try {
-            this.inferenceSession = modelFactory.getModel();
-        } catch (OrtException | IOException exception) {
-            exception.printStackTrace();
-            System.exit(1);
-        }
-    }
-
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        VideoApp app = new VideoApp();
 
         VideoCapture cap = new VideoCapture(0);
         cap.set(Videoio.CAP_PROP_FRAME_WIDTH, 1280);
@@ -67,25 +54,24 @@ public class VideoApp  {
 
         Mat frame = new Mat();
         MatOfByte matofByte = new MatOfByte();
+        OnnxRunner onnxRunner = new OnnxRunner();
 
         int currentFrame = 0;
-        List<Detection> detectionList = new ArrayList<>();
+        OnnxOutput onnxOutput;
+        List<Detection> detections = new ArrayList<>();
         while ( cap.read(frame) ) {
             ImageUtil.resizeWithPadding(frame, frame, 1280, 800);
 
-            // run detection if current frame is a multiple of PROCESS_EVERY_NTH_FRAME
-            if(currentFrame++ % PROCESS_EVERY_NTH_FRAME == 0) {
-                try {
-                    detectionList = app.inferenceSession.run(frame);
-                    currentFrame = 1;
-                } catch (OrtException ortException) {
-                    ortException.printStackTrace();
-                }
+            if(++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
+                onnxOutput = onnxRunner.runInference(frame);
+                detections = onnxOutput.getDetectionList();
+                currentFrame = 0;
             }
 
-            ImageUtil.drawPredictions(frame, detectionList);
+            ImageUtil.drawPredictions(frame, detections);
             Imgcodecs.imencode(".jpg", frame, matofByte);
             ImageIcon imageIcon = new ImageIcon(matofByte.toArray());
+
             vidpanel.setIcon(imageIcon);
             vidpanel.repaint();
         }
