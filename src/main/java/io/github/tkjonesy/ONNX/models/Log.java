@@ -1,7 +1,6 @@
 package io.github.tkjonesy.ONNX.models;
 
 import io.github.tkjonesy.ONNX.enums.LogEnum;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.awt.Component;

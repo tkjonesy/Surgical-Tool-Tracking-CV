@@ -2,9 +2,10 @@ package io.github.tkjonesy.ONNX.models;
 
 import ai.onnxruntime.OrtException;
 import io.github.tkjonesy.ONNX.Detection;
-import io.github.tkjonesy.ONNX.ModelFactory;
 import io.github.tkjonesy.ONNX.Yolo;
+import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.ONNX.enums.LogEnum;
+import io.github.tkjonesy.ONNX.settings.Settings;
 import lombok.Getter;
 import org.opencv.core.Mat;
 
@@ -36,11 +37,10 @@ public class OnnxRunner {
      * If model loading fails, the application exits with an error.
      */
     public OnnxRunner(){
-        ModelFactory modelFactory = new ModelFactory();
         logger = new LogQueue();
         classes = new HashMap<>();
         try {
-            this.inferenceSession = modelFactory.getModel();
+            this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
         } catch (OrtException | IOException exception) {
             System.exit(1);
         }
