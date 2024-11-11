@@ -2,18 +2,31 @@ package io.github.tkjonesy;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.LayoutStyle.ComponentPlacement;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
-import java.util.TimerTask;
-import javax.swing.LayoutStyle.ComponentPlacement;
 
+import java.nio.channels.AlreadyConnectedException;
+import java.util.TimerTask;
+import java.util.ArrayList;
+import java.util.List;
+
+import io.github.tkjonesy.ONNX.Detection;
+import io.github.tkjonesy.ONNX.ImageUtil;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
+
+import io.github.tkjonesy.ONNX.models.OnnxOutput;
+import io.github.tkjonesy.ONNX.models.OnnxRunner;
+
+import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
 
 
 public class App extends JFrame {
@@ -497,7 +510,6 @@ public class App extends JFrame {
         CameraFetcher camFetch = new CameraFetcher(sttApp.getCameraFeed());
         new Thread(camFetch).start();
 
-
         // OpenCV create camera
 
 //        SwingUtilities.invokeLater(
@@ -538,22 +550,38 @@ public class App extends JFrame {
         }
 
         public void run() {
-            // TODO this needs to eventually be a websocket receiver, or just get the camera frame from elsewhere
-
             final long FRAMES_PER_SECOND = 60;
 
             VideoCapture camera = new VideoCapture(0);
             if(!camera.isOpened()) {
                 System.err.println("Error: Camera could not be opened. Exiting...");
-                System.exit(0);
+                System.exit(-1);
             }
 
-            Mat frame = new Mat();
+            camera.set(Videoio.CAP_PROP_FRAME_WIDTH, 320);
+            camera.set(Videoio.CAP_PROP_FRAME_HEIGHT, 240);
             TimerTask task = new TimerTask() {
+
+                private static Mat frame = new Mat();
+                private static int currentFrame = 0;
+                private static final OnnxRunner onnxRunner = new OnnxRunner();
+                private static OnnxOutput onnxOutput;
+                private static List<Detection> detections = new ArrayList<>();
                 @Override
                 public void run() {
-                    // Get the frame and write to BufferedImage, write to label
-                    camera.read(frame); // TODO Change this to get frame from Onnx output instead
+                    // Pull frame and run through Onnx
+                    camera.read(frame);
+//                    ImageUtil.resizeWithPadding(frame, frame, 1280, 800);
+
+                    if(++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
+                        onnxOutput = onnxRunner.runInference(frame);
+                        detections = onnxOutput.getDetectionList();
+                        currentFrame = 0;
+                    }
+
+                    ImageUtil.drawPredictions(frame, detections);
+
+                    // Writ output to label
                     Dimension cfSize = cameraFeed.getSize();
                     Imgproc.resize(frame, frame, new Size(cfSize.getWidth(), cfSize.getHeight()));
                     BufferedImage biFrame = cvt2bi(frame);
