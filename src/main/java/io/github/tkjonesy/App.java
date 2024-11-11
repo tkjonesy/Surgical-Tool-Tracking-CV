@@ -553,7 +553,7 @@ public class App extends JFrame {
                 @Override
                 public void run() {
                     // Get the frame and write to BufferedImage, write to label
-                    camera.read(frame);
+                    camera.read(frame); // TODO Change this to get frame from Onnx output instead
                     Dimension cfSize = cameraFeed.getSize();
                     Imgproc.resize(frame, frame, new Size(cfSize.getWidth(), cfSize.getHeight()));
                     BufferedImage biFrame = cvt2bi(frame);
