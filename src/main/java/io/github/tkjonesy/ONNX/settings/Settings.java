@@ -8,6 +8,8 @@ public class Settings {
     public static final String modelPath;
     public static final String labelPath;
     public static final int PROCESS_EVERY_NTH_FRAME;
+    public static final int CAMERA_FRAME_RATE;
+    public static final int VIDEO_CAPTURE_DEVICE_ID;
 
     public static final float confThreshold;
     public static final float nmsThreshold;
@@ -24,6 +26,8 @@ public class Settings {
             modelPath = properties.getProperty("modelPath", "./ai_models/yolo11m.onnx");
             labelPath = properties.getProperty("labelPath", "./src/main/resources/coco.names");
             PROCESS_EVERY_NTH_FRAME = Integer.parseInt(properties.getProperty("PROCESS_EVERY_NTH_FRAME", "30"));
+            CAMERA_FRAME_RATE = Integer.parseInt(properties.getProperty("CAMERA_FRAME_RATE", "30"));
+            VIDEO_CAPTURE_DEVICE_ID = Integer.parseInt(properties.getProperty("VIDEO_CAPTURE_DEVICE_ID", "0"));
 
             confThreshold = Float.parseFloat(properties.getProperty("confThreshold", "0.3"));
             nmsThreshold = Float.parseFloat(properties.getProperty("nmsThreshold", "0.4"));
