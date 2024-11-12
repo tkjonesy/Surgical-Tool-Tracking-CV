@@ -16,10 +16,15 @@
 
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.microsoft.onnxruntime/onnxruntime -->
+<!--        <dependency>-->
+<!--            <groupId>com.microsoft.onnxruntime</groupId>-->
+<!--            <artifactId>onnxruntime</artifactId>-->
+<!--            <version>1.19.2</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
             <artifactId>onnxruntime</artifactId>
-            <version>1.19.2</version>
+            <version>1.20.0</version>
         </dependency>
         <dependency>
             <groupId>org.bytedeco</groupId>
@@ -38,6 +43,18 @@
             <version>1.18.34</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime_gpu</artifactId>
+            <version>1.20.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.openpnp/opencv -->
+        <dependency>
+            <groupId>org.openpnp</groupId>
+            <artifactId>opencv</artifactId>
+            <version>4.9.0-0</version>
+        </dependency>
+
 
 
 
