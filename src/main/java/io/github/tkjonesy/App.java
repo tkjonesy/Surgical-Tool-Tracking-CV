@@ -5,19 +5,21 @@ import javax.swing.border.TitledBorder;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 
-import java.nio.channels.AlreadyConnectedException;
+import java.util.Timer;
 import java.util.TimerTask;
 import java.util.ArrayList;
 import java.util.List;
 
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.ImageUtil;
+import lombok.Getter;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfByte;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
@@ -26,7 +28,7 @@ import org.opencv.videoio.Videoio;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 
-import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
+import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 
 public class App extends JFrame {
@@ -34,19 +36,29 @@ public class App extends JFrame {
     // Compulsory OpenCV loading
     static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
-    private JPanel cameraPanel, trackingPanel, bottomPanel;
+    @Getter
+    private final VideoCapture camera;
+    private final Thread cameraFetcherThread;
+    @Getter
+    private JLabel cameraFeed;
     private JToggleButton recCameraButton, recAllButton, recLogButton;
     private JButton settingsButton;
-    private JLabel cameraFeed;
-
-    private JTextPane logTextPane;
-    private GroupLayout layout, cameraPanelLayout, trackingPanelLayout, bottomPanelLayout;
-
 
     public App() {
         initComponents();
         initListeners();
         this.setVisible(true);
+
+        this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
+        if(!camera.isOpened()) {
+            System.err.println("Error: Camera could not be opened. Exiting...");
+            System.exit(-1);
+        }
+
+        // Camera fetcher thread task
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera);
+        cameraFetcherThread = new Thread(cameraFetcher);
+        cameraFetcherThread.start();
     }
 
     private void initComponents() {
@@ -54,65 +66,60 @@ public class App extends JFrame {
         // Titling, sizing, and exit actions
         this.setTitle("Surgical Tool Tracker");
         this.setMinimumSize(new Dimension(746, 401));
-        this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
         // Camera Panel
-        cameraPanel = new JPanel();
+        JPanel cameraPanel = new JPanel();
         cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
 
         cameraFeed = new JLabel("");
         cameraFeed.setMinimumSize(new Dimension(320, 240));
 
-        cameraPanelLayout = new GroupLayout(cameraPanel);
+        GroupLayout cameraPanelLayout = new GroupLayout(cameraPanel);
+        cameraPanelLayout.setAutoCreateContainerGaps(true);
         cameraPanelLayout.setHorizontalGroup(
                 cameraPanelLayout.createSequentialGroup()
-                        .addContainerGap()
                         .addComponent(cameraFeed)
-                        .addContainerGap()
         );
         cameraPanelLayout.setVerticalGroup(
                 cameraPanelLayout.createSequentialGroup()
-                        .addContainerGap()
                         .addComponent(cameraFeed)
-                        .addContainerGap()
         );
         cameraPanel.setLayout(cameraPanelLayout);
+//        cameraPanel.setLayout(new GridBagLayout());
+//        cameraPanel.add(cameraFeed, createConstraints(0,0,0.5,0.5));
 
         // Tracking Panel
-        trackingPanel = new JPanel();
+        JPanel trackingPanel = new JPanel();
         trackingPanel.setBorder(BorderFactory.createTitledBorder("Log"));
-        trackingPanel.setMaximumSize(new Dimension(1920 / 2, 1080)); //TODO possibly poll for system screen width
 
-        logTextPane = new JTextPane();
+        JTextPane logTextPane = new JTextPane();
         logTextPane.setMinimumSize(new Dimension(320, 240));
 
-        trackingPanelLayout = new GroupLayout(trackingPanel);
+        GroupLayout trackingPanelLayout = new GroupLayout(trackingPanel);
+        trackingPanelLayout.setAutoCreateContainerGaps(true);
         trackingPanelLayout.setHorizontalGroup(
                 trackingPanelLayout.createSequentialGroup()
-                        .addContainerGap()
                         .addComponent(logTextPane)
-                        .addContainerGap()
         );
         trackingPanelLayout.setVerticalGroup(
                 trackingPanelLayout.createSequentialGroup()
-                        .addContainerGap()
                         .addComponent(logTextPane)
-                        .addContainerGap()
         );
         trackingPanel.setLayout(trackingPanelLayout);
 
         // Bottom Button Panel
-        bottomPanel = new JPanel();
+        JPanel bottomPanel = new JPanel();
 
         recCameraButton = new JToggleButton("Start Camera");
         recAllButton = new JToggleButton("Start All");
         recLogButton = new JToggleButton("Start Log");
         settingsButton = new JButton("Settings");
 
-        bottomPanelLayout = new GroupLayout(bottomPanel);
+        GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
+        bottomPanelLayout.setAutoCreateContainerGaps(true);
         bottomPanelLayout.setHorizontalGroup(
                 bottomPanelLayout.createSequentialGroup()
-                        .addContainerGap()
                         .addComponent(recCameraButton)
                         .addPreferredGap(ComponentPlacement.RELATED)
                         .addComponent(recAllButton)
@@ -120,11 +127,9 @@ public class App extends JFrame {
                         .addComponent(recLogButton)
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addComponent(settingsButton)
-                        .addContainerGap()
         );
         bottomPanelLayout.setVerticalGroup(
                 bottomPanelLayout.createSequentialGroup()
-                        .addContainerGap()
                         .addGroup(
                                 bottomPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
                                         .addComponent(recCameraButton)
@@ -132,42 +137,28 @@ public class App extends JFrame {
                                         .addComponent(recLogButton)
                                         .addComponent(settingsButton)
                         )
-                        .addContainerGap()
         );
         bottomPanel.setLayout(bottomPanelLayout);
 
         // Window Layout
-        // TODO MAKE THE TRACKING PANEL STICKY TO THE RIGHT SIDE
-        layout = new GroupLayout(this.getContentPane());
-        layout.setHorizontalGroup(
-                layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(
-                                layout.createParallelGroup()
-                                        .addGroup(
-                                                layout.createSequentialGroup()
-                                                        .addComponent(cameraPanel)
-                                                        .addPreferredGap(ComponentPlacement.RELATED)
-                                                        .addComponent(trackingPanel)
-                                        )
-                                        .addComponent(bottomPanel)
-                        )
-                        .addContainerGap()
-        );
-        layout.setVerticalGroup(
-                layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(
-                                layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                                        .addComponent(cameraPanel)
-                                        .addComponent(trackingPanel)
-                        )
-                        .addPreferredGap(ComponentPlacement.UNRELATED)
-                        .addComponent(bottomPanel)
-                        .addContainerGap()
-        );
-        this.setLayout(layout);
+        this.setLayout(new GridBagLayout());
+        this.add(cameraPanel, createConstraints(0, 0, 0.5, 1));
+        this.add(trackingPanel, createConstraints(1, 0, 0.5, 0.5));
+        GridBagConstraints bottomPanelConstraints = createConstraints(0, 1, 1, 0.05);
+        bottomPanelConstraints.gridwidth = 2;
+        bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
+        this.add(bottomPanel, bottomPanelConstraints);
         this.pack();
+    }
+
+    private GridBagConstraints createConstraints(int gridX, int gridY, double weightX, double weightY) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = gridX;
+        c.gridy = gridY;
+        c.weightx = weightX;
+        c.weighty = weightY;
+        c.fill = GridBagConstraints.BOTH;
+        return c;
     }
 
     private void initListeners() {
@@ -226,6 +217,36 @@ public class App extends JFrame {
 
                 }
         );
+
+        // Window Event Listener
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                // Ask for closing confirmation first
+                int confirmation = JOptionPane.showConfirmDialog(App.this,
+                        "Are you sure you want to quit?",
+                        "Confirm Exit", JOptionPane.YES_NO_OPTION);
+
+                // If "yes" is selected, clean up and dispose of windows
+                if(confirmation == JOptionPane.YES_OPTION) {
+
+                    // Clean up
+                    System.out.println("Beginning cleanup Process...");
+                    System.out.println("Stopping camera feed thread...");
+                    cameraFetcherThread.interrupt(); // TODO fix crash when thread is interrupted, then the camera is closed (I think this has to do with the thread not actually stopping or smth like that, it's related to Imgproc.resize() in some manner? WTF?
+                    System.out.println("Closing camera access...");
+                    if (camera.isOpened())
+                        camera.release();
+                    System.out.println("Done cleanup process.");
+
+                    // Disposal
+                    App.this.dispose();
+                    System.exit(0);
+                }
+                else
+                    System.out.println("Exit cancelled.");
+            }
+        });
     }
 
     private void setRecButtons(boolean camEnable, boolean allEnable, boolean logEnable) {
@@ -234,12 +255,9 @@ public class App extends JFrame {
         recLogButton.setEnabled(logEnable);
     }
 
-    private JLabel getCameraFeed() {
-        return this.cameraFeed;
-    }
-
     public static void main(String[] args) {
 
+        // TODO remove Jake's initial UI code
         //Initialize Frame
         JFrame frame = new JFrame("Surgical Tool Tracker");
         frame.setSize(960,540);
@@ -331,9 +349,9 @@ public class App extends JFrame {
                     recLogButton.setEnabled(true);
                 }
 
-                //No: Dont Save Data
+                //No: Don't Save Data
                 else if(answer == 1) {
-                    System.out.println("Dont Save Camera Recording Clicked\n");
+                    System.out.println("Don't Save Camera Recording Clicked\n");
                     recCameraButton.setText("Start Camera");
                     //Change Borders Title
                     cameraBorder.setTitle("Camera View");
@@ -396,9 +414,9 @@ public class App extends JFrame {
                     recLogButton.setEnabled(true);
                 }
 
-                //No: Dont Save Data
+                //No: Don't Save Data
                 else if(answer == 1) {
-                    System.out.println("Dont Save All Recording Clicked\n");
+                    System.out.println("Don't Save All Recording Clicked\n");
                     recAllButton.setText("Start All");
                     //Change Camera Border Title
                     cameraBorder.setTitle("Camera View");
@@ -457,9 +475,9 @@ public class App extends JFrame {
                     recAllButton.setEnabled(true);
                 }
 
-                //No: Dont Save Data
+                //No: Don't Save Data
                 else if(answer == 1) {
-                    System.out.println("Dont Save Log Recording Clicked\n");
+                    System.out.println("Don't Save Log Recording Clicked\n");
                     recLogButton.setText("Start Log");
                     //Change Tracking Border Title
                     trackingBorder.setTitle("Tracking View");
@@ -501,36 +519,27 @@ public class App extends JFrame {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch(Exception e) {
             System.out.println("Unable to set Look and Feel to system default.");
-            e.printStackTrace();
+//            e.printStackTrace();
         }
 
-        // Create new instant of STT app
-        App sttApp = new App();
-
-        CameraFetcher camFetch = new CameraFetcher(sttApp.getCameraFeed());
-        new Thread(camFetch).start();
-
-        // OpenCV create camera
-
-//        SwingUtilities.invokeLater(
-//                () -> {
-//                    // Invoke new instance of STT App
-//                    App sttApp = new App();
-//                }
-//        );
+        // Invoke instance of STT App
+        SwingUtilities.invokeLater(App::new);
     }
 
 
     private static class CameraFetcher implements Runnable {
 
         private final JLabel cameraFeed;
+        private final VideoCapture camera;
+        private final Timer timer;
 
-        public CameraFetcher(JLabel cameraFeed) {
+        public CameraFetcher(JLabel cameraFeed, VideoCapture camera) {
             this.cameraFeed = cameraFeed;
+            this.camera = camera;
+            this.timer = new Timer();
         }
 
-        private BufferedImage cvt2bi(Mat frame)
-        {
+        private static BufferedImage cvt2bi(Mat frame) {
             // Select grayscale or color based on incoming frame
             int type = BufferedImage.TYPE_BYTE_GRAY;
             if (frame.channels() > 1) {
@@ -549,48 +558,56 @@ public class App extends JFrame {
             return image;
         }
 
+        @Override
         public void run() {
-            final long FRAMES_PER_SECOND = 60;
+            // New task to run at frame rate specified in Settings file
 
-            VideoCapture camera = new VideoCapture(0);
-            if(!camera.isOpened()) {
-                System.err.println("Error: Camera could not be opened. Exiting...");
-                System.exit(-1);
-            }
+            camera.set(Videoio.CAP_PROP_FRAME_WIDTH, cameraFeed.getWidth());
+            camera.set(Videoio.CAP_PROP_FRAME_HEIGHT, cameraFeed.getHeight());
 
-            camera.set(Videoio.CAP_PROP_FRAME_WIDTH, 320);
-            camera.set(Videoio.CAP_PROP_FRAME_HEIGHT, 240);
             TimerTask task = new TimerTask() {
 
-                private static Mat frame = new Mat();
+                // Required objects for detections & display
+                private static final Mat frame = new Mat();
                 private static int currentFrame = 0;
                 private static final OnnxRunner onnxRunner = new OnnxRunner();
                 private static OnnxOutput onnxOutput;
                 private static List<Detection> detections = new ArrayList<>();
                 @Override
                 public void run() {
-                    // Pull frame and run through Onnx
-                    camera.read(frame);
-//                    ImageUtil.resizeWithPadding(frame, frame, 1280, 800);
+                    // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
+                    if(!Thread.currentThread().isInterrupted()) {
 
-                    if(++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
-                        onnxOutput = onnxRunner.runInference(frame);
-                        detections = onnxOutput.getDetectionList();
-                        currentFrame = 0;
+                        // Resize camera size to whatever the current feed window size is
+//                        camera.set(Videoio.CAP_PROP_FRAME_WIDTH, cameraFeed.getWidth());
+//                        camera.set(Videoio.CAP_PROP_FRAME_HEIGHT, cameraFeed.getHeight());
+                        // Pull frame and run through Onnx
+                        camera.read(frame);
+
+
+                        // Every Nth frame, we run the object detection on it
+                        if (++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
+                            new Thread(() -> {
+                                onnxOutput = onnxRunner.runInference(frame);
+                                detections = onnxOutput.getDetectionList();
+                            }).start();
+                            currentFrame = 0;
+                        }
+
+                        // Overlay the predictions, and display the frame on the label
+                        ImageUtil.drawPredictions(frame, detections);
+                        Imgproc.resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
+                        BufferedImage biFrame = cvt2bi(frame);
+                        cameraFeed.setIcon(new ImageIcon(biFrame));
                     }
-
-                    ImageUtil.drawPredictions(frame, detections);
-
-                    // Writ output to label
-                    Dimension cfSize = cameraFeed.getSize();
-                    Imgproc.resize(frame, frame, new Size(cfSize.getWidth(), cfSize.getHeight()));
-                    BufferedImage biFrame = cvt2bi(frame);
-                    cameraFeed.setIcon(new ImageIcon(biFrame));
+                    else {
+                        timer.cancel();
+                        timer.purge();
+                    }
                 }
             };
-
-            java.util.Timer t = new java.util.Timer();
-            t.schedule(task, 0, 1000 / FRAMES_PER_SECOND);
+            // Set the task to execute every CAMERA_FRAME_RATE frames per second
+            timer.schedule(task, 0, 1000 / CAMERA_FRAME_RATE);
         }
     }
 }
