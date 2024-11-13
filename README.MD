@@ -15,6 +15,18 @@ Clone the repository:<br>
 `git clone https://github.com/tkjonesy/Surgical-Tool-Tracking-CV.git`
 
 ## Running the Code
+### Using IntelliJ
+1. Create a new run configuration (Application) with the following settings:
+   - Main class: `io.github.tkjonesy.App`
+   - VM Options: `-Djava.library.path=.\src\main\resources`
+2. Run the application
+### Using command line
+TBD
+
+### Using Docker
+TBD
+
+### Using .JAR
 TBD
 
 ## Example
