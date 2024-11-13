@@ -1,7 +1,6 @@
 package io.github.tkjonesy;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
@@ -9,6 +8,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.opencv.core.Core;
 import org.opencv.videoio.VideoCapture;
 
@@ -26,6 +26,9 @@ public class App extends JFrame {
     private JLabel cameraFeed;
     private JToggleButton recCameraButton, recAllButton, recLogButton;
     private JButton settingsButton;
+    @Getter
+    @Setter
+    private JTextPane logTextPane;
 
     public App() {
         initComponents();
@@ -76,7 +79,7 @@ public class App extends JFrame {
         JPanel trackingPanel = new JPanel();
         trackingPanel.setBorder(BorderFactory.createTitledBorder("Log"));
 
-        JTextPane logTextPane = new JTextPane();
+        logTextPane = new JTextPane();
         logTextPane.setMinimumSize(new Dimension(320, 240));
 
         GroupLayout trackingPanelLayout = new GroupLayout(trackingPanel);
