@@ -86,7 +86,8 @@ public abstract class Yolo {
 
         // standard nms
         while (!bboxes.isEmpty()) {
-            float[] bestBbox = bboxes.removeLast();
+//            float[] bestBbox = bboxes.removeLast();
+            float [] bestBbox = bboxes.remove(bboxes.size() - 1);
             bestBboxes.add(bestBbox);
             bboxes = bboxes.stream().filter(a -> computeIOU(a, bestBbox) < nmsThreshold).collect(Collectors.toList());
         }
