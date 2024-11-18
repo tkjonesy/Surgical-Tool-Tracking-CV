@@ -1,4 +1,4 @@
-package io.github.tkjonesy;
+package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.ImageUtil;

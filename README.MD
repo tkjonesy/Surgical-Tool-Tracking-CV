@@ -17,7 +17,7 @@ Clone the repository:<br>
 ## Running the Code
 ### Using IntelliJ
 1. Create a new run configuration (Application) with the following settings:
-   - Main class: `io.github.tkjonesy.App`
+   - Main class: `io.github.tkjonesy.frontend.App`
    - VM Options: `-Djava.library.path=.\src\main\resources`
 2. Run the application
 ### Using command line

@@ -1,12 +1,16 @@
-package io.github.tkjonesy;
+package io.github.tkjonesy.frontend;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.border.TitledBorder;
 
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import io.github.tkjonesy.ONNX.models.LogQueue;
+import io.github.tkjonesy.frontend.models.CameraFetcher;
+import io.github.tkjonesy.frontend.models.LogHandler;
 import lombok.Getter;
 import lombok.Setter;
 import org.opencv.core.Core;
@@ -17,7 +21,10 @@ import static io.github.tkjonesy.ONNX.settings.Settings.*;
 public class App extends JFrame {
 
     // Compulsory OpenCV loading
-    static{ System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+    static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+
+    private LogHandler logHandler;
+    private final LogQueue logQueue;
 
     @Getter
     private final VideoCapture camera;
@@ -31,12 +38,15 @@ public class App extends JFrame {
     private JTextPane logTextPane;
 
     public App() {
+
+        this.logQueue = new LogQueue();
+
         initComponents();
         initListeners();
         this.setVisible(true);
 
         this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
-        if(!camera.isOpened()) {
+        if (!camera.isOpened()) {
             System.err.println("Error: Camera could not be opened. Exiting...");
             System.exit(-1);
         }
@@ -72,27 +82,41 @@ public class App extends JFrame {
                         .addComponent(cameraFeed)
         );
         cameraPanel.setLayout(cameraPanelLayout);
-//        cameraPanel.setLayout(new GridBagLayout());
-//        cameraPanel.add(cameraFeed, createConstraints(0,0,0.5,0.5));
 
-        // Tracking Panel
+        // Log tracker border
+        TitledBorder logBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.WHITE), "Tracking Log");
+        logBorder.setTitleColor(Color.WHITE);
+
+        // Log tracker Tracking Panel
         JPanel trackingPanel = new JPanel();
-        trackingPanel.setBorder(BorderFactory.createTitledBorder("Log"));
+        trackingPanel.setBorder(logBorder);
+        trackingPanel.setBackground(Color.BLACK);
 
-        logTextPane = new JTextPane();
-        logTextPane.setMinimumSize(new Dimension(320, 240));
+        this.logTextPane = new JTextPane();
+        this.logTextPane.setEditable(false);
+        this.logTextPane.setContentType("text/html");
+        this.logTextPane.setBackground(Color.BLACK);
 
+        // Log tracker scroll pane for text area
+        JScrollPane scrollPane = new JScrollPane(logTextPane);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // Set the layout for tracking panel using GroupLayout
         GroupLayout trackingPanelLayout = new GroupLayout(trackingPanel);
         trackingPanelLayout.setAutoCreateContainerGaps(true);
         trackingPanelLayout.setHorizontalGroup(
                 trackingPanelLayout.createSequentialGroup()
-                        .addComponent(logTextPane)
+                        .addComponent(scrollPane)
         );
         trackingPanelLayout.setVerticalGroup(
                 trackingPanelLayout.createSequentialGroup()
-                        .addComponent(logTextPane)
+                        .addComponent(scrollPane)
         );
         trackingPanel.setLayout(trackingPanelLayout);
+
+        // Log Handler. Used to handle the presentation of logs
+        this.logHandler = new LogHandler(logTextPane, logQueue);
 
         // Bottom Button Panel
         JPanel bottomPanel = new JPanel();
@@ -152,13 +176,10 @@ public class App extends JFrame {
         // Record Camera Listener
         recCameraButton.addActionListener(
                 e -> {
-                    // Start recording
-                    if(recCameraButton.isSelected()) {
+                    if (recCameraButton.isSelected()) {
                         recCameraButton.setText("Stop Camera");
                         setRecButtons(true, false, false);
-                    }
-                    // Stop recording
-                    else {
+                    } else {
                         recCameraButton.setText("Start Camera");
                         setRecButtons(true, true, true);
                     }
@@ -168,13 +189,10 @@ public class App extends JFrame {
         // Record All Listener
         recAllButton.addActionListener(
                 e -> {
-                    // Start recording
-                    if(recAllButton.isSelected()) {
+                    if (recAllButton.isSelected()) {
                         recAllButton.setText("Stop All");
                         setRecButtons(false, true, false);
-                    }
-                    // Stop recording
-                    else {
+                    } else {
                         recAllButton.setText("Start All");
                         setRecButtons(true, true, true);
                     }
@@ -184,13 +202,10 @@ public class App extends JFrame {
         // Record Log Listener
         recLogButton.addActionListener(
                 e -> {
-                    // Start recording
-                    if(recLogButton.isSelected()) {
+                    if (recLogButton.isSelected()) {
                         recLogButton.setText("Stop Log");
                         setRecButtons(false, false, true);
-                    }
-                    // Stop recording
-                    else {
+                    } else {
                         recLogButton.setText("Start Log");
                         setRecButtons(true, true, true);
                     }
@@ -198,39 +213,32 @@ public class App extends JFrame {
         );
 
         // Settings Listener
-        settingsButton.addActionListener(
-                e -> {
-
-                }
-        );
+        settingsButton.addActionListener(e -> {
+            // Add settings logic here
+        });
 
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                // Ask for closing confirmation first
                 int confirmation = JOptionPane.showConfirmDialog(App.this,
                         "Are you sure you want to quit?",
                         "Confirm Exit", JOptionPane.YES_NO_OPTION);
 
-                // If "yes" is selected, clean up and dispose of windows
-                if(confirmation == JOptionPane.YES_OPTION) {
-
-                    // Clean up
+                if (confirmation == JOptionPane.YES_OPTION) {
                     System.out.println("Beginning cleanup Process...");
                     System.out.println("Stopping camera feed thread...");
-                    cameraFetcherThread.interrupt(); // TODO fix crash when thread is interrupted, then the camera is closed (I think this has to do with the thread not actually stopping or smth like that, it's related to Imgproc.resize() in some manner? WTF?
+                    cameraFetcherThread.interrupt();
                     System.out.println("Closing camera access...");
                     if (camera.isOpened())
                         camera.release();
                     System.out.println("Done cleanup process.");
 
-                    // Disposal
                     App.this.dispose();
                     System.exit(0);
-                }
-                else
+                } else {
                     System.out.println("Exit cancelled.");
+                }
             }
         });
     }
@@ -241,72 +249,13 @@ public class App extends JFrame {
         recLogButton.setEnabled(logEnable);
     }
 
-    private int saveConfirmationDialogue(JButton button) {
-        return JOptionPane.showConfirmDialog(button, "Save Recording?", "Save Data", JOptionPane.YES_NO_CANCEL_OPTION);
-    }
-
     public static void main(String[] args) {
-        // Attempt to set L&F to system default for now
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.out.println("Unable to set Look and Feel to system default.");
-//            e.printStackTrace();
         }
 
-        // Invoke instance of STT App
         SwingUtilities.invokeLater(App::new);
     }
 }
-
-/*
-recCameraButton.addActionListener(e -> {
-    if(recCameraButton.getText().equals("Start Camera")){
-        System.out.println("Start Camera Clicked");
-        recCameraButton.setText("Stop Camera");
-        //Change Borders Title
-        cameraBorder.setTitle("Camera View : Recording");
-        cameraBorder.setTitleColor(new Color(255,0,0));
-        cameraPanel.repaint();
-        //Disable Buttons
-        recAllButton.setEnabled(false);
-        recLogButton.setEnabled(false);
-    }
-    else {
-        System.out.println("Stop Camera Clicked");
-
-        int answer = JOptionPane.showConfirmDialog(recLogButton, "Save Recording?", "Save Data", JOptionPane.YES_NO_CANCEL_OPTION);
-
-        //Yes: Save Data
-        if(answer == 0) {
-            System.out.println("Save Camera Recording Clicked\n");
-            recCameraButton.setText("Start Camera");
-            //Change Borders Title
-            cameraBorder.setTitle("Camera View");
-            cameraBorder.setTitleColor(new Color(255,255,255));
-            cameraPanel.repaint();
-            //Enable Buttons
-            recAllButton.setEnabled(true);
-            recLogButton.setEnabled(true);
-        }
-
-        //No: Don't Save Data
-        else if(answer == 1) {
-            System.out.println("Don't Save Camera Recording Clicked\n");
-            recCameraButton.setText("Start Camera");
-            //Change Borders Title
-            cameraBorder.setTitle("Camera View");
-            cameraBorder.setTitleColor(new Color(255,255,255));
-            cameraPanel.repaint();
-            //Enable Buttons
-            recAllButton.setEnabled(true);
-            recLogButton.setEnabled(true);
-        }
-
-        //Cancel
-        else if(answer == 2) {
-            System.out.println("Cancel Clicked");
-        }
-    }
-});
-* */
