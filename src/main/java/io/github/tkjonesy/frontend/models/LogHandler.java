@@ -10,14 +10,15 @@ public class LogHandler {
 
     @Getter
     private final JTextPane logTextPane;
+    @Getter
     private final LogQueue logQueue;
 
     // This StringBuilder accumulates the log messages in HTML format
     private final StringBuilder logHtmlContent;
 
-    public LogHandler(JTextPane textPane, LogQueue logQueue) {
+    public LogHandler(JTextPane textPane) {
         this.logTextPane = textPane;
-        this.logQueue = logQueue;
+        this.logQueue = new LogQueue();
 
         // Initialize the HTML content structure
         this.logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
@@ -53,11 +54,7 @@ public class LogHandler {
      */
     private void startLogUpdater() {
         Timer timer = new Timer(1000, e -> {
-            // Simulate log addition for testing purposes
-            logQueue.addGreenLog("Green log message");
-            logQueue.addYellowLog("Yellow log message");
-            logQueue.addRedLog("Red log message");
-
+            
             // Process logs from the queue
             Log nextLog;
             while ((nextLog = logQueue.getNextLog()) != null) {

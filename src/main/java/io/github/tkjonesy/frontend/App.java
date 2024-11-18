@@ -24,7 +24,6 @@ public class App extends JFrame {
     static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
     private LogHandler logHandler;
-    private final LogQueue logQueue;
 
     @Getter
     private final VideoCapture camera;
@@ -39,11 +38,12 @@ public class App extends JFrame {
 
     public App() {
 
-        this.logQueue = new LogQueue();
-
         initComponents();
         initListeners();
         this.setVisible(true);
+
+        // Log Handler. Used to handle the presentation of logs
+        this.logHandler = new LogHandler(logTextPane);
 
         this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
         if (!camera.isOpened()) {
@@ -52,7 +52,7 @@ public class App extends JFrame {
         }
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera);
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, logHandler.getLogQueue());
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -114,9 +114,6 @@ public class App extends JFrame {
                         .addComponent(scrollPane)
         );
         trackingPanel.setLayout(trackingPanelLayout);
-
-        // Log Handler. Used to handle the presentation of logs
-        this.logHandler = new LogHandler(logTextPane, logQueue);
 
         // Bottom Button Panel
         JPanel bottomPanel = new JPanel();

@@ -36,14 +36,15 @@ public class OnnxRunner {
      * Initializes a new {@code OnnxRunner} instance, setting up the model and logger.
      * If model loading fails, the application exits with an error.
      */
-    public OnnxRunner(){
-        logger = new LogQueue();
+    public OnnxRunner(LogQueue logQueue){
+        this.logger = logQueue;
         classes = new HashMap<>();
+
         try {
             this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
+            logger.addGreenLog("Model loaded successfully");
         } catch (OrtException | IOException exception) {
-            exception.printStackTrace();
-            System.err.println("Could not create new Onnx Runner, exiting...");
+            logger.addRedLog("Error loading model: " + exception.getMessage());
             System.exit(1);
         }
     }
@@ -56,10 +57,9 @@ public class OnnxRunner {
      */
     public OnnxOutput runInference(Mat frame){
         List<Detection> detectionList = new ArrayList<>();
-        updateClasses(detectionList);
-
         try {
             detectionList = inferenceSession.run(frame);
+            updateClasses(detectionList);
         } catch (OrtException ortException) {
             logger.addRedLog("Error running inference: " + ortException.getMessage());
         }
@@ -77,22 +77,9 @@ public class OnnxRunner {
             String label = detection.label();
             if (!classes.containsKey(label)) {
                 classes.put(label, classes.size());
+                logger.addGreenLog("New class detected: "+label);
             }
         }
-    }
-
-    /**
-     * Retrieves the latest log entry from the {@code logger}. If no logs are available,
-     * returns a default log message.
-     *
-     * @return The latest {@link Log} entry from {@code logs}.
-     */
-    public Log getNextLog(){
-        Log log = logger.getNextLog();
-        if (log == null) {
-            log = new Log(LogEnum.DEFAULT, "No logs available");
-        }
-        return log;
     }
 
     /**

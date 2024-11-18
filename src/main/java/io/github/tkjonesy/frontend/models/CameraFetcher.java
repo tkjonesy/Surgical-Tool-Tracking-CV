@@ -2,6 +2,7 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.ImageUtil;
+import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import org.opencv.core.Mat;
@@ -26,11 +27,13 @@ public class CameraFetcher implements Runnable {
     private final JLabel cameraFeed;
     private final VideoCapture camera;
     private final java.util.Timer timer;
+    private static LogQueue logger;
 
-    public CameraFetcher(JLabel cameraFeed, VideoCapture camera) {
+    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue) {
         this.cameraFeed = cameraFeed;
         this.camera = camera;
         this.timer = new Timer();
+        logger = logQueue;
     }
 
     private static BufferedImage cvt2bi(Mat frame) {
@@ -64,7 +67,7 @@ public class CameraFetcher implements Runnable {
             // Required objects for detections & display
             private static final Mat frame = new Mat();
             private static int currentFrame = 0;
-            private static final OnnxRunner onnxRunner = new OnnxRunner();
+            private static final OnnxRunner onnxRunner = new OnnxRunner(logger);
             private static OnnxOutput onnxOutput;
             private static List<Detection> detections = new ArrayList<>();
             @Override
