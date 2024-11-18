@@ -42,8 +42,6 @@ public class OnnxRunner {
         try {
             this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
         } catch (OrtException | IOException exception) {
-            exception.printStackTrace();
-            System.err.println("Could not create new Onnx Runner, exiting...");
             System.exit(1);
         }
     }
