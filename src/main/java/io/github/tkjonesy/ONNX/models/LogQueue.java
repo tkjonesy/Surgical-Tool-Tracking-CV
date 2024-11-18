@@ -56,6 +56,7 @@ public class LogQueue {
      * @return The latest {@code Log} object, or {@code null} if no logs are available.
      */
     public Log getNextLog(){
+        System.out.println("Getting next log of queue size " + logs.size());
         return logs.poll();
     }
 }

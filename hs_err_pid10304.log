@@ -16,7 +16,7 @@
 
 ---------------  S U M M A R Y ------------
 
-Command Line: -Djava.library.path=C:\opencv\build\java\x64 -javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2.5\lib\idea_rt.jar=58643:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2.5\bin -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 io.github.tkjonesy.App
+Command Line: -Djava.library.path=C:\opencv\build\java\x64 -javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2.5\lib\idea_rt.jar=58643:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2.5\bin -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 io.github.tkjonesy.frontend.App
 
 Host: Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz, 12 cores, 15G,  Windows 10 , 64 bit Build 19041 (10.0.19041.3636)
 Time: Thu Nov  7 20:44:55 2024 Eastern Standard Time elapsed time: 68.004380 seconds (0d 0h 1m 8s)
@@ -760,7 +760,7 @@ symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Pr
 
 VM Arguments:
 jvm_args: -Djava.library.path=C:\opencv\build\java\x64 -javaagent:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2.5\lib\idea_rt.jar=58643:C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2023.2.5\bin -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 
-java_command: io.github.tkjonesy.App
+java_command: io.github.tkjonesy.frontend.App
 java_class_path (initial): C:\Users\hunte\OneDrive\Documents\Surgical-Tool-Tracking-CV\target\classes;C:\opencv\build\java\opencv-490.jar
 Launcher Type: SUN_STANDARD
 
