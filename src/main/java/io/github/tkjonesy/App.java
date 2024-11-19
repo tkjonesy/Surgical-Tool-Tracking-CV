@@ -1,7 +1,10 @@
 package io.github.tkjonesy;
 
+import static io.github.tkjonesy.ONNX.settings.Settings.*;
+
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.border.TitledBorder;
 
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -11,8 +14,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.opencv.core.Core;
 import org.opencv.videoio.VideoCapture;
-
-import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 public class App extends JFrame {
 
@@ -29,6 +30,8 @@ public class App extends JFrame {
     @Getter
     @Setter
     private JTextPane logTextPane;
+    private JPanel cameraPanel, trackingPanel;
+    private TitledBorder cameraBorder;
 
     public App() {
         initComponents();
@@ -55,8 +58,9 @@ public class App extends JFrame {
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
         // Camera Panel
-        JPanel cameraPanel = new JPanel();
-        cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
+        cameraPanel = new JPanel();
+        cameraBorder = BorderFactory.createTitledBorder("Camera");
+        cameraPanel.setBorder(cameraBorder);
 
         cameraFeed = new JLabel("");
         cameraFeed.setMinimumSize(new Dimension(320, 240));
@@ -76,7 +80,7 @@ public class App extends JFrame {
 //        cameraPanel.add(cameraFeed, createConstraints(0,0,0.5,0.5));
 
         // Tracking Panel
-        JPanel trackingPanel = new JPanel();
+        trackingPanel = new JPanel();
         trackingPanel.setBorder(BorderFactory.createTitledBorder("Log"));
 
         logTextPane = new JTextPane();
@@ -137,16 +141,6 @@ public class App extends JFrame {
         this.pack();
     }
 
-    private GridBagConstraints createConstraints(int gridX, int gridY, double weightX, double weightY) {
-        GridBagConstraints c = new GridBagConstraints();
-        c.gridx = gridX;
-        c.gridy = gridY;
-        c.weightx = weightX;
-        c.weighty = weightY;
-        c.fill = GridBagConstraints.BOTH;
-        return c;
-    }
-
     private void initListeners() {
 
         // Record Camera Listener
@@ -156,11 +150,33 @@ public class App extends JFrame {
                     if(recCameraButton.isSelected()) {
                         recCameraButton.setText("Stop Camera");
                         setRecButtons(true, false, false);
+                        cameraBorder.setTitleColor(Color.RED);
+                        cameraPanel.repaint();
                     }
                     // Stop recording
                     else {
-                        recCameraButton.setText("Start Camera");
-                        setRecButtons(true, true, true);
+                        int answer = saveConfirmationDialogue(recCameraButton);
+
+                        switch(answer){
+                            // Yes
+                            case 0:
+                                System.out.println("Save Camera: YES");
+
+                            // No (and also yes will flow into this block as well)
+                            case 1:
+                                System.out.println("Save Camera: NO");
+
+                                // Reset buttons and border
+                                cameraBorder.setTitleColor(Color.black);
+                                cameraPanel.repaint();
+                                recCameraButton.setText("Start Camera");
+                                setRecButtons(true, true, true);
+                                break;
+                            // Cancel
+                            case 2:
+                                System.out.println("Save Camera: CANCEL");
+                                recCameraButton.setSelected(true);
+                        }
                     }
                 }
         );
@@ -175,6 +191,18 @@ public class App extends JFrame {
                     }
                     // Stop recording
                     else {
+                        int answer = saveConfirmationDialogue(recAllButton);
+
+                        switch(answer) {
+                            case 0:
+                                System.out.println("Save All: YES");
+                                break;
+                            case 1:
+                                System.out.println("Save All: NO");
+                                break;
+                            case 2:
+                                System.out.println("Save All: CANCEL");
+                        }
                         recAllButton.setText("Start All");
                         setRecButtons(true, true, true);
                     }
@@ -191,6 +219,18 @@ public class App extends JFrame {
                     }
                     // Stop recording
                     else {
+                        int answer = saveConfirmationDialogue(recLogButton);
+
+                        switch(answer) {
+                            case 0:
+                                System.out.println("Save Log: YES");
+                                break;
+                            case 1:
+                                System.out.println("Save Log: NO");
+                                break;
+                            case 2:
+                                System.out.println("Save Log: CANCEL");
+                        }
                         recLogButton.setText("Start Log");
                         setRecButtons(true, true, true);
                     }
@@ -204,7 +244,7 @@ public class App extends JFrame {
                 }
         );
 
-        // Window Event Listener
+        // Window Event Listener for closing
         this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -235,14 +275,24 @@ public class App extends JFrame {
         });
     }
 
+    private GridBagConstraints createConstraints(int gridX, int gridY, double weightX, double weightY) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = gridX;
+        c.gridy = gridY;
+        c.weightx = weightX;
+        c.weighty = weightY;
+        c.fill = GridBagConstraints.BOTH;
+        return c;
+    }
+
     private void setRecButtons(boolean camEnable, boolean allEnable, boolean logEnable) {
         recCameraButton.setEnabled(camEnable);
         recAllButton.setEnabled(allEnable);
         recLogButton.setEnabled(logEnable);
     }
 
-    private int saveConfirmationDialogue(JButton button) {
-        return JOptionPane.showConfirmDialog(button, "Save Recording?", "Save Data", JOptionPane.YES_NO_CANCEL_OPTION);
+    private int saveConfirmationDialogue(Component cmp) {
+        return JOptionPane.showConfirmDialog(cmp, "Save Recording?", "Save Data", JOptionPane.YES_NO_CANCEL_OPTION);
     }
 
     public static void main(String[] args) {
