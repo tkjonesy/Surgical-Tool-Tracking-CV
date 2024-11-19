@@ -10,8 +10,11 @@ import lombok.Getter;
 import org.opencv.core.Mat;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -32,21 +35,38 @@ public class OnnxRunner {
     @Getter
     private final HashMap<String, Integer> classes;
 
-    /**
-     * Initializes a new {@code OnnxRunner} instance, setting up the model and logger.
-     * If model loading fails, the application exits with an error.
-     */
-    public OnnxRunner(LogQueue logQueue){
-        this.logger = logQueue;
-        classes = new HashMap<>();
+    private HashSet<String> knownClasses = new HashSet<>();
+    private HashMap<String, Integer> previousClasses;
 
+    // Counter for numbering log entries
+    private int logCounter;
+
+    // Colors for terminal output
+    private static final String ANSI_RESET = "\u001B";
+    private static final String ANSI_GREEN = "\u001B";
+    private static final String ANSI_YELLOW = "\u001B";
+    private static final String ANSI_RED = "\u001B";
+
+    public OnnxRunner(LogQueue logger) {
+        this.logger = logger != null ? logger : new LogQueue(); // Use provided logger or create a new one
+        classes = new HashMap<>();
+        previousClasses = new HashMap<>(); // Initializes previousClasses to store previous frame detections
+        logCounter = 1;
         try {
             this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
-            logger.addGreenLog("Model loaded successfully");
         } catch (OrtException | IOException exception) {
-            logger.addRedLog("Error loading model: " + exception.getMessage());
             System.exit(1);
         }
+        printHeader();
+    }
+
+
+    // Utility method to format log messages
+    private String formatLogMessage(int logIndex, String date, String time, String label, String action) {
+        return String.format(
+                "Log #%d    Date: %s    Time: %s    Object: %-15s    Action: %-25s",
+                logIndex, date, time, label, action
+        );
     }
 
     /**
@@ -55,38 +75,120 @@ public class OnnxRunner {
      * @param frame The {@link Mat} object representing the image frame to be processed.
      * @return An {@link OnnxOutput} object containing the list of detections.
      */
-    public OnnxOutput runInference(Mat frame){
+    public OnnxOutput runInference(Mat frame) {
         List<Detection> detectionList = new ArrayList<>();
+
         try {
             detectionList = inferenceSession.run(frame);
-            updateClasses(detectionList);
         } catch (OrtException ortException) {
             logger.addRedLog("Error running inference: " + ortException.getMessage());
         }
 
+        // Process classes with the detected items and update logs if objects leave the view
+        processClasses(detectionList);
+
         return new OnnxOutput(detectionList);
     }
 
-    /**
-     * Updates the {@code classes} hashmap with the latest detections.
-     *
-     * @param detections A list of {@link Detection} objects representing the detected items.
-     */
-    private void updateClasses(List<Detection> detections){
-        for (Detection detection : detections) {
-            String label = detection.label();
-            if (!classes.containsKey(label)) {
-                classes.put(label, classes.size());
-                logger.addGreenLog("New class detected: "+label);
-            }
-        }
+    public Log getNextLog(){
+        Log log = logger.getNextLog();
+
+        /* I commented this out because the log was overflown with "No logs available" which didnt allow the camera to detect anything
+        if (log == null) {
+            log = new Log(LogEnum.DEFAULT, "No logs available");
+        }*/
+        return log;
+    }
+
+    // Method to print the header row
+    private void printHeader() {
+        String header = String.format("%-10s %-20s %-10s %-20s %-20s",
+                "Index", "Date", "Time", "Object", "Log Action");
+        System.out.println(header);
+        System.out.println("=".repeat(header.length()));  // Underline the header with equals signs
     }
 
     /**
-     * Processes the detected classes, logging any changes in classes, such as additions
-     * or removals. This method is a placeholder for future implementation.
+     * Processes the detected classes, logging any changes in classes, such as additions,
+     * removals, or exits from view.
+     *
+     * @param detections A list of {@link Detection} objects representing the detected items.
      */
-    public void processClasses(){
+    private void processClasses(List<Detection> detections) {
+        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        DateTimeFormatter formatterTime = DateTimeFormatter.ofPattern("HH:mm:ss");
 
+        // Count detections for this frame
+        HashMap<String, Integer> updatedClasses = new HashMap<>();
+        for (Detection detection : detections) {
+            String label = detection.label();
+            updatedClasses.put(label, updatedClasses.getOrDefault(label, 0) + 1);
+        }
+
+        HashMap<String, Integer> currentFrameClasses = new HashMap<>();
+        for (Detection detection : detections) {
+            String label = detection.label();
+            currentFrameClasses.put(label, currentFrameClasses.getOrDefault(label, 0) + 1);
+        }
+
+        // Check for new detections or count updates
+        for (String label : updatedClasses.keySet()) {
+            String date = LocalDateTime.now().format(formatterDate);
+            String time = LocalDateTime.now().format(formatterTime);
+            String logMessage = "";
+            String logAction = "";
+
+            if (!classes.containsKey(label)) {
+                // New class detected, print in green
+                // logMessage = ANSI_GREEN + String.format("%-10d %-20s %-10s %-20s %-10s", logCounter++, date, time, label, "New class detected") + ANSI_RESET;
+                logAction = "New class detected";
+                //logger.addGreenLog(logMessage);
+            } else if (!updatedClasses.get(label).equals(classes.get(label))) {
+                // Class count updated, print in yellow
+                logMessage = String.format("Log #%-10d Date: %-20s Time: %-10s Object: %-20s Action: %-10s", logCounter++, date, time, label, "Class count updated: " + updatedClasses.get(label));
+                logAction = "Class count updated";
+                logger.addYellowLog(logMessage);
+            }
+
+            if (!logMessage.isEmpty()) {  // Only log if a change was detected
+                System.out.println(logMessage);
+            }
+            classes.put(label, updatedClasses.get(label));
+        }
+
+        // Log objects that are no longer present
+        String date = LocalDateTime.now().format(formatterDate);
+        String time = LocalDateTime.now().format(formatterTime);
+
+        // Check for new or reappearing objects in the current frame
+        for (String label : currentFrameClasses.keySet()) {
+            if (!knownClasses.contains(label)) {
+                // First time seeing this object type, log as new detection
+                String logMessage = formatLogMessage(logCounter++, date, time, label, "New Object Detected");
+                //System.out.println(logMessage);
+                logger.addGreenLog(logMessage);
+                knownClasses.add(label); // Mark as known for future detections
+            } else if (!previousClasses.containsKey(label)) {
+                // Object was previously seen, left view, and now reappeared
+                String logMessage = formatLogMessage(logCounter++, date, time, label, "Reappeared in camera view");
+                //System.out.println(logMessage);
+                logger.addGreenLog(logMessage);
+            }
+        }
+
+        for (String label : previousClasses.keySet()) {
+            if (!updatedClasses.containsKey(label)) {
+                // Object left camera view, log in red
+                String exitMessage = formatLogMessage(logCounter++, date, time, label, "Left Camera View");;
+                logger.addRedLog(exitMessage);
+                //System.out.println(exitMessage);
+            }
+        }
+
+        // Update the previousClasses with the current frame's classes for the next iteration
+        previousClasses = new HashMap<>(currentFrameClasses);
+        // Update previousClasses for the next frame comparison
+        previousClasses.clear();
+        previousClasses.putAll(updatedClasses);
     }
 }
