@@ -4,7 +4,6 @@ import ai.onnxruntime.OrtException;
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.YoloV8;
-import io.github.tkjonesy.ONNX.enums.LogEnum;
 import io.github.tkjonesy.ONNX.settings.Settings;
 import lombok.Getter;
 import org.opencv.core.Mat;
@@ -41,14 +40,8 @@ public class OnnxRunner {
     // Counter for numbering log entries
     private int logCounter;
 
-    // Colors for terminal output
-    private static final String ANSI_RESET = "\u001B";
-    private static final String ANSI_GREEN = "\u001B";
-    private static final String ANSI_YELLOW = "\u001B";
-    private static final String ANSI_RED = "\u001B";
-
     public OnnxRunner(LogQueue logger) {
-        this.logger = logger != null ? logger : new LogQueue(); // Use provided logger or create a new one
+        this.logger = logger;
         classes = new HashMap<>();
         previousClasses = new HashMap<>(); // Initializes previousClasses to store previous frame detections
         logCounter = 1;
@@ -91,13 +84,7 @@ public class OnnxRunner {
     }
 
     public Log getNextLog(){
-        Log log = logger.getNextLog();
-
-        /* I commented this out because the log was overflown with "No logs available" which didnt allow the camera to detect anything
-        if (log == null) {
-            log = new Log(LogEnum.DEFAULT, "No logs available");
-        }*/
-        return log;
+        return logger.getNextLog();
     }
 
     // Method to print the header row
@@ -140,7 +127,6 @@ public class OnnxRunner {
 
             if (!classes.containsKey(label)) {
                 // New class detected, print in green
-                // logMessage = ANSI_GREEN + String.format("%-10d %-20s %-10s %-20s %-10s", logCounter++, date, time, label, "New class detected") + ANSI_RESET;
                 logAction = "New class detected";
                 //logger.addGreenLog(logMessage);
             } else if (!updatedClasses.get(label).equals(classes.get(label))) {
@@ -165,13 +151,11 @@ public class OnnxRunner {
             if (!knownClasses.contains(label)) {
                 // First time seeing this object type, log as new detection
                 String logMessage = formatLogMessage(logCounter++, date, time, label, "New Object Detected");
-                //System.out.println(logMessage);
                 logger.addGreenLog(logMessage);
                 knownClasses.add(label); // Mark as known for future detections
             } else if (!previousClasses.containsKey(label)) {
                 // Object was previously seen, left view, and now reappeared
                 String logMessage = formatLogMessage(logCounter++, date, time, label, "Reappeared in camera view");
-                //System.out.println(logMessage);
                 logger.addGreenLog(logMessage);
             }
         }
@@ -181,7 +165,6 @@ public class OnnxRunner {
                 // Object left camera view, log in red
                 String exitMessage = formatLogMessage(logCounter++, date, time, label, "Left Camera View");;
                 logger.addRedLog(exitMessage);
-                //System.out.println(exitMessage);
             }
         }
 
