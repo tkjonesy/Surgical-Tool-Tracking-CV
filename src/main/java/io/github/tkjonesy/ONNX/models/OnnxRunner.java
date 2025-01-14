@@ -55,10 +55,10 @@ public class OnnxRunner {
 
 
     // Utility method to format log messages
-    private String formatLogMessage(int logIndex, String date, String time, String label, String action) {
+    private String formatLogMessage(int logIndex, String label, String action) {
         return String.format(
-                "Log #%d    Date: %s    Time: %s    Object: %-15s    Action: %-25s",
-                logIndex, date, time, label, action
+                "Log #%d    Object: %-15s    Action: %-25s",
+                logIndex, label, action
         );
     }
 
@@ -89,8 +89,8 @@ public class OnnxRunner {
 
     // Method to print the header row
     private void printHeader() {
-        String header = String.format("%-10s %-20s %-10s %-20s %-20s",
-                "Index", "Date", "Time", "Object", "Log Action");
+        String header = String.format("%-10s %-20s %-20s",
+                "Index", "Object", "Log Action");
         System.out.println(header);
         System.out.println("=".repeat(header.length()));  // Underline the header with equals signs
     }
@@ -131,7 +131,7 @@ public class OnnxRunner {
                 //logger.addGreenLog(logMessage);
             } else if (!updatedClasses.get(label).equals(classes.get(label))) {
                 // Class count updated, print in yellow
-                logMessage = String.format("Log #%-10d Date: %-20s Time: %-10s Object: %-20s Action: %-10s", logCounter++, date, time, label, "Class count updated: " + updatedClasses.get(label));
+                logMessage = String.format("Log #%-10d Object: %-20s Action: %-10s", logCounter++, label, "Class count updated: " + updatedClasses.get(label));
                 logAction = "Class count updated";
                 logger.addYellowLog(logMessage);
             }
@@ -150,12 +150,12 @@ public class OnnxRunner {
         for (String label : currentFrameClasses.keySet()) {
             if (!knownClasses.contains(label)) {
                 // First time seeing this object type, log as new detection
-                String logMessage = formatLogMessage(logCounter++, date, time, label, "New Object Detected");
+                String logMessage = formatLogMessage(logCounter++, label, "New Object Detected");
                 logger.addGreenLog(logMessage);
                 knownClasses.add(label); // Mark as known for future detections
             } else if (!previousClasses.containsKey(label)) {
                 // Object was previously seen, left view, and now reappeared
-                String logMessage = formatLogMessage(logCounter++, date, time, label, "Reappeared in camera view");
+                String logMessage = formatLogMessage(logCounter++, label, "Reappeared in camera view");
                 logger.addGreenLog(logMessage);
             }
         }
@@ -163,7 +163,7 @@ public class OnnxRunner {
         for (String label : previousClasses.keySet()) {
             if (!updatedClasses.containsKey(label)) {
                 // Object left camera view, log in red
-                String exitMessage = formatLogMessage(logCounter++, date, time, label, "Left Camera View");;
+                String exitMessage = formatLogMessage(logCounter++, label, "Left Camera View");;
                 logger.addRedLog(exitMessage);
             }
         }
