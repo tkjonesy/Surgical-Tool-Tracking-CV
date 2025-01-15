@@ -9,6 +9,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
+import org.opencv.videoio.VideoWriter;
 import org.opencv.videoio.Videoio;
 
 import javax.swing.*;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.github.tkjonesy.ONNX.settings.Settings.CAMERA_FRAME_RATE;
 import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
@@ -28,12 +30,14 @@ public class CameraFetcher implements Runnable {
     private final VideoCapture camera;
     private final java.util.Timer timer;
     private static LogQueue logger;
+    private final AtomicBoolean isRecording;
 
-    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue) {
+    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue, AtomicBoolean isRecording) {
         this.cameraFeed = cameraFeed;
         this.camera = camera;
         this.timer = new Timer();
         logger = logQueue;
+        this.isRecording = isRecording;
     }
 
     private static BufferedImage cvt2bi(Mat frame) {
@@ -70,6 +74,7 @@ public class CameraFetcher implements Runnable {
             private static final OnnxRunner onnxRunner = new OnnxRunner(logger);
             private static OnnxOutput onnxOutput;
             private static List<Detection> detections = new ArrayList<>();
+            private VideoWriter writer = null;
             @Override
             public void run() {
                 // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
@@ -96,8 +101,32 @@ public class CameraFetcher implements Runnable {
                     Imgproc.resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
                     BufferedImage biFrame = cvt2bi(frame);
                     cameraFeed.setIcon(new ImageIcon(biFrame));
+
+                    //Creates video writer
+                    if(isRecording.get() && (writer == null || !writer.isOpened())) {
+                        final Size frameSize = new Size(frame.width(), frame.height());
+                        writer = new VideoWriter(
+                                "output.mp4",
+                                VideoWriter.fourcc('X', '2', '6', '4'), // Codec
+                                30, // FPS
+                                frameSize
+                        );
+                    }
+                    //If isRecording is true and no issues with writer record frames
+                    if(isRecording.get() && writer != null && writer.isOpened()) {
+                        writer.write(frame);
+                    }
+                    //If isRecording is false and no issues with writer end recording
+                    if (!isRecording.get() && writer != null && writer.isOpened()) {
+                        writer.release();
+                        writer = null;
+                        System.out.println("Recording stopped.");
+                    }
                 }
                 else {
+                    if(writer != null && writer.isOpened()){
+                        writer.release();
+                    }
                     timer.cancel();
                     timer.purge();
                 }

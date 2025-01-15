@@ -7,6 +7,7 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.frontend.models.CameraFetcher;
@@ -36,6 +37,8 @@ public class App extends JFrame {
     @Setter
     private JTextPane logTextPane;
 
+    private final AtomicBoolean isRecording = new AtomicBoolean(false);
+
     public App() {
 
         initComponents();
@@ -52,7 +55,7 @@ public class App extends JFrame {
         }
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, logHandler.getLogQueue());
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, logHandler.getLogQueue(), isRecording);
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -176,9 +179,11 @@ public class App extends JFrame {
                     if (recCameraButton.isSelected()) {
                         recCameraButton.setText("Stop Camera");
                         setRecButtons(true, false, false);
+                        isRecording.set(true);
                     } else {
                         recCameraButton.setText("Start Camera");
                         setRecButtons(true, true, true);
+                        isRecording.set(false);
                     }
                 }
         );
@@ -189,9 +194,11 @@ public class App extends JFrame {
                     if (recAllButton.isSelected()) {
                         recAllButton.setText("Stop All");
                         setRecButtons(false, true, false);
+                        isRecording.set(true);
                     } else {
                         recAllButton.setText("Start All");
                         setRecButtons(true, true, true);
+                        isRecording.set(false);
                     }
                 }
         );
