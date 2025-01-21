@@ -13,12 +13,15 @@ public class LogHandler {
     @Getter
     private final LogQueue logQueue;
 
+    private final FileSession fs;
+
     // This StringBuilder accumulates the log messages in HTML format
     private final StringBuilder logHtmlContent;
 
-    public LogHandler(JTextPane textPane) {
+    public LogHandler(JTextPane textPane, FileSession fs) {
         this.logTextPane = textPane;
         this.logQueue = new LogQueue();
+        this.fs = fs;
 
         // Initialize the HTML content structure
         this.logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
@@ -47,6 +50,9 @@ public class LogHandler {
 
         // Auto-scroll to the bottom of the JTextPane
         logTextPane.setCaretPosition(logTextPane.getDocument().getLength());
+
+        fs.saveLog(log);
+
     }
 
     /**

@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.frontend.models.CameraFetcher;
+import io.github.tkjonesy.frontend.models.FileSession;
 import io.github.tkjonesy.frontend.models.LogHandler;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,6 +26,7 @@ public class App extends JFrame {
     static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
     private LogHandler logHandler;
+    private FileSession fileSession;
 
     @Getter
     private final VideoCapture camera;
@@ -37,16 +39,16 @@ public class App extends JFrame {
     @Setter
     private JTextPane logTextPane;
 
-    private final AtomicBoolean isRecording = new AtomicBoolean(false);
-
     public App() {
 
         initComponents();
         initListeners();
         this.setVisible(true);
 
+        this.fileSession = new FileSession();
+
         // Log Handler. Used to handle the presentation of logs
-        this.logHandler = new LogHandler(logTextPane);
+        this.logHandler = new LogHandler(logTextPane, fileSession);
 
         this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
         if (!camera.isOpened()) {
@@ -55,7 +57,7 @@ public class App extends JFrame {
         }
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, logHandler.getLogQueue(), isRecording);
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, logHandler.getLogQueue(), fileSession);
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -179,11 +181,11 @@ public class App extends JFrame {
                     if (recCameraButton.isSelected()) {
                         recCameraButton.setText("Stop Camera");
                         setRecButtons(true, false, false);
-                        isRecording.set(true);
+                        fileSession.startNewSession();
                     } else {
                         recCameraButton.setText("Start Camera");
                         setRecButtons(true, true, true);
-                        isRecording.set(false);
+                        fileSession.endSession();
                     }
                 }
         );
@@ -194,11 +196,11 @@ public class App extends JFrame {
                     if (recAllButton.isSelected()) {
                         recAllButton.setText("Stop All");
                         setRecButtons(false, true, false);
-                        isRecording.set(true);
+                        fileSession.startNewSession();
                     } else {
                         recAllButton.setText("Start All");
                         setRecButtons(true, true, true);
-                        isRecording.set(false);
+                        fileSession.endSession();
                     }
                 }
         );

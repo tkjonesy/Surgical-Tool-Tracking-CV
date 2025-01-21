@@ -42,20 +42,4 @@ public class Log {
     private String getCurrentTimestamp(){
         return "[" + java.time.LocalTime.now() + "]";
     }
-
-    /**
-     * Creates a {@code Component} that visually represents the log entry.
-     * The component displays the log message and timestamp in the color associated with the log type.
-     *
-     * @return A {@code Component} with a graphical representation of the log.
-     */
-    public Component getCuteLog(){
-        return new Component() {
-            @Override
-            public void paint(Graphics g) {
-                g.setColor(logType.getColor());
-                g.drawString(timeStamp + " - " + message, 0, 0);
-            }
-        };
-    }
 }

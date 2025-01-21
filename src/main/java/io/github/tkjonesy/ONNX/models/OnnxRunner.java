@@ -83,10 +83,6 @@ public class OnnxRunner {
         return new OnnxOutput(detectionList);
     }
 
-    public Log getNextLog(){
-        return logger.getNextLog();
-    }
-
     // Method to print the header row
     private void printHeader() {
         String header = String.format("%-10s %-20s %-20s",

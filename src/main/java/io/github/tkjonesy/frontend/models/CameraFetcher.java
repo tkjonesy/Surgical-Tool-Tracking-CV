@@ -30,14 +30,14 @@ public class CameraFetcher implements Runnable {
     private final VideoCapture camera;
     private final java.util.Timer timer;
     private static LogQueue logger;
-    private final AtomicBoolean isRecording;
+    private final FileSession fs;
 
-    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue, AtomicBoolean isRecording) {
+    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue, FileSession fileSession) {
         this.cameraFeed = cameraFeed;
         this.camera = camera;
         this.timer = new Timer();
         logger = logQueue;
-        this.isRecording = isRecording;
+        this.fs = fileSession;
     }
 
     private static BufferedImage cvt2bi(Mat frame) {
@@ -74,10 +74,12 @@ public class CameraFetcher implements Runnable {
             private static final OnnxRunner onnxRunner = new OnnxRunner(logger);
             private static OnnxOutput onnxOutput;
             private static List<Detection> detections = new ArrayList<>();
-            private VideoWriter writer = null;
+            //private VideoWriter writer = null;
+            private final FileSession fileSession = fs;
             @Override
             public void run() {
                 // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
+                VideoWriter writer = fileSession.getWriter();
                 if(!Thread.currentThread().isInterrupted()) {
 
                     // Resize camera size to whatever the current feed window size is
@@ -103,29 +105,17 @@ public class CameraFetcher implements Runnable {
                     cameraFeed.setIcon(new ImageIcon(biFrame));
 
                     //Creates video writer
-                    if(isRecording.get() && (writer == null || !writer.isOpened())) {
-                        final Size frameSize = new Size(frame.width(), frame.height());
-                        writer = new VideoWriter(
-                                "output.mp4",
-                                VideoWriter.fourcc('X', '2', '6', '4'), // Codec
-                                30, // FPS
-                                frameSize
-                        );
+                    if(fileSession.isSessionActive() && (writer == null || !writer.isOpened())) {
+                        fileSession.initVideoWriter(frame);
                     }
-                    //If isRecording is true and no issues with writer record frames
-                    if(isRecording.get() && writer != null && writer.isOpened()) {
-                        writer.write(frame);
-                    }
-                    //If isRecording is false and no issues with writer end recording
-                    if (!isRecording.get() && writer != null && writer.isOpened()) {
-                        writer.release();
-                        writer = null;
-                        System.out.println("Recording stopped.");
+                    //If the session is active and no issues with writer record frames
+                    if(fileSession.isSessionActive() && writer != null && writer.isOpened()) {
+                        fileSession.writeFrame(frame);
                     }
                 }
                 else {
                     if(writer != null && writer.isOpened()){
-                        writer.release();
+                        fileSession.releaseWriter();
                     }
                     timer.cancel();
                     timer.purge();
