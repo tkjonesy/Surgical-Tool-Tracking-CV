@@ -25,8 +25,8 @@ public class App extends JFrame {
     // Compulsory OpenCV loading
     static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
 
-    private LogHandler logHandler;
-    private FileSession fileSession;
+    private final LogHandler logHandler;
+    private final FileSession fileSession;
 
     @Getter
     private final VideoCapture camera;
@@ -182,6 +182,8 @@ public class App extends JFrame {
                         recCameraButton.setText("Stop Camera");
                         setRecButtons(true, false, false);
                         fileSession.startNewSession();
+
+                        logHandler.startLogProcessing();
                     } else {
                         recCameraButton.setText("Start Camera");
                         setRecButtons(true, true, true);
@@ -197,6 +199,8 @@ public class App extends JFrame {
                         recAllButton.setText("Stop All");
                         setRecButtons(false, true, false);
                         fileSession.startNewSession();
+                        logHandler.startLogProcessing();
+
                     } else {
                         recAllButton.setText("Start All");
                         setRecButtons(true, true, true);

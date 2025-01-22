@@ -2,6 +2,7 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.LogQueue;
+
 import lombok.Getter;
 
 import javax.swing.*;
@@ -13,20 +14,26 @@ public class LogHandler {
     @Getter
     private final LogQueue logQueue;
 
-    private final FileSession fs;
+    private final FileSession fileSession;
 
     // This StringBuilder accumulates the log messages in HTML format
-    private final StringBuilder logHtmlContent;
+    private final StringBuilder logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
 
-    public LogHandler(JTextPane textPane, FileSession fs) {
+    public LogHandler(JTextPane textPane, FileSession fileSession) {
         this.logTextPane = textPane;
+        this.fileSession = fileSession;
         this.logQueue = new LogQueue();
-        this.fs = fs;
 
-        // Initialize the HTML content structure
-        this.logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
+    }
 
-        startLogUpdater();
+    /**
+     * Processes a log entry by appending it to the log text pane and saving it to a file.
+     *
+     * @param log The log entry to process.
+     */
+    private void processLog(Log log){
+        appendLogToPane(log);
+        saveLogToFile(log);
     }
 
     /**
@@ -34,7 +41,7 @@ public class LogHandler {
      *
      * @param log The log entry to display.
      */
-    private void addLog(Log log) {
+    private void appendLogToPane(Log log) {
         // Get the color of the log type as a hex code
         String colorHex = "#" + Integer.toHexString(log.getLogType().getColor().getRGB()).substring(2);
 
@@ -44,27 +51,32 @@ public class LogHandler {
 
         // Append the log message to the accumulated HTML content
         logHtmlContent.append(logMessage);
-
-        // Update the JTextPane with the new HTML content
         logTextPane.setText(logHtmlContent + "</body></html>");
 
         // Auto-scroll to the bottom of the JTextPane
         logTextPane.setCaretPosition(logTextPane.getDocument().getLength());
-
-        fs.saveLog(log);
-
     }
 
     /**
-     * Periodically fetches logs from the LogQueue and updates the tracking panel.
+     * Saves a log entry to a file.
+     *
+     * @param log The log entry to save.
      */
-    private void startLogUpdater() {
-        Timer timer = new Timer(1000, e -> {
-            
+    private void saveLogToFile(Log log){
+        fileSession.writeLogToFile(log);
+    }
+
+    /**
+     * Starts a timer that processes logs from the log queue every second.
+     */
+    public void startLogProcessing() {
+        this.logQueue.flushLogs();
+        Timer timer = new Timer(1000, e ->
+        {
             // Process logs from the queue
             Log nextLog;
             while ((nextLog = logQueue.getNextLog()) != null) {
-                addLog(nextLog);
+                processLog(nextLog);
             }
         });
         timer.start();

@@ -18,6 +18,8 @@ public class Settings {
     public static final int NUM_INPUT_ELEMENTS;
     public static final long[] INPUT_SHAPE;
 
+    public static final String FILE_DIRECTORY;
+
     static {
         Properties properties = new Properties();
         try (FileInputStream input = new FileInputStream("src/main/resources/onnxSettings.properties")) {
@@ -40,6 +42,9 @@ public class Settings {
             for (int i = 0; i < shapeValues.length; i++) {
                 INPUT_SHAPE[i] = Long.parseLong(shapeValues[i]);
             }
+
+            FILE_DIRECTORY = properties.getProperty("FILE_DIRECTORY", "archive");
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to load settings from properties file", e);
         }

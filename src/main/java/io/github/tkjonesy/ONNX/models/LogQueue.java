@@ -23,6 +23,13 @@ public class LogQueue {
     }
 
     /**
+     * Flushes all logs from the queue.
+     */
+    public void flushLogs() {
+        logs.clear();
+    }
+
+    /**
      * Adds an error log (red) to the queue.
      *
      * @param message The message to be logged with an error level.

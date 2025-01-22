@@ -53,6 +53,15 @@ public class OnnxRunner {
         printHeader();
     }
 
+    /**
+     * Clears the classes hashmap, removing all tracked classes.
+     */
+    public void clearClasses() {
+        classes.clear();
+        previousClasses.clear();
+        knownClasses.clear();
+    }
+
 
     // Utility method to format log messages
     private String formatLogMessage(int logIndex, String label, String action) {

@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.github.tkjonesy.ONNX.settings.Settings.CAMERA_FRAME_RATE;
 import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
@@ -79,7 +78,7 @@ public class CameraFetcher implements Runnable {
             @Override
             public void run() {
                 // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
-                VideoWriter writer = fileSession.getWriter();
+                VideoWriter writer = fileSession.getVideoWriter();
                 if(!Thread.currentThread().isInterrupted()) {
 
                     // Resize camera size to whatever the current feed window size is
@@ -110,12 +109,12 @@ public class CameraFetcher implements Runnable {
                     }
                     //If the session is active and no issues with writer record frames
                     if(fileSession.isSessionActive() && writer != null && writer.isOpened()) {
-                        fileSession.writeFrame(frame);
+                        fileSession.writeVideoFrame(frame);
                     }
                 }
                 else {
                     if(writer != null && writer.isOpened()){
-                        fileSession.releaseWriter();
+                        fileSession.releaseVideoWriter();
                     }
                     timer.cancel();
                     timer.purge();
