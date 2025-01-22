@@ -9,7 +9,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.frontend.models.CameraFetcher;
 import io.github.tkjonesy.frontend.models.FileSession;
 import io.github.tkjonesy.frontend.models.LogHandler;
@@ -33,7 +32,7 @@ public class App extends JFrame {
     private final Thread cameraFetcherThread;
     @Getter
     private JLabel cameraFeed;
-    private JToggleButton recCameraButton, recAllButton, recLogButton;
+    private JToggleButton startSessionButton;
     private JButton settingsButton;
     @Getter
     @Setter
@@ -122,20 +121,14 @@ public class App extends JFrame {
         // Bottom Button Panel
         JPanel bottomPanel = new JPanel();
 
-        recCameraButton = new JToggleButton("Start Camera");
-        recAllButton = new JToggleButton("Start All");
-        recLogButton = new JToggleButton("Start Log");
+        startSessionButton = new JToggleButton("Start Session");
         settingsButton = new JButton("Settings");
 
         GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
         bottomPanelLayout.setAutoCreateContainerGaps(true);
         bottomPanelLayout.setHorizontalGroup(
                 bottomPanelLayout.createSequentialGroup()
-                        .addComponent(recCameraButton)
-                        .addPreferredGap(ComponentPlacement.RELATED)
-                        .addComponent(recAllButton)
-                        .addPreferredGap(ComponentPlacement.RELATED)
-                        .addComponent(recLogButton)
+                        .addComponent(startSessionButton)
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addComponent(settingsButton)
         );
@@ -143,9 +136,7 @@ public class App extends JFrame {
                 bottomPanelLayout.createSequentialGroup()
                         .addGroup(
                                 bottomPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                                        .addComponent(recCameraButton)
-                                        .addComponent(recAllButton)
-                                        .addComponent(recLogButton)
+                                        .addComponent(startSessionButton)
                                         .addComponent(settingsButton)
                         )
         );
@@ -174,50 +165,17 @@ public class App extends JFrame {
 
     private void initListeners() {
 
-        // Record Camera Listener
-        recCameraButton.addActionListener(
+        // Session Button Action Listener
+        startSessionButton.addActionListener(
                 e -> {
-                    if (recCameraButton.isSelected()) {
-                        recCameraButton.setText("Stop Camera");
-                        setRecButtons(true, false, false);
-                        fileSession.startNewSession();
-
-                        logHandler.startLogProcessing();
-                    } else {
-                        recCameraButton.setText("Start Camera");
-                        setRecButtons(true, true, true);
-                        fileSession.endSession();
-                    }
-                }
-        );
-
-        // Record All Listener
-        recAllButton.addActionListener(
-                e -> {
-                    if (recAllButton.isSelected()) {
-                        recAllButton.setText("Stop All");
-                        setRecButtons(false, true, false);
+                    if (startSessionButton.isSelected()) {
+                        startSessionButton.setText("Stop Session");
                         fileSession.startNewSession();
                         logHandler.startLogProcessing();
-
                     } else {
-                        recAllButton.setText("Start All");
-                        setRecButtons(true, true, true);
+                        startSessionButton.setText("Start Session");
                         fileSession.endSession();
                         logHandler.endLogProcessing();
-                    }
-                }
-        );
-
-        // Record Log Listener
-        recLogButton.addActionListener(
-                e -> {
-                    if (recLogButton.isSelected()) {
-                        recLogButton.setText("Stop Log");
-                        setRecButtons(false, false, true);
-                    } else {
-                        recLogButton.setText("Start Log");
-                        setRecButtons(true, true, true);
                     }
                 }
         );
@@ -251,12 +209,6 @@ public class App extends JFrame {
                 }
             }
         });
-    }
-
-    private void setRecButtons(boolean camEnable, boolean allEnable, boolean logEnable) {
-        recCameraButton.setEnabled(camEnable);
-        recAllButton.setEnabled(allEnable);
-        recLogButton.setEnabled(logEnable);
     }
 
     public static void main(String[] args) {
