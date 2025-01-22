@@ -31,6 +31,8 @@ public class CameraFetcher implements Runnable {
     private static LogQueue logger;
     private final FileSession fs;
 
+    private int logCounter = 0;
+
     public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue, FileSession fileSession) {
         this.cameraFeed = cameraFeed;
         this.camera = camera;

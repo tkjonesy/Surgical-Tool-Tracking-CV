@@ -40,7 +40,6 @@ public class App extends JFrame {
     private JTextPane logTextPane;
 
     public App() {
-
         initComponents();
         initListeners();
         this.setVisible(true);

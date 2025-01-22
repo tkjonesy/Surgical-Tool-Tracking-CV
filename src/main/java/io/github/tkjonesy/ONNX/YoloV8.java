@@ -54,17 +54,26 @@ public class YoloV8 extends Yolo {
     // Preprocess the image. Returns a map of the input tensor name to the input tensor
     public Map<String, OnnxTensor> preprocess(Mat img) throws OrtException {
 
-        // Resizing
+        // Resizing with padding
         Mat resizedImg = new Mat();
         ImageUtil.resizeWithPadding(img, resizedImg, INPUT_SIZE, INPUT_SIZE);
 
-        // BGR -> RGB
-        Imgproc.cvtColor(resizedImg, resizedImg, Imgproc.COLOR_BGR2RGB);
+        System.out.println("");
+
+        // Convert BGR to RGB
+        try{
+            Imgproc.cvtColor(resizedImg, resizedImg, Imgproc.COLOR_BGR2RGB);
+            System.out.println("Converted BGR to RGB");
+        }catch (Exception e){
+            System.err.println("Error converting BGR to RGB");
+        }
+
+        // Log final image properties
+        //System.out.println("");
 
         // Create input tensor container
         Map<String, OnnxTensor> container = new HashMap<>();
 
-        // if model is quantized
         if (this.inputType.equals(OnnxJavaType.UINT8)) {
             byte[] whc = new byte[NUM_INPUT_ELEMENTS];
             resizedImg.get(0, 0, whc);
@@ -72,7 +81,7 @@ public class YoloV8 extends Yolo {
             ByteBuffer inputBuffer = ByteBuffer.wrap(chw);
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE, this.inputType);
         } else {
-            // Normalization
+            // Normalize the image
             resizedImg.convertTo(resizedImg, CvType.CV_32FC1, 1. / 255);
             float[] whc = new float[NUM_INPUT_ELEMENTS];
             resizedImg.get(0, 0, whc);
@@ -81,11 +90,12 @@ public class YoloV8 extends Yolo {
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE);
         }
 
-        // To OnnxTensor
+        // Add the tensor to the container
         container.put(this.inputName, inputTensor);
 
         return container;
     }
+
 
     public List<Detection> postprocess(float[][] outputs, float orgW, float orgH, float padW, float padH, float gain) {
 
