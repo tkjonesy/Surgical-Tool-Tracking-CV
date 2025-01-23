@@ -204,6 +204,7 @@ public class App extends JFrame {
                         recAllButton.setText("Start All");
                         setRecButtons(true, true, true);
                         fileSession.endSession();
+                        logHandler.endLogProcessing();
                     }
                 }
         );

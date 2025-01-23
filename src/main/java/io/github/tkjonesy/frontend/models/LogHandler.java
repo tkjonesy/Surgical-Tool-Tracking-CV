@@ -15,6 +15,7 @@ public class LogHandler {
     private final LogQueue logQueue;
 
     private final FileSession fileSession;
+    private Timer timer;
 
     // This StringBuilder accumulates the log messages in HTML format
     private final StringBuilder logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
@@ -70,7 +71,7 @@ public class LogHandler {
      */
     public void startLogProcessing() {
         this.logQueue.flushLogs();
-        Timer timer = new Timer(1000, e ->
+        this.timer = new Timer(1000, e ->
         {
             // Process logs from the queue
             Log nextLog;
@@ -79,5 +80,11 @@ public class LogHandler {
             }
         });
         timer.start();
+    }
+
+    public void endLogProcessing() {
+        if(timer != null){
+            timer.stop();
+        }
     }
 }

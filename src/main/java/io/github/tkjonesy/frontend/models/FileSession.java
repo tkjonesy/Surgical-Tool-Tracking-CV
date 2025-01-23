@@ -14,30 +14,37 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
+/**
+ * Represents a session for saving video and log files. Handles session lifecycle, including
+ * initialization, writing to files, and cleanup of resources.
+ */
 public class FileSession {
 
     // Save directory
     private String saveDir;
 
-    /*
-        * videoWriter for saving video frames to a file.
-        * logBufferedWriter for saving log messages to a .log file.
-        *
-        * These are initialized when a session is started and released when the session ends.
-    */
+    /** VideoWriter for saving video frames to a file. */
     @Getter
     private VideoWriter videoWriter = null;
+
+    /** BufferedWriter for saving log messages to a .log file. */
     private BufferedWriter logBufferedWriter = null;
 
-    // Atomic boolean to track if a session is active
+    /** Tracks whether a session is active. */
     private final AtomicBoolean sessionActive = new AtomicBoolean(false);
 
-    public boolean isSessionActive() {
+    /**
+     * Checks if the session is currently active.
+     *
+     * @return true if the session is active, false otherwise.
+     */
+    protected boolean isSessionActive() {
         return sessionActive.get();
     }
 
-    // Starts a new Session
+    /**
+     * Starts a new session by creating a directory and initializing resources for saving video and log files.
+     */
     public void startNewSession() {
         try {
             String FILE_DIRECTORY = Settings.FILE_DIRECTORY;
@@ -45,28 +52,37 @@ public class FileSession {
             // Ensure the parent directory exists
             Files.createDirectories(Paths.get(FILE_DIRECTORY));
 
-            // Current date time in ISO 8601 format
+            // Generate a unique directory name based on the current date and time
             String dateTime = java.time.LocalDateTime.now()
                     .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm"));
-
-            // Create a new directory for the session
             saveDir = FILE_DIRECTORY + "/" + dateTime;
+
+            // Create the session directory
             if (!new java.io.File(saveDir).mkdir()) {
                 throw new IOException("Failed to create directory: " + saveDir);
             }
 
-            // Create a buffered writer to save logs to a file
+            // Initialize BufferedWriter for saving logs
             this.logBufferedWriter = new BufferedWriter(new FileWriter(saveDir + "/logfile.log", true));
 
-            // Set the session as active
+            // Mark the session as active
             sessionActive.set(true);
         } catch (IOException e) {
-            System.err.println("Failed to create session directory.\n"+e.getMessage());
+            System.err.println("Failed to initialize session: " + e.getMessage());
         }
     }
 
-    // Initializes the VideoWriter with the first frame
-    public void initVideoWriter(Mat frame) throws IllegalStateException {
+    /**
+     * Initializes the VideoWriter for saving video frames.
+     *
+     * @param frame The first frame, used to determine video properties such as size and format.
+     * @throws IllegalStateException if the session is not active.
+     */
+    protected void initVideoWriter(Mat frame) throws IllegalStateException {
+        if (!isSessionActive()) {
+            throw new IllegalStateException("Session is not active. Start a session before initializing the VideoWriter.");
+        }
+
         final Size frameSize = new Size(frame.width(), frame.height());
         String videoPath = saveDir + "/recording.mp4";
         videoWriter = new VideoWriter(
@@ -75,56 +91,67 @@ public class FileSession {
                 30, // FPS
                 frameSize
         );
-
-        if (!videoWriter.isOpened()) {
-            throw new RuntimeException("Failed to open VideoWriter at " + videoPath);
-        }
     }
 
-    // Writes a video frame to the videoWriter
-    public void writeVideoFrame(Mat frame){
-        if (videoWriter != null) {
+    /**
+     * Writes a video frame to the video file.
+     *
+     * @param frame The video frame to write.
+     */
+    protected void writeVideoFrame(Mat frame) {
+        if (videoWriter != null && videoWriter.isOpened() && isSessionActive()) {
             videoWriter.write(frame);
         }
     }
 
-    // Ends the current session
+    /**
+     * Writes a log message to the log file.
+     *
+     * @param log The log entry to write.
+     */
+    protected void writeLogToFile(Log log) {
+        if (logBufferedWriter != null && isSessionActive()) {
+            try {
+                String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
+                this.logBufferedWriter.write(fullMessage + "\n");
+            } catch (IOException e) {
+                System.err.println("IO Exception writing log to file: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Ends the current session by releasing resources such as the VideoWriter and BufferedWriter.
+     */
     public void endSession() {
         sessionActive.set(false);
-
         releaseVideoWriter();
         closeLogWriter();
     }
 
-    // Releases the videoWriter
-    public void releaseVideoWriter(){
+    /**
+     * Releases the VideoWriter resource.
+     */
+    private void releaseVideoWriter() {
         if (videoWriter != null) {
             videoWriter.release();
             videoWriter = null;
         }
     }
 
+    /**
+     * Closes the BufferedWriter used for saving logs.
+     */
     private void closeLogWriter() {
-        if (logBufferedWriter != null) {
-            try {
+        try {
+            if (logBufferedWriter != null) {
                 logBufferedWriter.flush();
                 logBufferedWriter.close();
-            } catch (IOException e) {
-                System.err.println("Failed to close log writer: " + e.getMessage());
-            } finally {
-                logBufferedWriter = null;
             }
-        }
-    }
-
-    // Writes a log message to the logBufferedWriter
-    public void writeLogToFile(Log log) {
-        try {
-            String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
-            this.logBufferedWriter.write(fullMessage + "\n");
         } catch (IOException e) {
-            System.out.println("File Session has not started yet. Cannot save log.");
+            System.err.println("Failed to close log writer: " + e.getMessage());
+        } finally {
+            logBufferedWriter = null;
         }
     }
-
 }

@@ -58,12 +58,9 @@ public class YoloV8 extends Yolo {
         Mat resizedImg = new Mat();
         ImageUtil.resizeWithPadding(img, resizedImg, INPUT_SIZE, INPUT_SIZE);
 
-        System.out.println("");
-
         // Convert BGR to RGB
         try{
             Imgproc.cvtColor(resizedImg, resizedImg, Imgproc.COLOR_BGR2RGB);
-            System.out.println("Converted BGR to RGB");
         }catch (Exception e){
             System.err.println("Error converting BGR to RGB");
         }

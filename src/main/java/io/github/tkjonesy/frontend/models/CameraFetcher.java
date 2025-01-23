@@ -80,7 +80,6 @@ public class CameraFetcher implements Runnable {
             @Override
             public void run() {
                 // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
-                VideoWriter writer = fileSession.getVideoWriter();
                 if(!Thread.currentThread().isInterrupted()) {
 
                     // Resize camera size to whatever the current feed window size is
@@ -106,19 +105,19 @@ public class CameraFetcher implements Runnable {
                     cameraFeed.setIcon(new ImageIcon(biFrame));
 
                     //Creates video writer
+                    VideoWriter writer = fileSession.getVideoWriter();
                     if(fileSession.isSessionActive() && (writer == null || !writer.isOpened())) {
-                        fileSession.initVideoWriter(frame);
-                        onnxRunner.clearClasses();
-                    }
-                    //If the session is active and no issues with writer record frames
-                    if(fileSession.isSessionActive() && writer != null && writer.isOpened()) {
+                        try{
+                            fileSession.initVideoWriter(frame);     // (can throw IllegalStateException)
+                            onnxRunner.clearClasses();
+                        }catch (IllegalStateException e){
+                            logger.addRedLog("Error initializing video writer: " + e.getMessage());
+                        }
+                    }else{
                         fileSession.writeVideoFrame(frame);
                     }
                 }
                 else {
-                    if(writer != null && writer.isOpened()){
-                        fileSession.releaseVideoWriter();
-                    }
                     timer.cancel();
                     timer.purge();
                 }
