@@ -108,6 +108,7 @@ public class CameraFetcher implements Runnable {
                     //Creates video writer
                     if(fileSession.isSessionActive() && (writer == null || !writer.isOpened())) {
                         fileSession.initVideoWriter(frame);
+                        onnxRunner.clearClasses();
                     }
                     //If the session is active and no issues with writer record frames
                     if(fileSession.isSessionActive() && writer != null && writer.isOpened()) {

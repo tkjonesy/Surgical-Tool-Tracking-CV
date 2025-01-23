@@ -25,7 +25,7 @@ public class FileSession {
         * logBufferedWriter for saving log messages to a .log file.
         *
         * These are initialized when a session is started and released when the session ends.
-     */
+    */
     @Getter
     private VideoWriter videoWriter = null;
     private BufferedWriter logBufferedWriter = null;
@@ -67,10 +67,6 @@ public class FileSession {
 
     // Initializes the VideoWriter with the first frame
     public void initVideoWriter(Mat frame) throws IllegalStateException {
-        if (!isSessionActive()) {
-            throw new IllegalStateException("Session is not active. Start a session before initializing the VideoWriter.");
-        }
-
         final Size frameSize = new Size(frame.width(), frame.height());
         String videoPath = saveDir + "/recording.mp4";
         videoWriter = new VideoWriter(
@@ -124,7 +120,7 @@ public class FileSession {
     // Writes a log message to the logBufferedWriter
     public void writeLogToFile(Log log) {
         try {
-            String fullMessage = "["+log.getTimeStamp()+"]" + " - " + log.getMessage();
+            String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
             this.logBufferedWriter.write(fullMessage + "\n");
         } catch (IOException e) {
             System.out.println("File Session has not started yet. Cannot save log.");

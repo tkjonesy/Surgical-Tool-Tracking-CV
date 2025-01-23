@@ -62,7 +62,6 @@ public class OnnxRunner {
         knownClasses.clear();
     }
 
-
     // Utility method to format log messages
     private String formatLogMessage(int logIndex, String label, String action) {
         return String.format(

@@ -23,7 +23,6 @@ public class LogHandler {
         this.logTextPane = textPane;
         this.fileSession = fileSession;
         this.logQueue = new LogQueue();
-
     }
 
     /**
