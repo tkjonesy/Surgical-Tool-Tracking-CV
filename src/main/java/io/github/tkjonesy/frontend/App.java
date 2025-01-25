@@ -2,12 +2,10 @@ package io.github.tkjonesy.frontend;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
-import javax.swing.border.TitledBorder;
 
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.github.tkjonesy.frontend.models.CameraFetcher;
 import io.github.tkjonesy.frontend.models.FileSession;
@@ -86,13 +84,9 @@ public class App extends JFrame {
         );
         cameraPanel.setLayout(cameraPanelLayout);
 
-        // Log tracker border
-        TitledBorder logBorder = BorderFactory.createTitledBorder("Tracking Log");
-
-        // Log tracker Tracking Panel
-        JPanel trackingPanel = new JPanel();
-        trackingPanel.setBorder(logBorder);
-
+        // Log tracker Panel
+        JPanel trackerPanel = new JPanel();
+        trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracking Log"));
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);
         this.logTextPane.setContentType("text/html");
@@ -104,7 +98,7 @@ public class App extends JFrame {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         // Set the layout for tracking panel using GroupLayout
-        GroupLayout trackingPanelLayout = new GroupLayout(trackingPanel);
+        GroupLayout trackingPanelLayout = new GroupLayout(trackerPanel);
         trackingPanelLayout.setAutoCreateContainerGaps(true);
         trackingPanelLayout.setHorizontalGroup(
                 trackingPanelLayout.createSequentialGroup()
@@ -114,7 +108,7 @@ public class App extends JFrame {
                 trackingPanelLayout.createSequentialGroup()
                         .addComponent(scrollPane)
         );
-        trackingPanel.setLayout(trackingPanelLayout);
+        trackerPanel.setLayout(trackingPanelLayout);
 
         // Bottom Button Panel
         JPanel bottomPanel = new JPanel();
@@ -143,7 +137,7 @@ public class App extends JFrame {
         // Window Layout
         this.setLayout(new GridBagLayout());
         this.add(cameraPanel, createConstraints(0, 0, 0.5, 1));
-        this.add(trackingPanel, createConstraints(1, 0, 0.5, 0.5));
+        this.add(trackerPanel, createConstraints(1, 0, 0.5, 0.5));
         GridBagConstraints bottomPanelConstraints = createConstraints(0, 1, 1, 0.05);
         bottomPanelConstraints.gridwidth = 2;
         bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
