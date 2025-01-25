@@ -87,18 +87,16 @@ public class App extends JFrame {
         cameraPanel.setLayout(cameraPanelLayout);
 
         // Log tracker border
-        TitledBorder logBorder = BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.WHITE), "Tracking Log");
-        logBorder.setTitleColor(Color.WHITE);
+        TitledBorder logBorder = BorderFactory.createTitledBorder("Tracking Log");
 
         // Log tracker Tracking Panel
         JPanel trackingPanel = new JPanel();
         trackingPanel.setBorder(logBorder);
-        trackingPanel.setBackground(Color.BLACK);
 
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);
         this.logTextPane.setContentType("text/html");
-        this.logTextPane.setBackground(Color.BLACK);
+        this.logTextPane.setBackground(new Color(30, 31, 34));
 
         // Log tracker scroll pane for text area
         JScrollPane scrollPane = new JScrollPane(logTextPane);
