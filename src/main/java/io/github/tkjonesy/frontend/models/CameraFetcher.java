@@ -2,7 +2,6 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.ImageUtil;
-import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import org.opencv.core.Mat;
@@ -28,17 +27,16 @@ public class CameraFetcher implements Runnable {
     private final JLabel cameraFeed;
     private final VideoCapture camera;
     private final java.util.Timer timer;
-    private static LogQueue logger;
-    private final FileSession fs;
 
-    private int logCounter = 0;
+    private final OnnxRunner onnxRunner;
+    private final FileSession fileSession;
 
-    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, LogQueue logQueue, FileSession fileSession) {
+    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, OnnxRunner onnxRunner, FileSession fileSession) {
         this.cameraFeed = cameraFeed;
         this.camera = camera;
         this.timer = new Timer();
-        logger = logQueue;
-        this.fs = fileSession;
+        this.onnxRunner = onnxRunner;
+        this.fileSession = fileSession;
     }
 
     private static BufferedImage cvt2bi(Mat frame) {
@@ -72,11 +70,8 @@ public class CameraFetcher implements Runnable {
             // Required objects for detections & display
             private static final Mat frame = new Mat();
             private static int currentFrame = 0;
-            private static final OnnxRunner onnxRunner = new OnnxRunner(logger);
             private static OnnxOutput onnxOutput;
             private static List<Detection> detections = new ArrayList<>();
-            //private VideoWriter writer = null;
-            private final FileSession fileSession = fs;
             @Override
             public void run() {
                 // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
@@ -104,17 +99,21 @@ public class CameraFetcher implements Runnable {
                     BufferedImage biFrame = cvt2bi(frame);
                     cameraFeed.setIcon(new ImageIcon(biFrame));
 
-                    //Creates video writer
+                    // Write the frame to the video file if the session is active
                     VideoWriter writer = fileSession.getVideoWriter();
-                    if(fileSession.isSessionActive() && (writer == null || !writer.isOpened())) {
-                        try{
-                            fileSession.initVideoWriter(frame);     // (can throw IllegalStateException)
-                            onnxRunner.clearClasses();
-                        }catch (IllegalStateException e){
-                            logger.addRedLog("Error initializing video writer: " + e.getMessage());
+                    if(fileSession.isSessionActive()) {
+
+                        // Initializes the video writer
+                        if((writer == null || !writer.isOpened())){
+                            fileSession.initVideoWriter(frame);
+                            onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
                         }
-                    }else{
                         fileSession.writeVideoFrame(frame);
+                        onnxRunner.processDetections(detections);
+
+                    }else {
+                        fileSession.destroyVideoWriter();
+                        onnxRunner.clearClasses();
                     }
                 }
                 else {
