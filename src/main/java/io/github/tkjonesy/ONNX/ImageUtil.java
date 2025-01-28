@@ -1,11 +1,18 @@
 package io.github.tkjonesy.ONNX;
 
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.core.Size;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Point;
+import org.bytedeco.opencv.opencv_core.Scalar;
+import org.bytedeco.opencv.opencv_core.Size;
+
+import static org.bytedeco.opencv.global.opencv_imgproc.resize;
+import static org.bytedeco.opencv.global.opencv_imgproc.rectangle;
+import static org.bytedeco.opencv.global.opencv_imgproc.putText;
+import static org.bytedeco.opencv.global.opencv_imgproc.FONT_HERSHEY_SIMPLEX;
+import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
+
+import static org.bytedeco.opencv.global.opencv_core.copyMakeBorder;
+import static org.bytedeco.opencv.global.opencv_core.BORDER_CONSTANT;
 
 import java.util.List;
 
@@ -25,8 +32,8 @@ public class ImageUtil {
      * @param height The target height for the resized image.
      */
     public static void resizeWithPadding(Mat src, Mat dst, int width, int height) {
-        int oldW = src.width();
-        int oldH = src.height();
+        int oldW = src.cols();
+        int oldH = src.rows();
 
         double r = Math.min((double) width / oldW, (double) height / oldH);
 
@@ -41,8 +48,8 @@ public class ImageUtil {
         int left = (int) Math.round(dw - 0.1);
         int right = (int) Math.round(dw + 0.1);
 
-        Imgproc.resize(src, dst, new Size(newUnpadW, newUnpadH));
-        Core.copyMakeBorder(dst, dst, top, bottom, left, right, Core.BORDER_CONSTANT);
+        resize(src, dst, new Size(newUnpadW, newUnpadH));
+        copyMakeBorder(dst, dst, top, bottom, left, right, BORDER_CONSTANT);
     }
 
     /**
@@ -91,20 +98,25 @@ public class ImageUtil {
     public static void drawPredictions(Mat img, List<Detection> detectionList) {
         for (Detection detection : detectionList) {
             float[] bbox = detection.bbox();
-            Scalar color = new Scalar(249, 218, 60);
-            Imgproc.rectangle(img,                    // Matrix object of the image
-                    new Point(bbox[0], bbox[1]),      // Top-left point
-                    new Point(bbox[2], bbox[3]),      // Bottom-right point
+            Scalar color = new Scalar(249.0, 218.0, 60.0, 0.0);
+            rectangle(img,                    // Matrix object of the image
+                    new Point((int) bbox[0], (int) bbox[1]),      // Top-left point
+                    new Point((int) bbox[2], (int) bbox[3]),      // Bottom-right point
                     color,                            // Color of the rectangle
-                    2                                 // Line thickness
+                    2,                                 // Line thickness
+                    LINE_8,                           // Type of line
+                    0                                  // Shift
             );
-            Imgproc.putText(
+            putText(
                     img,
                     detection.label(),
-                    new Point(bbox[0] - 1, bbox[1] - 5),
-                    Imgproc.FONT_HERSHEY_SIMPLEX,
-                    0.5, color,
-                    1
+                    new Point((int) bbox[0] - 1, (int) bbox[1] - 5),
+                    FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    color,
+                    1,       // thickness
+                    LINE_8,  // lineType
+                    false    // bottomLeftOrigin
             );
         }
     }

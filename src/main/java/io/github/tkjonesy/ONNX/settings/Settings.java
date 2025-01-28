@@ -1,7 +1,7 @@
 package io.github.tkjonesy.ONNX.settings;
 
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 public class Settings {
@@ -22,11 +22,15 @@ public class Settings {
 
     static {
         Properties properties = new Properties();
-        try (FileInputStream input = new FileInputStream("src/main/resources/onnxSettings.properties")) {
+        try (InputStream input = Settings.class.getClassLoader().getResourceAsStream("onnxSettings.properties")) {
+            if (input == null) {
+                throw new RuntimeException("Failed to load settings: 'onnxSettings.properties' not found in resources.");
+            }
             properties.load(input);
 
-            modelPath = properties.getProperty("modelPath", "./ai_models/yolo11m.onnx");
-            labelPath = properties.getProperty("labelPath", "./src/main/resources/coco.names");
+            // Load properties as usual
+            modelPath = properties.getProperty("modelPath", "ai_models/yolo11m.onnx");
+            labelPath = properties.getProperty("labelPath", "coco.names");
             PROCESS_EVERY_NTH_FRAME = Integer.parseInt(properties.getProperty("PROCESS_EVERY_NTH_FRAME", "30"));
             CAMERA_FRAME_RATE = Integer.parseInt(properties.getProperty("CAMERA_FRAME_RATE", "30"));
             VIDEO_CAPTURE_DEVICE_ID = Integer.parseInt(properties.getProperty("VIDEO_CAPTURE_DEVICE_ID", "0"));
@@ -43,8 +47,7 @@ public class Settings {
                 INPUT_SHAPE[i] = Long.parseLong(shapeValues[i]);
             }
 
-            FILE_DIRECTORY = properties.getProperty("FILE_DIRECTORY", "archive");
-
+            FILE_DIRECTORY = System.getProperty("user.home") + "/SurgicalToolTrackingFiles";
         } catch (IOException e) {
             throw new RuntimeException("Failed to load settings from properties file", e);
         }

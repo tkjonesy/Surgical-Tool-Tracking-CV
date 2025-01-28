@@ -6,7 +6,8 @@ import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.ONNX.settings.Settings;
 import lombok.Getter;
-import org.opencv.core.Mat;
+
+import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

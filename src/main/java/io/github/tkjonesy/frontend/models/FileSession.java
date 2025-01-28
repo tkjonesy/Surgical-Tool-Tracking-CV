@@ -3,9 +3,10 @@ package io.github.tkjonesy.frontend.models;
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.settings.Settings;
 import lombok.Getter;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
-import org.opencv.videoio.VideoWriter;
+
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.bytedeco.opencv.opencv_videoio.VideoWriter;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -86,13 +87,25 @@ public class FileSession {
      */
     protected void initVideoWriter(Mat frame){
         final Size frameSize = new Size(frame.width(), frame.height());
+    protected void initVideoWriter(Mat frame) throws IllegalStateException {
+        if (!isSessionActive()) {
+            throw new IllegalStateException("Session is not active. Start a session before initializing the VideoWriter.");
+        }
+        // Bytedeco uses .cols() and .rows() for Mat dimensions
+        final Size frameSize = new Size(frame.cols(), frame.rows());
+
         String videoPath = saveDir + "/recording.mp4";
-        videoWriter = new VideoWriter(
-                videoPath,
-                VideoWriter.fourcc('X', '2', '6', '4'),
-                30, // FPS
-                frameSize
-        );
+
+        // One way: get the 4CC as an int
+        int codec = VideoWriter.fourcc((byte) 'X', (byte) '2', (byte) '6', (byte) '4');
+
+        // The VideoWriter constructor takes:
+        //   path, fourcc code, FPS (double), frame size, isColor
+        videoWriter = new VideoWriter(videoPath, codec, 30.0, frameSize, true);
+
+        if (!videoWriter.isOpened()) {
+            throw new IllegalStateException("Failed to open VideoWriter with path: " + videoPath);
+        }
     }
 
     protected void destroyVideoWriter(){

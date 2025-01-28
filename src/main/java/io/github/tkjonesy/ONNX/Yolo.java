@@ -7,7 +7,8 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.TensorInfo;
-import org.opencv.core.Mat;
+
+import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

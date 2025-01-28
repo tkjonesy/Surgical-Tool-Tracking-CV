@@ -4,9 +4,11 @@ import ai.onnxruntime.OnnxJavaType;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import org.opencv.core.Mat;
-import org.opencv.core.CvType;
-import org.opencv.imgproc.Imgproc;
+
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.FloatPointer;
+import org.bytedeco.opencv.opencv_core.Mat;
+
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -22,6 +24,12 @@ import static io.github.tkjonesy.ONNX.settings.Settings.INPUT_SIZE;
 import static io.github.tkjonesy.ONNX.settings.Settings.NUM_INPUT_ELEMENTS;
 import static io.github.tkjonesy.ONNX.settings.Settings.confThreshold;
 
+import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
+import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB;
+import static org.bytedeco.opencv.global.opencv_core.CV_32FC1;
+
+
+
 public class YoloV8 extends Yolo {
 
     public YoloV8(String modelPath, String labelPath) throws OrtException, IOException {
@@ -31,8 +39,8 @@ public class YoloV8 extends Yolo {
     // Run inference on the image
     public List<Detection> run(Mat img) throws OrtException {
 
-        float orgW = (float) img.size().width;
-        float orgH = (float) img.size().height;
+        float orgW = (float) img.size().width();
+        float orgH = (float) img.size().height();
 
         float gain = Math.min((float) INPUT_SIZE / orgW, (float) INPUT_SIZE / orgH);
         float padW = (INPUT_SIZE - orgW * gain) * 0.5f;
@@ -60,7 +68,7 @@ public class YoloV8 extends Yolo {
 
         // Convert BGR to RGB
         try{
-            Imgproc.cvtColor(resizedImg, resizedImg, Imgproc.COLOR_BGR2RGB);
+            cvtColor(resizedImg, resizedImg, COLOR_BGR2RGB);
         }catch (Exception e){
             System.err.println("Error converting BGR to RGB");
         }
@@ -73,16 +81,24 @@ public class YoloV8 extends Yolo {
 
         if (this.inputType.equals(OnnxJavaType.UINT8)) {
             byte[] whc = new byte[NUM_INPUT_ELEMENTS];
-            resizedImg.get(0, 0, whc);
+            BytePointer bp = resizedImg.data();
+            bp.get(whc);
+
+            // Reorder W-H-C to C-W-H
             byte[] chw = ImageUtil.whc2cwh(whc);
             ByteBuffer inputBuffer = ByteBuffer.wrap(chw);
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE, this.inputType);
+
         } else {
-            // Normalize the image
-            resizedImg.convertTo(resizedImg, CvType.CV_32FC1, 1. / 255);
+            resizedImg.convertTo(resizedImg, CV_32FC1);
             float[] whc = new float[NUM_INPUT_ELEMENTS];
-            resizedImg.get(0, 0, whc);
+            FloatPointer fp = new FloatPointer(resizedImg.data());
+            fp.get(whc);
+
+            // Reorder W-H-C to C-W-H
             float[] chw = ImageUtil.whc2cwh(whc);
+
+            // Wrap in FloatBuffer for ONNX
             FloatBuffer inputBuffer = FloatBuffer.wrap(chw);
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE);
         }
