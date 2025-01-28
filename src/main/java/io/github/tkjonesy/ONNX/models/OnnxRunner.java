@@ -49,6 +49,7 @@ public class OnnxRunner {
         try {
             this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
         } catch (OrtException | IOException exception) {
+            System.err.println("Error initializing YOLO model: " + exception.getMessage());
             System.exit(1);
         }
         printHeader();
