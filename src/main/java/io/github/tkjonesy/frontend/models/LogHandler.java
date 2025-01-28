@@ -24,6 +24,8 @@ public class LogHandler {
         this.logTextPane = textPane;
         this.fileSession = fileSession;
         this.logQueue = new LogQueue();
+
+        startLogProcessing();
     }
 
     /**
@@ -70,12 +72,11 @@ public class LogHandler {
      * Starts a timer that processes logs from the log queue every second.
      */
     public void startLogProcessing() {
-        this.logQueue.flushLogs();
         this.timer = new Timer(1000, e ->
         {
             // Process logs from the queue
             Log nextLog;
-            while ((nextLog = logQueue.getNextLog()) != null) {
+            while ((nextLog = logQueue.getNextLog()) != null && fileSession.isSessionActive()){
                 processLog(nextLog);
             }
         });

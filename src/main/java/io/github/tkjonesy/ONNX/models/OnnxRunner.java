@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The {@code OnnxRunner} class provides a wrapper for running YOLO-based inference
@@ -28,7 +29,7 @@ public class OnnxRunner {
 
     /** A queue of logs to be displayed in the UI. */
     @Getter
-    private final LogQueue logger;
+    private final LogQueue logQueue;
 
     /** A hashmap for tracking detected classes and their counts. */
     @Getter
@@ -38,13 +39,12 @@ public class OnnxRunner {
     private HashMap<String, Integer> previousClasses;
 
     // Counter for numbering log entries
-    private int logCounter;
+    private int logCounter=1;
 
-    public OnnxRunner(LogQueue logger) {
-        this.logger = logger;
+    public OnnxRunner(LogQueue logQueue) {
+        this.logQueue = logQueue;
         classes = new HashMap<>();
         previousClasses = new HashMap<>(); // Initializes previousClasses to store previous frame detections
-        logCounter = 1;
         try {
             this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
         } catch (OrtException | IOException exception) {
@@ -82,11 +82,10 @@ public class OnnxRunner {
         try {
             detectionList = inferenceSession.run(frame);
         } catch (OrtException ortException) {
-            logger.addRedLog("Error running inference: " + ortException.getMessage());
-        }
 
-        // Process classes with the detected items and update logs if objects leave the view
-        processClasses(detectionList);
+            logQueue.addRedLog("Error running inference: " + ortException.getMessage());
+            System.err.println("Error running inference: " + ortException.getMessage());
+        }
 
         return new OnnxOutput(detectionList);
     }
@@ -105,7 +104,7 @@ public class OnnxRunner {
      *
      * @param detections A list of {@link Detection} objects representing the detected items.
      */
-    private void processClasses(List<Detection> detections) {
+    public void processDetections(List<Detection> detections) {
         DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         DateTimeFormatter formatterTime = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -137,7 +136,7 @@ public class OnnxRunner {
                 // Class count updated, print in yellow
                 logMessage = String.format("Log #%-10d Object: %-20s Action: %-10s", logCounter++, label, "Class count updated: " + updatedClasses.get(label));
                 logAction = "Class count updated";
-                logger.addYellowLog(logMessage);
+                logQueue.addYellowLog(logMessage);
             }
 
             if (!logMessage.isEmpty()) {  // Only log if a change was detected
@@ -155,12 +154,12 @@ public class OnnxRunner {
             if (!knownClasses.contains(label)) {
                 // First time seeing this object type, log as new detection
                 String logMessage = formatLogMessage(logCounter++, label, "New Object Detected");
-                logger.addGreenLog(logMessage);
+                logQueue.addGreenLog(logMessage);
                 knownClasses.add(label); // Mark as known for future detections
             } else if (!previousClasses.containsKey(label)) {
                 // Object was previously seen, left view, and now reappeared
                 String logMessage = formatLogMessage(logCounter++, label, "Reappeared in camera view");
-                logger.addGreenLog(logMessage);
+                logQueue.addGreenLog(logMessage);
             }
         }
 
@@ -168,7 +167,7 @@ public class OnnxRunner {
             if (!updatedClasses.containsKey(label)) {
                 // Object left camera view, log in red
                 String exitMessage = formatLogMessage(logCounter++, label, "Left Camera View");;
-                logger.addRedLog(exitMessage);
+                logQueue.addRedLog(exitMessage);
             }
         }
 

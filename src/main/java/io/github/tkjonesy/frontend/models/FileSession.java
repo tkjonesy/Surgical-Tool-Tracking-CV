@@ -45,14 +45,14 @@ public class FileSession {
     /**
      * Starts a new session by creating a directory and initializing resources for saving video and log files.
      */
-    public void startNewSession() {
+    public boolean startNewSession() {
         try {
+            System.out.println("\u001B[33m☐ Starting new FileSession...\u001B[0m");
             String FILE_DIRECTORY = Settings.FILE_DIRECTORY;
 
             // Ensure the parent directory exists
             Files.createDirectories(Paths.get(FILE_DIRECTORY));
 
-            // Generate a unique directory name based on the current date and time
             String dateTime = java.time.LocalDateTime.now()
                     .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm"));
             saveDir = FILE_DIRECTORY + "/" + dateTime;
@@ -67,10 +67,16 @@ public class FileSession {
 
             // Mark the session as active
             sessionActive.set(true);
+
+            System.out.println("\u001B[32m☑ FileSession started successfully. Files will be saved to: " + saveDir + "\u001B[0m");
+
+            return true;
         } catch (IOException e) {
-            System.err.println("Failed to initialize session: " + e.getMessage());
+            System.err.println("\u001B[31m☒ Failed to initialize session: " + e.getMessage() + "\u001B[0m");
+            return false;
         }
     }
+
 
     /**
      * Initializes the VideoWriter for saving video frames.
@@ -78,11 +84,7 @@ public class FileSession {
      * @param frame The first frame, used to determine video properties such as size and format.
      * @throws IllegalStateException if the session is not active.
      */
-    protected void initVideoWriter(Mat frame) throws IllegalStateException {
-        if (!isSessionActive()) {
-            throw new IllegalStateException("Session is not active. Start a session before initializing the VideoWriter.");
-        }
-
+    protected void initVideoWriter(Mat frame){
         final Size frameSize = new Size(frame.width(), frame.height());
         String videoPath = saveDir + "/recording.mp4";
         videoWriter = new VideoWriter(
@@ -91,6 +93,15 @@ public class FileSession {
                 30, // FPS
                 frameSize
         );
+    }
+
+    protected void destroyVideoWriter(){
+        if(videoWriter != null){
+            videoWriter.release();
+            videoWriter = null;
+
+            System.out.println("\u001B[32m☑ Video recording ended. Video saved to: " + saveDir + "/recording.mp4\u001B[0m");
+        }
     }
 
     /**
@@ -124,18 +135,12 @@ public class FileSession {
      * Ends the current session by releasing resources such as the VideoWriter and BufferedWriter.
      */
     public void endSession() {
+        System.out.println("\u001B[33m☐ Ending current FileSession...\u001B[0m");
         sessionActive.set(false);
-        releaseVideoWriter();
         closeLogWriter();
-    }
 
-    /**
-     * Releases the VideoWriter resource.
-     */
-    private void releaseVideoWriter() {
-        if (videoWriter != null) {
-            videoWriter.release();
-            videoWriter = null;
+        if(logBufferedWriter == null) {
+            System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + saveDir + "/logfile.log\u001B[0m");
         }
     }
 
