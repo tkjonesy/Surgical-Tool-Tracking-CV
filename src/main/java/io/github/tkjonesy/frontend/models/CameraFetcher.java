@@ -4,12 +4,17 @@ import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.ImageUtil;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.videoio.VideoCapture;
-import org.opencv.videoio.VideoWriter;
-import org.opencv.videoio.Videoio;
+
+import org.bytedeco.javacpp.BytePointer;
+
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Size;
+import org.bytedeco.opencv.opencv_videoio.VideoCapture;
+import org.bytedeco.opencv.opencv_videoio.VideoWriter;
+
+import static org.bytedeco.opencv.global.opencv_imgproc.resize;
+import static org.bytedeco.opencv.global.opencv_videoio.CAP_PROP_FRAME_WIDTH;
+import static org.bytedeco.opencv.global.opencv_videoio.CAP_PROP_FRAME_HEIGHT;
 
 import javax.swing.*;
 import java.awt.image.BufferedImage;
@@ -26,8 +31,8 @@ public class CameraFetcher implements Runnable {
 
     private final JLabel cameraFeed;
     private final VideoCapture camera;
-    private final java.util.Timer timer;
-
+    private final Timer timer;
+    
     private final OnnxRunner onnxRunner;
     private final FileSession fileSession;
 
@@ -40,30 +45,33 @@ public class CameraFetcher implements Runnable {
     }
 
     private static BufferedImage cvt2bi(Mat frame) {
-        // Select grayscale or color based on incoming frame
-        int type = BufferedImage.TYPE_BYTE_GRAY;
-        if (frame.channels() > 1) {
-            type = BufferedImage.TYPE_3BYTE_BGR;
-        }
+        // Dimensions
+        int width = frame.cols();
+        int height = frame.rows();
+        int channels = frame.channels();
 
-        // Create buffer to store bytes
-        int bufferSize = frame.channels() * frame.cols() * frame.rows();
-        byte[] b = new byte[bufferSize];
+        // Bytedeco Mat data -> BytePointer
+        BytePointer dataPtr = frame.data();
+        byte[] b = new byte[width * height * channels];
+        dataPtr.get(b); // Copy native memory into Java byte[]
 
-        // Copy data from Mat into the BufferedImage
-        frame.get(0, 0, b);
-        BufferedImage image = new BufferedImage(frame.cols(), frame.rows(), type);
-        final byte[] targetPixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        // Determine the correct BufferedImage type
+        int type = (channels > 1) ? BufferedImage.TYPE_3BYTE_BGR : BufferedImage.TYPE_BYTE_GRAY;
+        BufferedImage image = new BufferedImage(width, height, type);
+
+        // Copy the raw bytes into the BufferedImage
+        byte[] targetPixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
         System.arraycopy(b, 0, targetPixels, 0, b.length);
+
         return image;
     }
 
     @Override
     public void run() {
-        // New task to run at frame rate specified in Settings file
+        // Configure camera resolution
+        camera.set(CAP_PROP_FRAME_WIDTH, cameraFeed.getWidth());
+        camera.set(CAP_PROP_FRAME_HEIGHT, cameraFeed.getHeight());
 
-        camera.set(Videoio.CAP_PROP_FRAME_WIDTH, cameraFeed.getWidth());
-        camera.set(Videoio.CAP_PROP_FRAME_HEIGHT, cameraFeed.getHeight());
 
         TimerTask task = new TimerTask() {
 
@@ -74,51 +82,51 @@ public class CameraFetcher implements Runnable {
             private static List<Detection> detections = new ArrayList<>();
             @Override
             public void run() {
-                // Run if the thread hasn't been interrupted, otherwise purge the timer's schedule
-                if(!Thread.currentThread().isInterrupted()) {
-
-                    // Resize camera size to whatever the current feed window size is
-//                        camera.set(Videoio.CAP_PROP_FRAME_WIDTH, cameraFeed.getWidth());
-//                        camera.set(Videoio.CAP_PROP_FRAME_HEIGHT, cameraFeed.getHeight());
-                    // Pull frame and run through Onnx
+                if (!Thread.currentThread().isInterrupted()) {
+                    System.out.println("Running camera fetcher task...");
+                    // Grab frame
                     camera.read(frame);
+                    System.out.println("Frame grabbed.");
+                    Mat inferenceFrame = frame.clone();
 
-
-                    // Every Nth frame, we run the object detection on it
+                    // Every Nth frame, run object detection
                     if (++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
                         new Thread(() -> {
-                            onnxOutput = onnxRunner.runInference(frame);
+                            System.out.println("Running inference...");
+                            onnxOutput = onnxRunner.runInference(inferenceFrame);
                             detections = onnxOutput.getDetectionList();
+                            inferenceFrame.deallocate();
+                            System.out.println("Inference complete.");
                         }).start();
                         currentFrame = 0;
                     }
 
-                    // Overlay the predictions, and display the frame on the label
+                    System.out.println("Drawing predictions...");
+                    // Overlay predictions & resize
                     ImageUtil.drawPredictions(frame, detections);
-                    Imgproc.resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
+
+                    System.out.println("Resizing frame...");
+                    resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
+
+                    // Show frame in label
                     BufferedImage biFrame = cvt2bi(frame);
                     cameraFeed.setIcon(new ImageIcon(biFrame));
 
-                    // Write the frame to the video file if the session is active
-                    VideoWriter writer = fileSession.getVideoWriter();
-                    if(fileSession.isSessionActive()) {
+                // Write the frame to the video file if the session is active
+                VideoWriter writer = fileSession.getVideoWriter();
+                if(fileSession.isSessionActive()) {
 
-                        // Initializes the video writer
-                        if((writer == null || !writer.isOpened())){
-                            fileSession.initVideoWriter(frame);
-                            onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
-                        }
-                        fileSession.writeVideoFrame(frame);
-                        onnxRunner.processDetections(detections);
-
-                    }else {
-                        fileSession.destroyVideoWriter();
-                        onnxRunner.clearClasses();
+                    // Initializes the video writer
+                    if((writer == null || !writer.isOpened())){
+                        fileSession.initVideoWriter(frame);
+                        onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
                     }
-                }
-                else {
-                    timer.cancel();
-                    timer.purge();
+                    fileSession.writeVideoFrame(frame);
+                    onnxRunner.processDetections(detections);
+
+                }else {
+                    fileSession.destroyVideoWriter();
+                    onnxRunner.clearClasses();
                 }
             }
         };

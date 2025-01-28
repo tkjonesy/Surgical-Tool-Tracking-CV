@@ -13,15 +13,21 @@ import io.github.tkjonesy.frontend.models.FileSession;
 import io.github.tkjonesy.frontend.models.LogHandler;
 import lombok.Getter;
 import lombok.Setter;
-import org.opencv.core.Core;
-import org.opencv.videoio.VideoCapture;
+
+import org.bytedeco.opencv.opencv_videoio.VideoCapture;
+import org.bytedeco.opencv.global.opencv_core;
+import org.bytedeco.javacpp.Loader;
 
 import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 public class App extends JFrame {
 
-    // Compulsory OpenCV loading
-    static { System.loadLibrary(Core.NATIVE_LIBRARY_NAME); }
+    static {
+        System.out.println("Loading OpenCV Library...");
+        //LibraryLoader.loadOpenCVLibrary();
+        Loader.load(opencv_core.class);
+        System.out.println("OpenCV Library Loaded.");
+    }
 
     private final FileSession fileSession;
 
@@ -51,6 +57,10 @@ public class App extends JFrame {
         LogHandler logHandler = new LogHandler(logTextPane, fileSession);
         OnnxRunner onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
+        System.out.println("Testing Camera");
+        camera.read(new org.bytedeco.opencv.opencv_core.Mat());
+        System.out.println("Camera is working.");
+        System.out.println("Starting Camera Fetcher Thread...");
         // Camera fetcher thread task
         CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, fileSession);
         cameraFetcherThread = new Thread(cameraFetcher);
