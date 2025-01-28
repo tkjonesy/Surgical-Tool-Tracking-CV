@@ -33,7 +33,7 @@ public class CameraFetcher implements Runnable {
     private final JLabel cameraFeed;
     private final VideoCapture camera;
     private final Timer timer;
-    
+
     private final OnnxRunner onnxRunner;
     private final FileSession fileSession;
 
@@ -45,6 +45,9 @@ public class CameraFetcher implements Runnable {
         this.fileSession = fileSession;
     }
 
+    /**
+     * Convert Bytedeco Mat to BufferedImage
+     */
     private static BufferedImage cvt2bi(Mat frame) {
         // Dimensions
         int width = frame.cols();
@@ -106,7 +109,7 @@ public class CameraFetcher implements Runnable {
                         // Overlay predictions & resize
                         ImageUtil.drawPredictions(frame, detections);
 
-                        resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
+                    resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 
                     // Show frame in label
                     BufferedImage biFrame = cvt2bi(frame);

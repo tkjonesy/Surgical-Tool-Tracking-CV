@@ -8,6 +8,7 @@ import ai.onnxruntime.OrtSession;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Scalar;
 
 
 import java.io.IOException;
@@ -26,9 +27,8 @@ import static io.github.tkjonesy.ONNX.settings.Settings.confThreshold;
 
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB;
-import static org.bytedeco.opencv.global.opencv_core.CV_32FC1;
-
-
+import static org.bytedeco.opencv.global.opencv_core.CV_32F;
+import static org.bytedeco.opencv.global.opencv_core.multiply;
 
 public class YoloV8 extends Yolo {
 
@@ -73,8 +73,10 @@ public class YoloV8 extends Yolo {
             System.err.println("Error converting BGR to RGB");
         }
 
-        // Log final image properties
-        //System.out.println("");
+        resizedImg.convertTo(resizedImg, CV_32F);
+        Mat normalizedImg = new Mat();
+        multiply(resizedImg, new Mat(resizedImg.size(), resizedImg.type(), new Scalar(1.0 / 255.0)), normalizedImg);
+        resizedImg = normalizedImg;
 
         // Create input tensor container
         Map<String, OnnxTensor> container = new HashMap<>();
@@ -90,7 +92,6 @@ public class YoloV8 extends Yolo {
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE, this.inputType);
 
         } else {
-            resizedImg.convertTo(resizedImg, CV_32FC1);
             float[] whc = new float[NUM_INPUT_ELEMENTS];
             FloatPointer fp = new FloatPointer(resizedImg.data());
             fp.get(whc);

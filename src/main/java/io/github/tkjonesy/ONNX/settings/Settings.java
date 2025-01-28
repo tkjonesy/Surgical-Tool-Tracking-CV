@@ -64,41 +64,23 @@ public class Settings {
             throw new RuntimeException("Failed to load settings from properties file", e);
         }
 
-        // Now, extract the ONNX model from the JAR resource to a temp file
-        modelPath = extractResourceToTempFile("ai_models/yolo11m.onnx", ".onnx");
-
-        // Also extract the coco.names (or your label file) to a temp file
-        labelPath = extractResourceToTempFile("coco.names", ".names");
+        // Verify the model and label files exist in the user directory
+        modelPath = verifyFileExists(FILE_DIRECTORY + "/ai_models/person_hand_face.onnx");
+        labelPath = verifyFileExists(FILE_DIRECTORY + "/ai_models/human.names");
     }
 
     /**
-     * Extracts a resource from inside the JAR (e.g. /ai_models/yolo11m.onnx)
-     * to a temporary file on the local file system, then returns that file's path.
+     * Verifies that a file exists at the given path.
+     * Throws an exception if the file is missing.
      *
-     * @param resourcePath The resource path (relative to src/main/resources), e.g. "ai_models/yolo11m.onnx"
-     * @param suffix       The file suffix to give the temp file (e.g. ".onnx" or ".names")
-     * @return The absolute path to the extracted temp file.
+     * @param filePath The path to the file to verify.
+     * @return The file path if the file exists.
      */
-    private static String extractResourceToTempFile(String resourcePath, String suffix) {
-        // Ensure we have a leading slash for getResourceAsStream
-        String fullResourcePath = resourcePath.startsWith("/") ? resourcePath : "/" + resourcePath;
-
-        try (InputStream resourceStream = Settings.class.getResourceAsStream(fullResourcePath)) {
-            if (resourceStream == null) {
-                throw new FileNotFoundException("Cannot find resource: " + resourcePath + " in the JAR.");
-            }
-
-            // Create a temp file
-            File tempFile = File.createTempFile("onnx_resource_", suffix);
-            tempFile.deleteOnExit(); // optional: remove file when JVM exits
-
-            // Copy the resource into that temp file
-            Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-            return tempFile.getAbsolutePath();
-
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to extract resource to temp file: " + resourcePath, e);
+    private static String verifyFileExists(String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            throw new RuntimeException("Required file not found: " + filePath + ". Please ensure it exists.");
         }
+        return filePath;
     }
 }
