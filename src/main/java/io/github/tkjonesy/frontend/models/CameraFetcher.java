@@ -27,6 +27,7 @@ import java.util.TimerTask;
 import static io.github.tkjonesy.ONNX.settings.Settings.CAMERA_FRAME_RATE;
 import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
 
+
 public class CameraFetcher implements Runnable {
 
     private final JLabel cameraFeed;
@@ -101,12 +102,11 @@ public class CameraFetcher implements Runnable {
                         currentFrame = 0;
                     }
 
-                    System.out.println("Drawing predictions...");
-                    // Overlay predictions & resize
-                    ImageUtil.drawPredictions(frame, detections);
+                        System.out.println("Drawing predictions...");
+                        // Overlay predictions & resize
+                        ImageUtil.drawPredictions(frame, detections);
 
-                    System.out.println("Resizing frame...");
-                    resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
+                        resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 
                     // Show frame in label
                     BufferedImage biFrame = cvt2bi(frame);
@@ -130,7 +130,7 @@ public class CameraFetcher implements Runnable {
                 }
             }
         };
-        // Set the task to execute every CAMERA_FRAME_RATE frames per second
+        // Schedule the capture task
         timer.schedule(task, 0, 1000 / CAMERA_FRAME_RATE);
     }
 }
