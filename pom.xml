@@ -65,5 +65,10 @@
             <artifactId>opencv</artifactId>
             <version>4.9.0-0</version>
         </dependency>
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf-intellij-themes</artifactId>
+            <version>3.5.4</version>
+        </dependency>
     </dependencies>
 </project>
