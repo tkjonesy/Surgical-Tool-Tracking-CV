@@ -162,3 +162,7 @@ public class FileSession {
         }
     }
 }
+
+/*
+    Video saving logic was written by @j-mckiern.
+ */

@@ -23,10 +23,7 @@ import static io.github.tkjonesy.ONNX.settings.Settings.*;
 public class App extends JFrame {
 
     static {
-        System.out.println("Loading OpenCV Library...");
-        //LibraryLoader.loadOpenCVLibrary();
         Loader.load(opencv_core.class);
-        System.out.println("OpenCV Library Loaded.");
     }
 
     private final FileSession fileSession;
