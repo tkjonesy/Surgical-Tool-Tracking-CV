@@ -1,22 +1,23 @@
 package io.github.tkjonesy.ONNX.settings;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 
 /**
  * Settings class that loads "onnxSettings.properties" from resources,
- * but also extracts "ai_models/yolo11m.onnx" AND "ai_models/coco.names"
- * from inside the JAR to temp files, so ONNX runtime can read them.
+ * but also extracts "ai_models/person_hand_face.onnx" AND "ai_models/human.names"
+ * from inside the JAR to "User/SurgicalToolTrackingFiles/ai_models/" if they don't exist.
  */
 public class Settings {
 
-    public static final String modelPath;   // path to the temp .onnx file
-    public static final String labelPath;   // path to the temp .names file
+    public static final String modelPath;   // Path to extracted .onnx file
+    public static final String labelPath;   // Path to extracted .names file
 
     public static final int PROCESS_EVERY_NTH_FRAME;
     public static final int CAMERA_FRAME_RATE;
@@ -40,8 +41,6 @@ public class Settings {
             }
             properties.load(input);
 
-            // We'll ignore the old 'modelPath' and 'labelPath' from properties,
-            // because we want to extract them from resources in the JAR.
             PROCESS_EVERY_NTH_FRAME = Integer.parseInt(properties.getProperty("PROCESS_EVERY_NTH_FRAME", "30"));
             CAMERA_FRAME_RATE = Integer.parseInt(properties.getProperty("CAMERA_FRAME_RATE", "30"));
             VIDEO_CAPTURE_DEVICE_ID = Integer.parseInt(properties.getProperty("VIDEO_CAPTURE_DEVICE_ID", "0"));
@@ -60,27 +59,43 @@ public class Settings {
 
             FILE_DIRECTORY = System.getProperty("user.home") + "/SurgicalToolTrackingFiles";
 
+            Path aiModelDir = Paths.get(FILE_DIRECTORY, "ai_models");
+            if (!Files.exists(aiModelDir)) {
+                Files.createDirectories(aiModelDir);
+            }
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to load settings from properties file", e);
         }
 
-        // Verify the model and label files exist in the user directory
-        modelPath = verifyFileExists(FILE_DIRECTORY + "/ai_models/person_hand_face.onnx");
-        labelPath = verifyFileExists(FILE_DIRECTORY + "/ai_models/human.names");
+        // Extract AI model and label files if they don't exist
+        modelPath = extractResourceIfMissing("/ai_models/person_hand_face.onnx", FILE_DIRECTORY + "/ai_models/person_hand_face.onnx");
+        labelPath = extractResourceIfMissing("/ai_models/human.names", FILE_DIRECTORY + "/ai_models/human.names");
     }
 
     /**
-     * Verifies that a file exists at the given path.
-     * Throws an exception if the file is missing.
+     * Checks if a file exists at the given path. If it does not exist,
+     * it extracts it from the JAR's resources and places it in the correct directory.
      *
-     * @param filePath The path to the file to verify.
-     * @return The file path if the file exists.
+     * @param resourcePath The path of the resource inside the JAR (e.g., "/ai_models/person_hand_face.onnx").
+     * @param targetPath The target path in the user directory.
+     * @return The file path that can be used in the application.
      */
-    private static String verifyFileExists(String filePath) {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            throw new RuntimeException("Required file not found: " + filePath + ". Please ensure it exists.");
+    private static String extractResourceIfMissing(String resourcePath, String targetPath) {
+        File targetFile = new File(targetPath);
+
+        if (!targetFile.exists()) {
+            try (InputStream in = Settings.class.getResourceAsStream(resourcePath)) {
+                if (in == null) {
+                    throw new IOException("Resource not found inside JAR: " + resourcePath);
+                }
+                Files.copy(in, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("Extracted resource: " + resourcePath + " -> " + targetPath);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to extract required resource: " + resourcePath, e);
+            }
         }
-        return filePath;
+
+        return targetPath;
     }
 }
