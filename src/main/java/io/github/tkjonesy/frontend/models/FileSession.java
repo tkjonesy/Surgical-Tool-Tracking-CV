@@ -85,22 +85,11 @@ public class FileSession {
      * @param frame The first frame, used to determine video properties such as size and format.
      * @throws IllegalStateException if the session is not active.
      */
-    protected void initVideoWriter(Mat frame){
-        final Size frameSize = new Size(frame.width(), frame.height());
     protected void initVideoWriter(Mat frame) throws IllegalStateException {
-        if (!isSessionActive()) {
-            throw new IllegalStateException("Session is not active. Start a session before initializing the VideoWriter.");
-        }
-        // Bytedeco uses .cols() and .rows() for Mat dimensions
         final Size frameSize = new Size(frame.cols(), frame.rows());
-
         String videoPath = saveDir + "/recording.mp4";
+        int codec = VideoWriter.fourcc((byte) 'a', (byte) 'v', (byte) 'c', (byte) '1');
 
-        // One way: get the 4CC as an int
-        int codec = VideoWriter.fourcc((byte) 'X', (byte) '2', (byte) '6', (byte) '4');
-
-        // The VideoWriter constructor takes:
-        //   path, fourcc code, FPS (double), frame size, isColor
         videoWriter = new VideoWriter(videoPath, codec, 30.0, frameSize, true);
 
         if (!videoWriter.isOpened()) {
