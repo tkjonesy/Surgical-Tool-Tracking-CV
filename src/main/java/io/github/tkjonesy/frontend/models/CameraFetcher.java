@@ -76,7 +76,6 @@ public class CameraFetcher implements Runnable {
         camera.set(CAP_PROP_FRAME_WIDTH, cameraFeed.getWidth());
         camera.set(CAP_PROP_FRAME_HEIGHT, cameraFeed.getHeight());
 
-
         TimerTask task = new TimerTask() {
 
             // Required objects for detections & display
@@ -84,30 +83,25 @@ public class CameraFetcher implements Runnable {
             private static int currentFrame = 0;
             private static OnnxOutput onnxOutput;
             private static List<Detection> detections = new ArrayList<>();
+
             @Override
             public void run() {
                 if (!Thread.currentThread().isInterrupted()) {
-                    System.out.println("Running camera fetcher task...");
-                    // Grab frame
                     camera.read(frame);
-                    System.out.println("Frame grabbed.");
                     Mat inferenceFrame = frame.clone();
 
                     // Every Nth frame, run object detection
                     if (++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
                         new Thread(() -> {
-                            System.out.println("Running inference...");
                             onnxOutput = onnxRunner.runInference(inferenceFrame);
                             detections = onnxOutput.getDetectionList();
                             inferenceFrame.deallocate();
-                            System.out.println("Inference complete.");
                         }).start();
                         currentFrame = 0;
                     }
 
-                        System.out.println("Drawing predictions...");
-                        // Overlay predictions & resize
-                        ImageUtil.drawPredictions(frame, detections);
+                    // Overlay predictions & resize
+                    ImageUtil.drawPredictions(frame, detections);
 
                     resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 
@@ -115,25 +109,30 @@ public class CameraFetcher implements Runnable {
                     BufferedImage biFrame = cvt2bi(frame);
                     cameraFeed.setIcon(new ImageIcon(biFrame));
 
-                // Write the frame to the video file if the session is active
-                VideoWriter writer = fileSession.getVideoWriter();
-                if(fileSession.isSessionActive()) {
+                    // Write the frame to the video file if the session is active
+                    VideoWriter writer = fileSession.getVideoWriter();
+                    if (fileSession.isSessionActive()) {
 
-                    // Initializes the video writer
-                    if((writer == null || !writer.isOpened())){
-                        fileSession.initVideoWriter(frame);
-                        onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
+                        // Initializes the video writer
+                        if ((writer == null || !writer.isOpened())) {
+                            fileSession.initVideoWriter(frame);
+                            onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
+                        }
+
+                        // Video frame rate
+                        if(currentFrame % 2 == 0){
+                            fileSession.writeVideoFrame(frame);
+                        }
+                        onnxRunner.processDetections(detections);
+
+                    } else {
+                        fileSession.destroyVideoWriter();
+                        onnxRunner.clearClasses();
                     }
-                    fileSession.writeVideoFrame(frame);
-                    onnxRunner.processDetections(detections);
-
-                }else {
-                    fileSession.destroyVideoWriter();
-                    onnxRunner.clearClasses();
                 }
             }
         };
         // Schedule the capture task
-        timer.schedule(task, 0, 1000 / CAMERA_FRAME_RATE);
+        timer.schedule(task,0,1000/CAMERA_FRAME_RATE);
     }
 }

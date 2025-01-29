@@ -57,10 +57,6 @@ public class App extends JFrame {
         LogHandler logHandler = new LogHandler(logTextPane, fileSession);
         OnnxRunner onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
-        System.out.println("Testing Camera");
-        camera.read(new org.bytedeco.opencv.opencv_core.Mat());
-        System.out.println("Camera is working.");
-        System.out.println("Starting Camera Fetcher Thread...");
         // Camera fetcher thread task
         CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, fileSession);
         cameraFetcherThread = new Thread(cameraFetcher);
