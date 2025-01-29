@@ -33,3 +33,30 @@ Run the following command to sign the application:
 ```sh
 codesign --force --deep --sign - "Surgical Tool Tracker.app"
 ```
+
+# Windows
+
+## Step 1: Build the JAR
+```sh
+mvn clean package
+```
+
+## Step 2: Create the Application Bundle
+Run the following jpackage command:
+
+```sh
+jpackage --name "SurgicalToolTracker" \
+    --input target/ \
+    --main-jar stt-1.0-SNAPSHOT.jar \
+    --main-class io.github.tkjonesy.frontend.App \
+    --type exe \
+    --win-shortcut \
+    --win-dir-chooser \
+    --win-per-user-install \
+    --win-upgrade-uuid "123e4567-e89b-12d3-a456-426614174000" \
+```
+
+Note: You must have Wix Toolset installed to create the installer. You can download it from [here](https://github.com/wixtoolset/wix3/releases).
+
+## Step 3: Installer
+An installer will appear in the root directory of the project. Run the installer to install the application.
