@@ -14,19 +14,25 @@ public class LogHandler {
     @Getter
     private final LogQueue logQueue;
 
-    private final FileSession fileSession;
+    private FileSession fileSession;
     private Timer timer;
 
     // This StringBuilder accumulates the log messages in HTML format
     private final StringBuilder logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
 
-    public LogHandler(JTextPane textPane, FileSession fileSession) {
+    public LogHandler(JTextPane textPane, FileSession fileSession, LogQueue logQueue) {
         this.logTextPane = textPane;
         this.fileSession = fileSession;
         this.logQueue = new LogQueue();
 
         startLogProcessing();
     }
+
+    // New method to set FileSession after initialization
+    public void setFileSession(FileSession fileSession) {
+        this.fileSession = fileSession;
+    }
+
 
     /**
      * Processes a log entry by appending it to the log text pane and saving it to a file.
