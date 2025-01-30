@@ -11,6 +11,7 @@ import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.models.CameraFetcher;
 import io.github.tkjonesy.frontend.models.FileSession;
 import io.github.tkjonesy.frontend.models.LogHandler;
+import io.github.tkjonesy.ONNX.models.LogQueue;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,12 +22,14 @@ import org.bytedeco.javacpp.Loader;
 import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 public class App extends JFrame {
+    private final FileSession fileSession;
+    private final LogHandler logHandler;   // ✅ Store LogHandler
 
     static {
         Loader.load(opencv_core.class);
     }
 
-    private final FileSession fileSession;
+
 
     @Getter
     private final VideoCapture camera;
@@ -50,9 +53,20 @@ public class App extends JFrame {
             System.exit(-1);
         }
 
-        this.fileSession = new FileSession();
-        LogHandler logHandler = new LogHandler(logTextPane, fileSession);
+        // Create ONE shared LogQueue
+        LogQueue logQueue = new LogQueue();
+
+        // Temporarily initialize LogHandler without FileSession
+        this.logHandler = new LogHandler(logTextPane, null, logQueue);  // `null` for now
+
+        // Create OnnxRunner using `logHandler.getLogQueue()`
         OnnxRunner onnxRunner = new OnnxRunner(logHandler.getLogQueue());
+
+        // Now initialize FileSession with OnnxRunner
+        this.fileSession = new FileSession(onnxRunner);
+
+        // Set the correct FileSession in LogHandler
+        this.logHandler.setFileSession(this.fileSession);
 
         // Camera fetcher thread task
         CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, fileSession);

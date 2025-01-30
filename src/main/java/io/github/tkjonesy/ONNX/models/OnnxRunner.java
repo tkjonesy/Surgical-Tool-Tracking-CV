@@ -36,8 +36,16 @@ public class OnnxRunner {
     @Getter
     private final HashMap<String, Integer> classes;
 
+    /*
+    public HashMap<String, Integer> getTotalObjectAppearances() {
+        return new HashMap<>(totalObjectAppearances);  // ✅ Return a copy to prevent modification
+    }
+
+     */
+
     private HashSet<String> knownClasses = new HashSet<>();
     private HashMap<String, Integer> previousClasses;
+    private final HashMap<String, Integer> totalObjectAppearances = new HashMap<>();
 
     // Counter for numbering log entries
     private int logCounter=1;
@@ -163,6 +171,7 @@ public class OnnxRunner {
                 String logMessage = formatLogMessage(logCounter++, label, "Reappeared in camera view");
                 logQueue.addGreenLog(logMessage);
             }
+            //classes.put(label, classes.getOrDefault(label, 0) + 1);
         }
 
         for (String label : previousClasses.keySet()) {
