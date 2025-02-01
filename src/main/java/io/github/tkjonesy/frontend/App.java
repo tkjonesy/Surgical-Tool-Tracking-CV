@@ -23,7 +23,7 @@ import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 public class App extends JFrame {
     private final FileSession fileSession;
-    private final LogHandler logHandler;   // ✅ Store LogHandler
+    private final LogHandler logHandler;   // Store LogHandler
 
     static {
         Loader.load(opencv_core.class);
