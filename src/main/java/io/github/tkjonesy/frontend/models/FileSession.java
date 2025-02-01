@@ -182,18 +182,18 @@ public class FileSession {
 
         Duration recordDuration = Duration.between(startTime, Instant.now());
 
-        // ✅ Force update tool list before capturing final state
+        // Force update tool list before capturing final state
         try {
             Thread.sleep(500); // Small delay to allow final detections to process
         } catch (InterruptedException e) {
             System.err.println("Warning: Delay interrupted before final tool capture.");
         }
 
-        // ✅ Force final detection update
+        // Force final detection update
         lastKnownTools.clear();
         lastKnownTools.addAll(onnxRunner.getClasses().keySet());
 
-        // ✅ Debugging printout
+        // Debugging printout
         System.out.println("🔍 Final tools detected: " + lastKnownTools);
 
 
