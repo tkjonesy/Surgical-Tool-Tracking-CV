@@ -36,9 +36,6 @@ public class FileSession {
     // Save directory
     private String saveDir;
 
-    private HashSet<String> initialToolSet = new HashSet<>();
-    private HashSet<String> lastKnownTools = new HashSet<>();
-
 
     /** VideoWriter for saving video frames to a file. */
     @Getter
@@ -87,28 +84,7 @@ public class FileSession {
             // Mark the session as active
             sessionActive.set(true);
 
-            new Thread(() -> {
-                try {
-                    Thread.sleep(1000); // Wait 1 second for detections to start
-                    initialToolSet.clear();
-                    initialToolSet.addAll(onnxRunner.getClasses().keySet());
-                    System.out.println("✅ Initial tools captured: " + initialToolSet);
-                } catch (InterruptedException e) {
-                    System.err.println("Failed to capture initial tool set: " + e.getMessage());
-                }
-            }).start();
-
-            new Thread(() -> {
-                while (sessionActive.get()) {
-                    try {
-                        Thread.sleep(500); // Update every 0.5 seconds
-                        lastKnownTools.clear();
-                        lastKnownTools.addAll(onnxRunner.getClasses().keySet());
-                    } catch (InterruptedException e) {
-                        System.err.println("Error updating last known tools: " + e.getMessage());
-                    }
-                }
-            }).start();
+            onnxRunner.startTracking();
 
             System.out.println("\u001B[32m☑ FileSession started successfully. Files will be saved to: " + saveDir + "\u001B[0m");
 
@@ -179,28 +155,14 @@ public class FileSession {
      */
     public void endSession() {
         System.out.println("\u001B[33m☐ Ending current FileSession...\u001B[0m");
-
-        Duration recordDuration = Duration.between(startTime, Instant.now());
-
-        // Force update tool list before capturing final state
-        try {
-            Thread.sleep(500); // Small delay to allow final detections to process
-        } catch (InterruptedException e) {
-            System.err.println("Warning: Delay interrupted before final tool capture.");
-        }
-
-        // Force final detection update
-        lastKnownTools.clear();
-        lastKnownTools.addAll(onnxRunner.getClasses().keySet());
-
-        // Debugging printout
-        System.out.println("🔍 Final tools detected: " + lastKnownTools);
-
-
         sessionActive.set(false);
         closeLogWriter();
 
-        generateAAR(lastKnownTools, recordDuration);
+        Duration recordDuration = Duration.between(startTime, Instant.now());
+        HashSet<String> initialTools = onnxRunner.getInitialToolSet();
+        HashSet<String> finalTools = onnxRunner.getFinalToolSet();
+
+        generateAAR(initialTools, finalTools, recordDuration);
 
         if(logBufferedWriter == null) {
             System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + saveDir + "/logfile.log\u001B[0m");
@@ -223,15 +185,13 @@ public class FileSession {
         return formattedDuration.toString().trim();
     }
 
-    private void generateAAR(HashSet<String> finalToolSet, Duration recordDuration) {
-        HashSet<String> removedTools = new HashSet<>(initialToolSet);
-        removedTools.removeAll(finalToolSet);
+    private void generateAAR(HashSet<String> initialTools, HashSet<String> finalTools, Duration recordDuration)
+    {
+        HashSet<String> removedTools = new HashSet<>(initialTools);
+        removedTools.removeAll(finalTools);
 
-        HashSet<String> addedTools = new HashSet<>(finalToolSet);
-        addedTools.removeAll(initialToolSet);
-
-        //HashMap<String, Integer> totalAppearances = onnxRunner.getTotalObjectAppearances();
-
+        HashSet<String> addedTools = new HashSet<>(finalTools);
+        addedTools.removeAll(initialTools);
 
         String formattedSessionTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
@@ -243,21 +203,11 @@ public class FileSession {
 
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
 
-            writer.write("Tools Present at Start: " + initialToolSet + "\n");
-            writer.write("Tools Present at End: " + finalToolSet + "\n\n");
+            writer.write("Tools Present at Start: " + initialTools + "\n");
+            writer.write("Tools Present at End: " + finalTools + "\n\n");
 
             writer.write("Tools Removed: " + (removedTools.isEmpty() ? "None" : removedTools) + "\n");
             writer.write("Tools Added: " + (addedTools.isEmpty() ? "None" : addedTools) + "\n");
-
-
-            /*
-            writer.write("Total Object Appearances:\n");
-            int totalObjects = 0;
-            for (String label : totalAppearances.keySet()) {
-                writer.write("- " + label + ": " + totalAppearances.get(label) + "\n");
-                totalObjects += totalAppearances.get(label);
-            }
-            writer.write("\nTotal Unique Objects Detected: " + totalObjects + "\n");*/
 
             System.out.println("AAR saved to: " + aarPath);
         } catch (IOException e) {
