@@ -100,6 +100,9 @@ public class CameraFetcher implements Runnable {
                         currentFrame = 0;
                     }
 
+                    // Update tool tracking in OnnxRunner
+                    //onnxRunner.updateTracking(detections);
+
                     // Overlay predictions & resize
                     ImageUtil.drawPredictions(frame, detections);
                     try {
