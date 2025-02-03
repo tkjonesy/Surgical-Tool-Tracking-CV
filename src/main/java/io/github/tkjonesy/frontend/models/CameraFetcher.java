@@ -102,13 +102,16 @@ public class CameraFetcher implements Runnable {
 
                     // Overlay predictions & resize
                     ImageUtil.drawPredictions(frame, detections);
+                    try {
+                        resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 
-                    resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
-
-                    // Show frame in label
-                    BufferedImage biFrame = cvt2bi(frame);
-                    cameraFeed.setIcon(new ImageIcon(biFrame));
-
+                        // Show frame in label
+                        BufferedImage biFrame = cvt2bi(frame);
+                        cameraFeed.setIcon(new ImageIcon(biFrame));
+                    } catch (Exception e ){
+                        System.out.println("Camera Fetcher had to stop! If you are closing the program, this is expected.");
+                        this.cancel();
+                    }
                     // Write the frame to the video file if the session is active
                     VideoWriter writer = fileSession.getVideoWriter();
                     if (fileSession.isSessionActive()) {
