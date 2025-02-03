@@ -107,5 +107,12 @@
             <artifactId>flatlaf-intellij-themes</artifactId>
             <version>3.5.4</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.bytedeco/openblas -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>openblas</artifactId>
+            <version>0.3.6-1.5.1</version>
+        </dependency>
+
     </dependencies>
 </project>
