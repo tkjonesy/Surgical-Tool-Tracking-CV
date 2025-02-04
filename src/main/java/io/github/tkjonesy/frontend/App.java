@@ -154,6 +154,10 @@ public class App extends JFrame {
         bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
         this.add(bottomPanel, bottomPanelConstraints);
         this.pack();
+        this.setLocationRelativeTo(null); // Center application
+
+
+
     }
 
     private GridBagConstraints createConstraints(int gridX, int gridY, double weightX, double weightY) {
