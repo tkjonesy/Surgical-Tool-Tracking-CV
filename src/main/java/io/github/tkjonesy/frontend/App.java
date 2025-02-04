@@ -7,6 +7,9 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.util.List;
+import java.util.ArrayList;
+
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.models.*;
 import lombok.Getter;
@@ -21,8 +24,23 @@ import static io.github.tkjonesy.ONNX.settings.Settings.*;
 public class App extends JFrame {
     private final SessionHandler sessionHandler;
 
+    public static final List<Integer> AVAILABLE_CAMERAS;
     static {
+        // Load OpenCV
         Loader.load(opencv_core.class);
+
+        // Check first 10 device ports for any connected cameras, add them to available cameras
+        AVAILABLE_CAMERAS = new ArrayList<>();
+        final int MAX_PORTS_TO_CHECK = 10;
+        for(int i = 0; i < MAX_PORTS_TO_CHECK; i++)
+        {
+            try(VideoCapture camera = new VideoCapture(i)) {
+                if (camera.isOpened()) {
+                    AVAILABLE_CAMERAS.add(i);
+                    camera.release();
+                }
+            }
+        }
     }
 
     private final OnnxRunner onnxRunner;
@@ -38,16 +56,14 @@ public class App extends JFrame {
     @Setter
     private JTextPane logTextPane;
 
-    private static final Color SKY = new Color(53, 116, 240),
-        SUNSET = new Color(255, 40, 79),
-        OCEAN = new Color(55, 90, 129),
-        CHARCOAL = new Color(30, 31, 34);
+    private static final Color SUNSET = new Color(255, 40, 79);
+    private static final Color OCEAN = new Color(55, 90, 129);
+    private static final Color CHARCOAL = new Color(30, 31, 34);
 
     public App() {
         initComponents();
         initListeners();
         this.setVisible(true);
-
         this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
         if (!camera.isOpened()) {
             System.err.println("Error: Camera could not be opened. Exiting...");
@@ -218,9 +234,7 @@ public class App extends JFrame {
         );
 
         // Settings Listener
-        settingsButton.addActionListener(e -> {
-            SwingUtilities.invokeLater(SettingsWindow::new);
-        });
+        settingsButton.addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
 
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {
@@ -233,9 +247,9 @@ public class App extends JFrame {
                 if (confirmation == JOptionPane.YES_OPTION) {
                     System.out.println("Beginning cleanup Process...");
                     System.out.println("Stopping camera feed thread...");
-                    cameraFetcherThread.interrupt();
+                    if(cameraFetcherThread != null) cameraFetcherThread.interrupt();
                     System.out.println("Closing camera access...");
-                    if (camera.isOpened())
+                    if (camera != null && camera.isOpened())
                         camera.release();
                     System.out.println("Done cleanup process.");
 
