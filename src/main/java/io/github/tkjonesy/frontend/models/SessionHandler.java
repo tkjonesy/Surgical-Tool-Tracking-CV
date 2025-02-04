@@ -2,7 +2,6 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,6 +41,7 @@ public class SessionHandler {
         fileSession.destroyVideoWriter();
         fileSession = null;
         activeState.set(false);
+        this.logHandler.setFileSession(null);
     }
 
     public boolean isSessionActive() {

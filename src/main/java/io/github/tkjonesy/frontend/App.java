@@ -26,7 +26,6 @@ public class App extends JFrame {
     }
 
     private final OnnxRunner onnxRunner;
-    private final LogHandler logHandler;
 
     @Getter
     private final VideoCapture camera;
@@ -51,7 +50,7 @@ public class App extends JFrame {
         }
 
 
-        this.logHandler = new LogHandler(logTextPane);
+        LogHandler logHandler = new LogHandler(logTextPane);
         this.sessionHandler = new SessionHandler(logHandler);
 
         this.onnxRunner = new OnnxRunner(logHandler.getLogQueue());
