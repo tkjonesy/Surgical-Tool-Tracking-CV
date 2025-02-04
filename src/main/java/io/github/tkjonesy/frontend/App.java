@@ -39,6 +39,11 @@ public class App extends JFrame {
     @Setter
     private JTextPane logTextPane;
 
+    private static final Color SKY = new Color(53, 116, 240),
+        SUNSET = new Color(255, 40, 79),
+        OCEAN = new Color(55, 90, 129),
+        CHARCOAL = new Color(30, 31, 34);
+
     public App() {
         initComponents();
         initListeners();
@@ -63,7 +68,7 @@ public class App extends JFrame {
     private void initComponents() {
 
         // Titling, sizing, and exit actions
-        this.setTitle("Surgical Tool Tracker");
+        this.setTitle("AIM: Surgical");
         this.setMinimumSize(new Dimension(746, 401));
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
@@ -100,7 +105,7 @@ public class App extends JFrame {
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);
         this.logTextPane.setContentType("text/html");
-        this.logTextPane.setBackground(new Color(30, 31, 34));
+        this.logTextPane.setBackground(CHARCOAL);
 
         // Log tracker scroll pane for text area
         JScrollPane scrollPane = new JScrollPane(logTextPane);
@@ -124,6 +129,7 @@ public class App extends JFrame {
         JPanel bottomPanel = new JPanel();
 
         startSessionButton = new JToggleButton("Start Session");
+        startSessionButton.setBackground(OCEAN);
         settingsButton = new JButton("Settings");
 
         GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
@@ -154,9 +160,6 @@ public class App extends JFrame {
         this.add(bottomPanel, bottomPanelConstraints);
         this.pack();
         this.setLocationRelativeTo(null); // Center application
-
-
-
     }
 
     private GridBagConstraints createConstraints(int gridX, int gridY, double weightX, double weightY) {
@@ -178,6 +181,7 @@ public class App extends JFrame {
 
                         if(fileSession.startNewSession()){
                             startSessionButton.setText("Stop Session");
+                            startSessionButton.setBackground(SUNSET);
                         }else{
                             JOptionPane.showMessageDialog(App.this,
                                     "Failed to start session. Please check the console for more information.",
@@ -186,6 +190,7 @@ public class App extends JFrame {
 
                     } else if(startSessionButton.getText().equals("Stop Session")){
                         startSessionButton.setText("Start Session");
+                        startSessionButton.setBackground(OCEAN);
                         fileSession.endSession();
                     }
                 }
@@ -193,7 +198,7 @@ public class App extends JFrame {
 
         // Settings Listener
         settingsButton.addActionListener(e -> {
-            // Add settings logic here
+            SwingUtilities.invokeLater(SettingsWindow::new);
         });
 
         // Window Event Listener
