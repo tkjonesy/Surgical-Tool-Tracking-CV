@@ -68,6 +68,14 @@ public class App extends JFrame {
         this.setMinimumSize(new Dimension(746, 401));
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
+        // Icon
+        try {
+            ImageIcon appIcon = new ImageIcon("src/main/resources/logo32.png");
+            this.setIconImage(appIcon.getImage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         // Camera Panel
         JPanel cameraPanel = new JPanel();
         cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
