@@ -172,7 +172,6 @@ public class OnnxRunner {
 
         try {
             detectionList = inferenceSession.run(frame);
-            processDetections(detectionList);
         } catch (OrtException ortException) {
 
             logQueue.addRedLog("Error running inference: " + ortException.getMessage());

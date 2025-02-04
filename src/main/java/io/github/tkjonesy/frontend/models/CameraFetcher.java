@@ -33,16 +33,15 @@ public class CameraFetcher implements Runnable {
     private final JLabel cameraFeed;
     private final VideoCapture camera;
     private final Timer timer;
-
+    private final SessionHandler sessionHandler;
     private final OnnxRunner onnxRunner;
-    private final FileSession fileSession;
 
-    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, OnnxRunner onnxRunner, FileSession fileSession) {
+    public CameraFetcher(JLabel cameraFeed, VideoCapture camera, OnnxRunner onnxRunner, SessionHandler sessionHandler) {
         this.cameraFeed = cameraFeed;
         this.camera = camera;
         this.timer = new Timer();
         this.onnxRunner = onnxRunner;
-        this.fileSession = fileSession;
+        this.sessionHandler = sessionHandler;
     }
 
     /**
@@ -100,9 +99,6 @@ public class CameraFetcher implements Runnable {
                         currentFrame = 0;
                     }
 
-                    // Update tool tracking in OnnxRunner
-                    //onnxRunner.updateTracking(detections);
-
                     // Overlay predictions & resize
                     ImageUtil.drawPredictions(frame, detections);
                     try {
@@ -116,23 +112,22 @@ public class CameraFetcher implements Runnable {
                         this.cancel();
                     }
                     // Write the frame to the video file if the session is active
-                    VideoWriter writer = fileSession.getVideoWriter();
-                    if (fileSession.isSessionActive()) {
-
+                    if (sessionHandler.isSessionActive()) {
+                        FileSession fileSession = sessionHandler.getFileSession();
+                        VideoWriter writer = fileSession.getVideoWriter();
                         // Initializes the video writer
                         if ((writer == null || !writer.isOpened())) {
                             fileSession.initVideoWriter(frame);
                             onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
                         }
 
-                        // Video frame rate
+                        // !!TEMPORARY!! Video frame rate
                         if(currentFrame % 2 == 0){
                             fileSession.writeVideoFrame(frame);
                         }
                         onnxRunner.processDetections(detections);
 
                     } else {
-                        fileSession.destroyVideoWriter();
                         onnxRunner.clearClasses();
                     }
                 }

@@ -8,10 +8,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
-import io.github.tkjonesy.frontend.models.CameraFetcher;
-import io.github.tkjonesy.frontend.models.FileSession;
-import io.github.tkjonesy.frontend.models.LogHandler;
-import io.github.tkjonesy.ONNX.models.LogQueue;
+import io.github.tkjonesy.frontend.models.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,14 +19,14 @@ import org.bytedeco.javacpp.Loader;
 import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 public class App extends JFrame {
-    private final FileSession fileSession;
-    private final LogHandler logHandler;   // ✅ Store LogHandler
+    private final SessionHandler sessionHandler;
 
     static {
         Loader.load(opencv_core.class);
     }
 
-
+    private final OnnxRunner onnxRunner;
+    private final LogHandler logHandler;
 
     @Getter
     private final VideoCapture camera;
@@ -53,23 +50,14 @@ public class App extends JFrame {
             System.exit(-1);
         }
 
-        // Create ONE shared LogQueue
-        LogQueue logQueue = new LogQueue();
 
-        // Temporarily initialize LogHandler without FileSession
-        this.logHandler = new LogHandler(logTextPane, null, logQueue);  // `null` for now
+        this.logHandler = new LogHandler(logTextPane);
+        this.sessionHandler = new SessionHandler(logHandler);
 
-        // Create OnnxRunner using `logHandler.getLogQueue()`
-        OnnxRunner onnxRunner = new OnnxRunner(logHandler.getLogQueue());
-
-        // Now initialize FileSession with OnnxRunner
-        this.fileSession = new FileSession(onnxRunner);
-
-        // Set the correct FileSession in LogHandler
-        this.logHandler.setFileSession(this.fileSession);
+        this.onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, fileSession);
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, sessionHandler);
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -178,17 +166,39 @@ public class App extends JFrame {
                 e -> {
                     if (startSessionButton.getText().equals("Start Session")) {
 
-                        if(fileSession.startNewSession()){
-                            startSessionButton.setText("Stop Session");
-                        }else{
-                            JOptionPane.showMessageDialog(App.this,
-                                    "Failed to start session. Please check the console for more information.",
-                                    "Session Start Failed", JOptionPane.ERROR_MESSAGE);
+                        // Open session input dialog
+                        SessionInputDialog dialog = new SessionInputDialog(this);
+                        dialog.setVisible(true);
+
+                        // Check if the user confirmed the dialog
+                        if (dialog.isConfirmed()) {
+                            String sessionTitle = dialog.getSessionTitle();
+                            String sessionDescription = dialog.getSessionDescription();
+
+                            // Ensure title and description are not empty
+                            if (sessionTitle.isEmpty() || sessionDescription.isEmpty()) {
+                                JOptionPane.showMessageDialog(App.this,
+                                        "Please fill in both fields.",
+                                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+
+                            // Start new session
+                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, this.onnxRunner);
+
+                            // If session started successfully, update UI and begin logging
+                            if (sessionStarted) {
+                                startSessionButton.setText("Stop Session");
+                            } else {
+                                JOptionPane.showMessageDialog(App.this,
+                                        "Failed to start session. Please check the console for more information.",
+                                        "Session Start Failed", JOptionPane.ERROR_MESSAGE);
+                            }
                         }
 
-                    } else if(startSessionButton.getText().equals("Stop Session")){
+                    } else if (startSessionButton.getText().equals("Stop Session")) {
                         startSessionButton.setText("Start Session");
-                        fileSession.endSession();
+                        sessionHandler.endSession();
                     }
                 }
         );
