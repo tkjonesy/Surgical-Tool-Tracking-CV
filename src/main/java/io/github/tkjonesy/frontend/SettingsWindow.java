@@ -1,14 +1,24 @@
 package io.github.tkjonesy.frontend;
 
 import javax.swing.*;
-import java.awt.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
-public class SettingsWindow extends JFrame {
+import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
+
+public class SettingsWindow extends JDialog {
+
 
     private JButton confirmButton, cancelButton, applyButton;
+    private JComboBox<Integer> cameraSelector;
 
-    public SettingsWindow() {
+    private static final Color OCEAN = new Color(55, 90, 129);
+
+    public SettingsWindow(JFrame parent) {
+        super(parent, "AIM Settings", true);
         initComponents();
         initListeners();
         this.setVisible(true);
@@ -17,9 +27,9 @@ public class SettingsWindow extends JFrame {
     private void initComponents() {
 
         // Titling, sizing, and exit actions
-        this.setTitle("AIM Settings");
+//        this.setTitle("AIM Settings");
         this.setMinimumSize(new Dimension(640, 480));
-        this.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
         // Icon
         try {
@@ -29,11 +39,24 @@ public class SettingsWindow extends JFrame {
             throw new RuntimeException(e);
         }
 
+        // TODO create a tabbed sidebar to switch between setting panels
+        // TODO add a panel for each settings group (look at Rachel's Figma mockup for reference)
+
+        // Camera Settings Panel
+        JPanel cameraPanel = new JPanel();
+
+        // TODO initialize the combo box, populate it with the camera indices
+        // TODO add layout for camera panel and add it to the
+
+
         // Button Panel
         JPanel buttonPanel = new JPanel();
 
         confirmButton = new JButton("OK");
+        confirmButton.setBackground(OCEAN);
+
         cancelButton = new JButton("Cancel");
+
         applyButton = new JButton("Apply");
 
         // Button Layout
@@ -72,6 +95,44 @@ public class SettingsWindow extends JFrame {
     }
 
     private void initListeners() {
+        confirmButton.addActionListener(
+                e -> {
+                    System.out.println("Pressed ok");
+                    applyChanges();
+                    this.dispose();
+                }
+        );
 
+        cancelButton.addActionListener(
+                e -> {
+                    System.out.println("Pressed cancel");
+                    cancelChanges();
+                    this.dispose();
+                }
+        );
+
+        applyButton.addActionListener(
+                e -> {
+                    System.out.println("Pressed apply");
+                    applyChanges();
+
+                }
+        );
+
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                System.out.println("Settings window closing");
+                cancelChanges();
+                SettingsWindow.this.dispose();
+            }
+        });
+    }
+
+    private void applyChanges() {
+        System.out.println("Applying changed settings");
+    }
+    private void cancelChanges() {
+        System.out.println("Cancelling changed settings");
     }
 }
