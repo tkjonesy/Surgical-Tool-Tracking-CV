@@ -88,7 +88,8 @@ public class SessionInputDialog extends JDialog {
         if(descriptionArea.getForeground().equals(Color.GRAY)){
             return "";
         }
-        return descriptionArea.getText().trim();
+        String desc = descriptionArea.getText().trim();
+        return !desc.isEmpty() ? desc : "No description provided.";
     }
 
     private void setPlaceholder(JTextComponent component, String placeholder) {

@@ -14,9 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashSet;
-import java.util.HashMap;
 import java.time.Duration;
 import java.time.Instant;
 
