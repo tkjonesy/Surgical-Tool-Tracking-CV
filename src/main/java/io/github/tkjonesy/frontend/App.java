@@ -175,7 +175,7 @@ public class App extends JFrame {
                             String sessionDescription = dialog.getSessionDescription();
 
                             // Ensure title and description are not empty
-                            if (sessionTitle.isEmpty() || sessionDescription.isEmpty()) {
+                            if (sessionTitle.isEmpty()) {
                                 JOptionPane.showMessageDialog(App.this,
                                         "Please fill in both fields.",
                                         "Invalid Input", JOptionPane.ERROR_MESSAGE);

@@ -53,10 +53,9 @@ public class CameraFetcher implements Runnable {
         int height = frame.rows();
         int channels = frame.channels();
 
-        // Bytedeco Mat data -> BytePointer
         BytePointer dataPtr = frame.data();
         byte[] b = new byte[width * height * channels];
-        dataPtr.get(b); // Copy native memory into Java byte[]
+        dataPtr.get(b);
 
         // Determine the correct BufferedImage type
         int type = (channels > 1) ? BufferedImage.TYPE_3BYTE_BGR : BufferedImage.TYPE_BYTE_GRAY;
@@ -120,13 +119,9 @@ public class CameraFetcher implements Runnable {
                             fileSession.initVideoWriter(frame);
                             onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
                         }
+                        fileSession.writeVideoFrame(frame);
 
-                        // !!TEMPORARY!! Video frame rate
-                        if(currentFrame % 2 == 0){
-                            fileSession.writeVideoFrame(frame);
-                        }
                         onnxRunner.processDetections(detections);
-
                     } else {
                         onnxRunner.clearClasses();
                     }
