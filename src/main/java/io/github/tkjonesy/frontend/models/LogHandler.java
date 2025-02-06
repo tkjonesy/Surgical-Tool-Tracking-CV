@@ -4,6 +4,7 @@ import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.LogQueue;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.swing.*;
 
@@ -14,15 +15,16 @@ public class LogHandler {
     @Getter
     private final LogQueue logQueue;
 
-    private final FileSession fileSession;
+    // New method to set FileSession after initialization
+    @Setter
+    private FileSession fileSession;
     private Timer timer;
 
     // This StringBuilder accumulates the log messages in HTML format
     private final StringBuilder logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
 
-    public LogHandler(JTextPane textPane, FileSession fileSession) {
+    public LogHandler(JTextPane textPane) {
         this.logTextPane = textPane;
-        this.fileSession = fileSession;
         this.logQueue = new LogQueue();
 
         startLogProcessing();
@@ -76,7 +78,7 @@ public class LogHandler {
         {
             // Process logs from the queue
             Log nextLog;
-            while ((nextLog = logQueue.getNextLog()) != null && fileSession.isSessionActive()){
+            while ((nextLog = logQueue.getNextLog()) != null && fileSession != null){
                 processLog(nextLog);
             }
         });

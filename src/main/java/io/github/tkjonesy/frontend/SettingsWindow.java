@@ -13,7 +13,6 @@ public class SettingsWindow extends JDialog {
 
 
     private JButton confirmButton, cancelButton, applyButton;
-    private JComboBox<Integer> cameraSelector;
 
     private static final Color OCEAN = new Color(55, 90, 129);
 
@@ -26,8 +25,7 @@ public class SettingsWindow extends JDialog {
 
     private void initComponents() {
 
-        // Titling, sizing, and exit actions
-//        this.setTitle("AIM Settings");
+        // Sizing, and exit actions
         this.setMinimumSize(new Dimension(640, 480));
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
@@ -39,31 +37,67 @@ public class SettingsWindow extends JDialog {
             throw new RuntimeException(e);
         }
 
-        // TODO create a tabbed sidebar to switch between setting panels
-        // TODO add a panel for each settings group (look at Rachel's Figma mockup for reference)
+        /* TODO add a panel for each settings group (look at Rachel's Figma mockup for reference)
+         * Display (Camera) ✅
+         * Storage
+         * Model
+         * Advanced
+         */
 
-        // Camera Settings Panel
+        /*----------------+
+        | CAMERA SETTINGS |
+        +----------------*/
+        // Components
         JPanel cameraPanel = new JPanel();
+        JLabel cameraSelectorLabel = new JLabel("Camera Selection");
+        JComboBox<Integer> cameraSelector = new JComboBox<>();
+        for(int cameraIndex : AVAILABLE_CAMERAS)
+            cameraSelector.addItem(cameraIndex);
+        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes",true);
+        boundingBoxCheck.setHorizontalTextPosition(SwingConstants.LEFT);
+        boundingBoxCheck.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
 
-        // TODO initialize the combo box, populate it with the camera indices
-        // TODO add layout for camera panel and add it to the
+        // Layout
+        GroupLayout cameraSettingsLayout = new GroupLayout(cameraPanel);
+        cameraSettingsLayout.setAutoCreateContainerGaps(true);
+        cameraSettingsLayout.setHorizontalGroup(
+                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(
+                                cameraSettingsLayout.createSequentialGroup()
+                                        .addComponent(cameraSelectorLabel)
+                                        .addPreferredGap(ComponentPlacement.RELATED)
+                                        .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
+                        .addComponent(boundingBoxCheck)
+        );
+        cameraSettingsLayout.setVerticalGroup(
+                cameraSettingsLayout.createSequentialGroup()
+                        .addGroup(
+                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(cameraSelectorLabel)
+                                        .addComponent(cameraSelector)
+                        )
+                        .addPreferredGap(ComponentPlacement.UNRELATED)
+                        .addComponent(boundingBoxCheck)
+        );
+        cameraPanel.setLayout(cameraSettingsLayout);
 
-
-        // Button Panel
+        /*--------------+
+        | BUTTON LAYOUT |
+        +--------------*/
+        // Components
         JPanel buttonPanel = new JPanel();
-
         confirmButton = new JButton("OK");
         confirmButton.setBackground(OCEAN);
-
         cancelButton = new JButton("Cancel");
-
         applyButton = new JButton("Apply");
 
-        // Button Layout
+        // Layout
         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
         buttonPanelLayout.setAutoCreateContainerGaps(true);
         buttonPanelLayout.setHorizontalGroup(
                 buttonPanelLayout.createSequentialGroup()
+                        .addPreferredGap(ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(confirmButton)
                         .addPreferredGap(ComponentPlacement.RELATED)
                         .addComponent(cancelButton)
@@ -78,15 +112,28 @@ public class SettingsWindow extends JDialog {
         );
         buttonPanel.setLayout(buttonPanelLayout);
 
-        // Window Layout
+        /*----------------------+
+        | SETTINGS MENU SIDEBAR |
+        +----------------------*/
+        JTabbedPane settingSelector = new JTabbedPane(SwingConstants.LEFT);
+        settingSelector.addTab("Camera", cameraPanel);
+
+        /*--------------+
+        | WINDOW LAYOUT |
+        +--------------*/
         GroupLayout layout = new GroupLayout(this.getContentPane());
         layout.setAutoCreateContainerGaps(true);
         layout.setHorizontalGroup(
                 layout.createSequentialGroup()
-                        .addComponent(buttonPanel)
+                        .addGroup(
+                                layout.createParallelGroup()
+                                        .addComponent(settingSelector)
+                                        .addComponent(buttonPanel)
+                        )
         );
         layout.setVerticalGroup(
                 layout.createSequentialGroup()
+                        .addComponent(settingSelector)
                         .addComponent(buttonPanel)
         );
         this.setLayout(layout);

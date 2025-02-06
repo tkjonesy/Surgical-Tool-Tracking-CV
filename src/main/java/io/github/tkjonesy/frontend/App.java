@@ -7,13 +7,15 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
-import io.github.tkjonesy.frontend.models.CameraFetcher;
-import io.github.tkjonesy.frontend.models.FileSession;
-import io.github.tkjonesy.frontend.models.LogHandler;
+import io.github.tkjonesy.frontend.models.*;
+import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
+import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
+import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,27 +26,47 @@ import org.bytedeco.javacpp.Loader;
 import static io.github.tkjonesy.ONNX.settings.Settings.*;
 
 public class App extends JFrame {
+    private final SessionHandler sessionHandler;
 
-    public static final List<Integer> AVAILABLE_CAMERAS;
+    public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
     static {
         // Load OpenCV
         Loader.load(opencv_core.class);
 
-        // Check first 10 device ports for any connected cameras, add them to available cameras
-        AVAILABLE_CAMERAS = new ArrayList<>();
-        final int MAX_PORTS_TO_CHECK = 10;
-        for(int i = 0; i < MAX_PORTS_TO_CHECK; i++)
-        {
-            try(VideoCapture camera = new VideoCapture(i)) {
-                if (camera.isOpened()) {
-                    AVAILABLE_CAMERAS.add(i);
-                    camera.release();
-                }
-            }
+        CameraGrabber grabber;
+
+        if(System.getProperty("os.name").toLowerCase().contains("mac")) {
+            grabber = new MacOSCameraGrabber();
+        } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
+            grabber = new WindowsCameraGrabber();
+        }else{
+            throw new UnsupportedOperationException("Unsupported OS");
         }
+
+        AVAILABLE_CAMERAS = grabber.getCameraNames();
+
+        //print cameras
+        System.out.println("Available Cameras:");
+        for (String cameraName : AVAILABLE_CAMERAS.keySet()) {
+            System.out.println(cameraName);
+        }
+
+
+        // Check first 10 device ports for any connected cameras, add them to available cameras
+//        AVAILABLE_CAMERAS = new ArrayList<>();
+//        final int MAX_PORTS_TO_CHECK = 10;
+//        for(int i = 0; i < MAX_PORTS_TO_CHECK; i++)
+//        {
+//            try(VideoCapture camera = new VideoCapture(i)) {
+//                if (camera.isOpened()) {
+//                    AVAILABLE_CAMERAS.add(i);
+//                    camera.release();
+//                }
+//            }
+//        }
     }
 
-    private final FileSession fileSession;
+    private final OnnxRunner onnxRunner;
 
     @Getter
     private final VideoCapture camera;
@@ -71,12 +93,14 @@ public class App extends JFrame {
             System.exit(-1);
         }
 
-        this.fileSession = new FileSession();
-        LogHandler logHandler = new LogHandler(logTextPane, fileSession);
-        OnnxRunner onnxRunner = new OnnxRunner(logHandler.getLogQueue());
+
+        LogHandler logHandler = new LogHandler(logTextPane);
+        this.sessionHandler = new SessionHandler(logHandler);
+
+        this.onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, fileSession);
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, sessionHandler);
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -195,19 +219,41 @@ public class App extends JFrame {
                 e -> {
                     if (startSessionButton.getText().equals("Start Session")) {
 
-                        if(fileSession.startNewSession()){
-                            startSessionButton.setText("Stop Session");
-                            startSessionButton.setBackground(SUNSET);
-                        }else{
-                            JOptionPane.showMessageDialog(App.this,
-                                    "Failed to start session. Please check the console for more information.",
-                                    "Session Start Failed", JOptionPane.ERROR_MESSAGE);
+                        // Open session input dialog
+                        SessionInputDialog dialog = new SessionInputDialog(this);
+                        dialog.setVisible(true);
+
+                        // Check if the user confirmed the dialog
+                        if (dialog.isConfirmed()) {
+                            String sessionTitle = dialog.getSessionTitle();
+                            String sessionDescription = dialog.getSessionDescription();
+
+                            // Ensure title and description are not empty
+                            if (sessionTitle.isEmpty()) {
+                                JOptionPane.showMessageDialog(App.this,
+                                        "Please fill in both fields.",
+                                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                                return;
+                            }
+
+                            // Start new session
+                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, this.onnxRunner);
+
+                            // If session started successfully, update UI and begin logging
+                            if (sessionStarted) {
+                                startSessionButton.setText("Stop Session");
+                                startSessionButton.setBackground(SUNSET);
+                            } else {
+                                JOptionPane.showMessageDialog(App.this,
+                                        "Failed to start session. Please check the console for more information.",
+                                        "Session Start Failed", JOptionPane.ERROR_MESSAGE);
+                            }
                         }
 
-                    } else if(startSessionButton.getText().equals("Stop Session")){
+                    } else if (startSessionButton.getText().equals("Stop Session")) {
                         startSessionButton.setText("Start Session");
                         startSessionButton.setBackground(OCEAN);
-                        fileSession.endSession();
+                        sessionHandler.endSession();
                     }
                 }
         );

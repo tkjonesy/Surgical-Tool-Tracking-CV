@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -24,6 +26,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * detected classes.
  */
 public class OnnxRunner {
+    private HashSet<String> initialToolSet = new HashSet<>();
+    private HashSet<String> lastKnownTools = new HashSet<>();
+    private Instant startTime;
 
     /** The YOLO inference session used to run the YOLO model. */
     private Yolo inferenceSession;
@@ -36,13 +41,97 @@ public class OnnxRunner {
     @Getter
     private final HashMap<String, Integer> classes;
 
+    /**
+     * ✅ Starts tracking tools when session begins.
+     */
+    public void startTracking() {
+        startTime = Instant.now();
+        initialToolSet.clear();
+        lastKnownTools.clear();
+
+        // ✅ Capture initial tool set after 1 sec
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                initialToolSet.addAll(getClasses().keySet());
+                System.out.println("✅ Initial tools captured: " + initialToolSet);
+            } catch (InterruptedException e) {
+                System.err.println("Failed to capture initial tool set: " + e.getMessage());
+            }
+        }).start();
+
+        // ✅ Continuously track last known tools
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(500);
+                    lastKnownTools.clear();
+                    lastKnownTools.addAll(getClasses().keySet());
+                    System.out.println("🔍 Updated Last Known Tools: " + lastKnownTools);
+                } catch (InterruptedException e) {
+                    System.err.println("Error updating last known tools: " + e.getMessage());
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * ✅ Captures final tools when session ends.
+     */
+    public void captureFinalTools() {
+        try {
+            Thread.sleep(500); // Small delay for final detection update
+        } catch (InterruptedException e) {
+            System.err.println("Warning: Delay interrupted before final tool capture.");
+        }
+
+        lastKnownTools.clear();
+        lastKnownTools.addAll(getClasses().keySet());
+        System.out.println("🔍 Final tools detected: " + lastKnownTools);
+    }
+
+    /**
+     * ✅ Returns initial tools detected.
+     */
+    public HashSet<String> getInitialToolSet() {
+        return new HashSet<>(initialToolSet);
+    }
+
+    /**
+     * ✅ Returns final tools detected.
+     */
+    public HashSet<String> getFinalToolSet() {
+        return new HashSet<>(lastKnownTools);
+    }
+
+    /**
+     * ✅ Returns session duration.
+     */
+    public Duration getSessionDuration() {
+        return Duration.between(startTime, Instant.now());
+    }
+
+    @Getter
+    private final HashMap<String, Integer> detectedClasses = new HashMap<>();
+
+    /**
+     * ✅ Simulated function that returns detected tools.
+     */
+    public HashMap<String, Integer> getClasses() {
+        System.out.println("🔹 getClasses() called. Detected classes: " + detectedClasses);
+        return detectedClasses;
+    }
+
+
     private HashSet<String> knownClasses = new HashSet<>();
     private HashMap<String, Integer> previousClasses;
+    private final HashMap<String, Integer> totalObjectAppearances = new HashMap<>();
 
     // Counter for numbering log entries
     private int logCounter=1;
 
     public OnnxRunner(LogQueue logQueue) {
+
         this.logQueue = logQueue;
         classes = new HashMap<>();
         previousClasses = new HashMap<>(); // Initializes previousClasses to store previous frame detections
@@ -107,8 +196,15 @@ public class OnnxRunner {
      * @param detections A list of {@link Detection} objects representing the detected items.
      */
     public void processDetections(List<Detection> detections) {
+        detectedClasses.clear(); // Reset previous detections
         DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         DateTimeFormatter formatterTime = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+        for (Detection detection : detections) {
+            detectedClasses.put(detection.label(), detectedClasses.getOrDefault(detection.label(), 0) + 1);
+        }
+
+        System.out.println("🔹 Detected Classes Updated: " + detectedClasses);
 
         // Count detections for this frame
         HashMap<String, Integer> updatedClasses = new HashMap<>();
@@ -163,12 +259,13 @@ public class OnnxRunner {
                 String logMessage = formatLogMessage(logCounter++, label, "Reappeared in camera view");
                 logQueue.addGreenLog(logMessage);
             }
+            //classes.put(label, classes.getOrDefault(label, 0) + 1);
         }
 
         for (String label : previousClasses.keySet()) {
             if (!updatedClasses.containsKey(label)) {
                 // Object left camera view, log in red
-                String exitMessage = formatLogMessage(logCounter++, label, "Left Camera View");;
+                String exitMessage = formatLogMessage(logCounter++, label, "Left Camera View");
                 logQueue.addRedLog(exitMessage);
             }
         }
