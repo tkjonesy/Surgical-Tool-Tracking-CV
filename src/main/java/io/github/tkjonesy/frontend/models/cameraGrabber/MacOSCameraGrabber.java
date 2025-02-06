@@ -1,13 +1,8 @@
 package io.github.tkjonesy.frontend.models.cameraGrabber;
 
-import org.bytedeco.javacv.FrameGrabber;
-import org.bytedeco.javacv.OpenCVFrameGrabber;
-import org.bytedeco.opencv.opencv_videoio.VideoCapture;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 public class MacOSCameraGrabber extends CameraGrabber {

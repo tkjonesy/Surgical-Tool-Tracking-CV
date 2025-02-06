@@ -113,12 +113,6 @@
             <artifactId>openblas</artifactId>
             <version>0.3.6-1.5.1</version>
         </dependency>
-        <dependency>
-            <groupId>org.bytedeco</groupId>
-            <artifactId>javacv-platform</artifactId>
-            <version>1.5.5</version>
-        </dependency>
-
 
     </dependencies>
 </project>
