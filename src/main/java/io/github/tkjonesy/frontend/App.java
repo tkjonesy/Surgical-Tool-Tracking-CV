@@ -219,6 +219,7 @@ public class App extends JFrame {
                             // If session started successfully, update UI and begin logging
                             if (sessionStarted) {
                                 startSessionButton.setText("Stop Session");
+                                startSessionButton.setBackground(SUNSET);
                             } else {
                                 JOptionPane.showMessageDialog(App.this,
                                         "Failed to start session. Please check the console for more information.",
@@ -228,6 +229,7 @@ public class App extends JFrame {
 
                     } else if (startSessionButton.getText().equals("Stop Session")) {
                         startSessionButton.setText("Start Session");
+                        startSessionButton.setBackground(OCEAN);
                         sessionHandler.endSession();
                     }
                 }
