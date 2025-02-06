@@ -7,11 +7,15 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.models.*;
+import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
+import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
+import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,23 +28,40 @@ import static io.github.tkjonesy.ONNX.settings.Settings.*;
 public class App extends JFrame {
     private final SessionHandler sessionHandler;
 
-    public static final List<Integer> AVAILABLE_CAMERAS;
+    public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
     static {
         // Load OpenCV
         Loader.load(opencv_core.class);
 
-        // Check first 10 device ports for any connected cameras, add them to available cameras
-        AVAILABLE_CAMERAS = new ArrayList<>();
-        final int MAX_PORTS_TO_CHECK = 10;
-        for(int i = 0; i < MAX_PORTS_TO_CHECK; i++)
-        {
-            try(VideoCapture camera = new VideoCapture(i)) {
-                if (camera.isOpened()) {
-                    AVAILABLE_CAMERAS.add(i);
-                    camera.release();
-                }
-            }
+        CameraGrabber grabber;
+
+        if(System.getProperty("os.name").toLowerCase().contains("mac")) {
+            grabber = new MacOSCameraGrabber();
+        } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
+            grabber = new WindowsCameraGrabber();
         }
+
+        AVAILABLE_CAMERAS = grabber.getCameraNames();
+
+        //print cameras
+        System.out.println("Available Cameras:");
+        for (String cameraName : AVAILABLE_CAMERAS.keySet()) {
+            System.out.println(cameraName);
+        }
+
+
+        // Check first 10 device ports for any connected cameras, add them to available cameras
+//        AVAILABLE_CAMERAS = new ArrayList<>();
+//        final int MAX_PORTS_TO_CHECK = 10;
+//        for(int i = 0; i < MAX_PORTS_TO_CHECK; i++)
+//        {
+//            try(VideoCapture camera = new VideoCapture(i)) {
+//                if (camera.isOpened()) {
+//                    AVAILABLE_CAMERAS.add(i);
+//                    camera.release();
+//                }
+//            }
+//        }
     }
 
     private final OnnxRunner onnxRunner;
