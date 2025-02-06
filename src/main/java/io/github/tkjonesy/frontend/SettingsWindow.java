@@ -1,16 +1,18 @@
 package io.github.tkjonesy.frontend;
 
+import io.github.tkjonesy.ONNX.settings.Settings;
+
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.Set;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 
 public class SettingsWindow extends JDialog {
-
 
     private JButton confirmButton, cancelButton, applyButton;
 
@@ -50,12 +52,40 @@ public class SettingsWindow extends JDialog {
         // Components
         JPanel cameraPanel = new JPanel();
         JLabel cameraSelectorLabel = new JLabel("Camera Selection");
-        JComboBox<Integer> cameraSelector = new JComboBox<>();
-        for(int cameraIndex : AVAILABLE_CAMERAS)
-            cameraSelector.addItem(cameraIndex);
-        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes",true);
+        JComboBox<String> cameraSelector = new JComboBox<>();
+        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes",Settings.DISPLAY_BOUNDING_BOXES);
+        JLabel cameraFpsLabel = new JLabel("Camera Frames Per Second");
+        JSpinner cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(Settings.CAMERA_FRAME_RATE, 0, 60, 1));
+        JLabel cameraFpsWarningLabel = new JLabel("");
+
+        // Populate camera selection menu with list of available cameras.
+        Set<String> cameraNames = AVAILABLE_CAMERAS.keySet();
+        int itemIndex = 0;
+        for(String cameraName: cameraNames) {
+            cameraSelector.addItem(cameraName);
+            // Automatically set the selected camera to whatever camera is selected in the settings file.
+            if(AVAILABLE_CAMERAS.get(cameraName) == Settings.VIDEO_CAPTURE_DEVICE_ID)
+                cameraSelector.setSelectedIndex(itemIndex);
+            itemIndex++;
+        }
+
+        // Bounding box details
         boundingBoxCheck.setHorizontalTextPosition(SwingConstants.LEFT);
         boundingBoxCheck.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
+
+        // Camera FPS details
+        cameraFpsSpinner.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
+        cameraFpsLabel.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
+        cameraFpsWarningLabel.setForeground(Color.RED);
+        cameraFpsSpinner.addChangeListener(
+                e -> {
+                    if((int) cameraFpsSpinner.getValue() <= 30)
+                        cameraFpsWarningLabel.setText("");
+                    else {
+                        cameraFpsWarningLabel.setText("<html><body style='width:200px'><b>NOTE: Values over 30 may not be supported by all cameras. Setting this value higher than 30 will not make the recording smoother if the camera does not have a refresh rate this high. Additionally, values over 60 may cause extreme performance issues.</b></body></html>");
+                    }
+                }
+        );
 
         // Layout
         GroupLayout cameraSettingsLayout = new GroupLayout(cameraPanel);
@@ -69,6 +99,14 @@ public class SettingsWindow extends JDialog {
                                         .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addComponent(boundingBoxCheck)
+                        .addGroup(
+                                cameraSettingsLayout.createSequentialGroup()
+                                        .addComponent(cameraFpsLabel)
+                                        .addPreferredGap(ComponentPlacement.RELATED)
+                                        .addComponent(cameraFpsSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(ComponentPlacement.RELATED)
+                                        .addComponent(cameraFpsWarningLabel)
+                        )
         );
         cameraSettingsLayout.setVerticalGroup(
                 cameraSettingsLayout.createSequentialGroup()
@@ -79,6 +117,13 @@ public class SettingsWindow extends JDialog {
                         )
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addComponent(boundingBoxCheck)
+                        .addPreferredGap(ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(cameraFpsLabel)
+                                        .addComponent(cameraFpsSpinner)
+                                        .addComponent(cameraFpsWarningLabel)
+                        )
         );
         cameraPanel.setLayout(cameraSettingsLayout);
 
@@ -178,6 +223,7 @@ public class SettingsWindow extends JDialog {
 
     private void applyChanges() {
         System.out.println("Applying changed settings");
+        // TODO compare camera selection with what is already selected. If there has been a change, save the new camera index value.
     }
     private void cancelChanges() {
         System.out.println("Cancelling changed settings");
