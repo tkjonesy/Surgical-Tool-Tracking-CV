@@ -13,7 +13,6 @@ public class SettingsWindow extends JDialog {
 
 
     private JButton confirmButton, cancelButton, applyButton;
-    private JComboBox<Integer> cameraSelector;
 
     private static final Color OCEAN = new Color(55, 90, 129);
 
@@ -51,9 +50,9 @@ public class SettingsWindow extends JDialog {
         // Components
         JPanel cameraPanel = new JPanel();
         JLabel cameraSelectorLabel = new JLabel("Camera Selection");
-        JComboBox<Integer> cameraSelectorMenu = new JComboBox<>();
+        JComboBox<Integer> cameraSelector = new JComboBox<>();
         for(int cameraIndex : AVAILABLE_CAMERAS)
-            cameraSelectorMenu.addItem(cameraIndex);
+            cameraSelector.addItem(cameraIndex);
         JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes",true);
         boundingBoxCheck.setHorizontalTextPosition(SwingConstants.LEFT);
         boundingBoxCheck.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
@@ -67,7 +66,7 @@ public class SettingsWindow extends JDialog {
                                 cameraSettingsLayout.createSequentialGroup()
                                         .addComponent(cameraSelectorLabel)
                                         .addPreferredGap(ComponentPlacement.RELATED)
-                                        .addComponent(cameraSelectorMenu, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addComponent(boundingBoxCheck)
         );
@@ -76,7 +75,7 @@ public class SettingsWindow extends JDialog {
                         .addGroup(
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(cameraSelectorLabel)
-                                        .addComponent(cameraSelectorMenu)
+                                        .addComponent(cameraSelector)
                         )
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addComponent(boundingBoxCheck)
