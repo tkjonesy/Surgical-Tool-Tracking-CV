@@ -39,6 +39,8 @@ public class App extends JFrame {
             grabber = new MacOSCameraGrabber();
         } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
             grabber = new WindowsCameraGrabber();
+        }else{
+            throw new UnsupportedOperationException("Unsupported OS");
         }
 
         AVAILABLE_CAMERAS = grabber.getCameraNames();
