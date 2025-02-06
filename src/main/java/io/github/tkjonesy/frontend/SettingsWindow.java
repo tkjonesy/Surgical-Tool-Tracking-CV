@@ -26,11 +26,6 @@ public class SettingsWindow extends JDialog {
 
     private void initComponents() {
 
-        System.out.println("In settings window");
-        for (String cameraName : AVAILABLE_CAMERAS.keySet()) {
-            System.out.println(cameraName);
-        }
-
         // Titling, sizing, and exit actions
 //        this.setTitle("AIM Settings");
         this.setMinimumSize(new Dimension(640, 480));
