@@ -18,19 +18,21 @@ public class Settings {
 
     public static final String modelPath;   // Path to extracted .onnx file
     public static final String labelPath;   // Path to extracted .names file
+    public static final String FILE_DIRECTORY;
 
     public static final int PROCESS_EVERY_NTH_FRAME;
     public static final int CAMERA_FRAME_RATE;
     public static final int VIDEO_CAPTURE_DEVICE_ID;
+    public static final int GPU_DEVICE_ID;
+    public static final int INPUT_SIZE;
+    public static final int NUM_INPUT_ELEMENTS;
 
     public static final float confThreshold;
     public static final float nmsThreshold;
-    public static final int gpuDeviceId;
-    public static final int INPUT_SIZE;
-    public static final int NUM_INPUT_ELEMENTS;
+
     public static final long[] INPUT_SHAPE;
 
-    public static final String FILE_DIRECTORY;
+    public static final boolean DISPLAY_BOUNDING_BOXES;
 
     static {
         Properties properties = new Properties();
@@ -47,7 +49,7 @@ public class Settings {
 
             confThreshold = Float.parseFloat(properties.getProperty("confThreshold", "0.3"));
             nmsThreshold = Float.parseFloat(properties.getProperty("nmsThreshold", "0.4"));
-            gpuDeviceId = Integer.parseInt(properties.getProperty("gpuDeviceId", "0"));
+            GPU_DEVICE_ID = Integer.parseInt(properties.getProperty("GPU_DEVICE_ID", "0"));
             INPUT_SIZE = Integer.parseInt(properties.getProperty("INPUT_SIZE", "640"));
             NUM_INPUT_ELEMENTS = Integer.parseInt(properties.getProperty("NUM_INPUT_ELEMENTS", String.valueOf(3 * 640 * 640)));
 
@@ -63,6 +65,8 @@ public class Settings {
             if (!Files.exists(aiModelDir)) {
                 Files.createDirectories(aiModelDir);
             }
+
+            DISPLAY_BOUNDING_BOXES = Boolean.parseBoolean(properties.getProperty("DISPLAY_BOUNDING_BOXES", "true"));
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to load settings from properties file", e);
