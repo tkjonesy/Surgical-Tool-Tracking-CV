@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.time.Duration;
 import java.time.Instant;
@@ -167,33 +168,100 @@ public class FileSession {
         return formattedDuration.toString().trim();
     }
 
-    private void generateAAR(HashSet<String> initialTools, HashSet<String> finalTools, Duration recordDuration)
-    {
-        HashSet<String> removedTools = new HashSet<>(initialTools);
-        removedTools.removeAll(finalTools);
+    private void generateAAR(HashSet<String> initialTools, HashSet<String> finalTools, Duration recordDuration) {
+        HashMap<String, Integer> initialToolCounts = new HashMap<>();
+        HashMap<String, Integer> finalToolCounts = new HashMap<>();
 
-        HashSet<String> addedTools = new HashSet<>(finalTools);
-        addedTools.removeAll(initialTools);
+        int peakObjects = onnxRunner.getPeakObjectsSeen();
+        HashMap<String, Integer> detectedTools = onnxRunner.getMaxToolCounts(); // ✅ Get max count seen at once
+        HashMap<String, Integer> lastDetectedTools = onnxRunner.getDetectedClasses(); // ✅ Tracks last detected count
 
-        String formattedSessionTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        // ✅ Populate "finalToolCounts" using last detected count
+        for (String tool : finalTools) {
+            finalToolCounts.put(tool, lastDetectedTools.getOrDefault(tool, 1));
+        }
 
+        // ✅ Identify "New Tools Introduced" (Tools that were not present at the start but appeared later)
+        HashSet<String> newToolsIntroduced = new HashSet<>(detectedTools.keySet());
+        newToolsIntroduced.removeAll(initialTools);
+
+        // ✅ Identify tools whose count decreased between max detected and final count
+        HashMap<String, Integer> reducedTools = new HashMap<>();
+        for (String tool : detectedTools.keySet()) {
+            int maxSeen = detectedTools.getOrDefault(tool, 0);
+            int finalCount = finalToolCounts.getOrDefault(tool, 0);
+
+            if (maxSeen > finalCount) {  // If the max seen is greater than the final count, it means objects were removed
+                reducedTools.put(tool, maxSeen - finalCount);
+            }
+        }
+
+        // Get the real number of times a tool was added
+        HashMap<String, Integer> totalToolsAdded = onnxRunner.getTotalTimesAdded();
+
+
+        String formattedSessionTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")); // format date and time
         String aarPath = sessionDirectory + "/AAR.txt";
+
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(aarPath))) {
             writer.write("After Action Report (AAR)\n");
             writer.write("==========================\n");
+            writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
             writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
-
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
+            writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
 
-            writer.write("Tools Present at Start: " + initialTools + "\n");
-            writer.write("Tools Present at End: " + finalTools + "\n\n");
 
-            writer.write("Tools Removed: " + (removedTools.isEmpty() ? "None" : removedTools) + "\n");
-            writer.write("Tools Added: " + (addedTools.isEmpty() ? "None" : addedTools) + "\n");
+            writer.write("Total Instances of Each Tool Ever Added:\n");
+            writer.write("-----------------------------------------------------\n");
+            for (var entry : totalToolsAdded.entrySet()) {
+                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+            }
+            writer.write("-----------------------------------------------------\n\n");
 
-            System.out.println("AAR saved to: " + aarPath);
+            // Displays Tools Present at Start of Recording
+            writer.write("Tools Present at Start:\n");
+            writer.write("-----------------------------------------------------\n");
+            for (String tool : initialTools) {
+                writer.write(tool + ": " + detectedTools.getOrDefault(tool, 1)+ "\n");
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            // Displays Tools Present at End of Recording
+            writer.write("Tools Present at End:\n");
+            writer.write("------------------------\n");
+            for (var entry : finalToolCounts.entrySet()) {
+                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+            }
+            writer.write("------------------------\n\n");
+
+            // Displays New Tools Introduced During Session
+            writer.write("New Tools Introduced During Session:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (newToolsIntroduced.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (String tool : newToolsIntroduced) {
+                    writer.write(tool + ": " + detectedTools.getOrDefault(tool, 1) + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            // Displays Tools That Have Been Removed in the Session
+            writer.write("Tools remove during session\n");
+            writer.write("-----------------------------------------------------\n");
+            if (reducedTools.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : reducedTools.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n");
+
+            System.out.println("✅ AAR saved to: " + aarPath);
         } catch (IOException e) {
-            System.err.println("Failed to write AAR: " + e.getMessage());
+            System.err.println("❌ Failed to write AAR: " + e.getMessage());
         }
     }
 
