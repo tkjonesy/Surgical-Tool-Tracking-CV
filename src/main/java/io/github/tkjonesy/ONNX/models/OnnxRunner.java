@@ -37,6 +37,9 @@ public class OnnxRunner {
     private final HashSet<String> activeObjects = new HashSet<>();  // Objects currently detected
     private final HashSet<String> knownClasses = new HashSet<>();   // Objects that have been seen before
     private final HashMap<String, Integer> totalToolCounts = new HashMap<>();
+    private final HashMap<String, Integer> totalToolsAdded = new HashMap<>();
+
+
 
 
     private final HashMap<String, Integer> previousCounts = new HashMap<>();  // Tracks previous frame counts
@@ -67,7 +70,7 @@ public class OnnxRunner {
         initialToolSet.clear();
         lastKnownTools.clear();
 
-        // ✅ Capture initial tool set after 1 sec
+        // Capture initial tool set after 1 sec
         new Thread(() -> {
             try {
                 Thread.sleep(1000);
@@ -78,7 +81,7 @@ public class OnnxRunner {
             }
         }).start();
 
-        // ✅ Continuously track last known tools
+        // Continuously track last known tools
         new Thread(() -> {
             while (true) {
                 try {
@@ -94,7 +97,7 @@ public class OnnxRunner {
     }
 
     /**
-     * ✅ Captures final tools when session ends.
+     * Captures final tools when session ends.
      */
     public void captureFinalTools() {
         try {
@@ -139,14 +142,6 @@ public class OnnxRunner {
         System.out.println("🔹 getClasses() called. Detected classes: " + detectedClasses);
         return detectedClasses;
     }
-
-
-    //private HashSet<String> knownClasses = new HashSet<>();
-    //private HashMap<String, Integer> previousClasses;
-    //private final HashMap<String, Integer> totalObjectAppearances = new HashMap<>();
-
-    // Counter for numbering log entries
-    //private int logCounter=1;
 
     public OnnxRunner(LogQueue logQueue) {
 
@@ -207,8 +202,6 @@ public class OnnxRunner {
         System.out.println("=".repeat(header.length()));  // Underline the header with equals signs
     }
 
-   // private int peakObjectsSeen = 0;
-
     public void updatePeakObjects(int currentCount) {
         peakObjectsSeen = Math.max(peakObjectsSeen, currentCount);
     }
@@ -223,7 +216,7 @@ public class OnnxRunner {
     }
 
     public HashMap<String, Integer> getTotalTimesAdded() {
-        return new HashMap<>(totalTimesAdded);
+        return new HashMap<>(totalToolsAdded);
     }
 
     /**
@@ -239,7 +232,7 @@ public class OnnxRunner {
         HashMap<String, Integer> updatedClasses = new HashMap<>();
         int currentObjectCount = 0;
 
-        // Step 1: Count objects in the current frame
+        // Count objects in the current frame
         for (Detection detection : detections) {
             String label = detection.label();
             updatedClasses.put(label, updatedClasses.getOrDefault(label, 0) + 1);
@@ -248,21 +241,21 @@ public class OnnxRunner {
             totalToolCounts.put(label, Math.max(totalToolCounts.getOrDefault(label, 0), updatedClasses.get(label)));
         }
 
-        // Step 2: Track the peak number of objects seen at once
+        // Track the peak number of objects seen at once
         updatePeakObjects(currentObjectCount);
 
-        // Step 3: Ensure logs start from Log #1 each session
+        // Ensure logs start from Log #1 each session
         if (logCounter == 0) {
             logCounter = 1;
         }
 
-        // Step 4: Process detections & log changes
+        // Process detections & log changes
         for (String label : updatedClasses.keySet()) {
             int newCount = updatedClasses.get(label);
             int oldCount = previousCounts.getOrDefault(label, 0);
 
             if (newCount > oldCount) {  // If count increased, it means an object was added
-                totalTimesAdded.put(label, totalTimesAdded.getOrDefault(label, 0) + (newCount - oldCount));
+                totalToolsAdded.put(label, totalToolsAdded.getOrDefault(label, 0) + (newCount - oldCount));
             }
 
             if (!activeObjects.contains(label)) {
@@ -283,7 +276,7 @@ public class OnnxRunner {
             classes.put(label, newCount);
         }
 
-        // Step 5: Handle objects that disappeared from the frame
+        // Handle objects that disappeared from the frame
         for (String label : new HashSet<>(activeObjects)) {
             if (!updatedClasses.containsKey(label)) {
                 int missingFrames = objectPersistence.getOrDefault(label, 0) + 1;
@@ -301,7 +294,7 @@ public class OnnxRunner {
             }
         }
 
-        // Step 6: Update previousCounts & previousClasses for the next frame
+        // Update previousCounts & previousClasses for the next frame
         previousCounts.clear();
         previousCounts.putAll(updatedClasses);
 
@@ -309,7 +302,7 @@ public class OnnxRunner {
         previousClasses.clear();
         previousClasses.putAll(updatedClasses);
 
-        // Step 7: Update detectedClasses for external usage
+        // Update detectedClasses for external usage
         detectedClasses.clear();
         detectedClasses.putAll(updatedClasses);
     }

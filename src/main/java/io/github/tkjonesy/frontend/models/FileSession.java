@@ -173,32 +173,31 @@ public class FileSession {
         HashMap<String, Integer> finalToolCounts = new HashMap<>();
 
         int peakObjects = onnxRunner.getPeakObjectsSeen();
-        HashMap<String, Integer> detectedTools = onnxRunner.getMaxToolCounts(); // ✅ Get max count seen at once
-        HashMap<String, Integer> lastDetectedTools = onnxRunner.getDetectedClasses(); // ✅ Tracks last detected count
+        HashMap<String, Integer> detectedTools = onnxRunner.getMaxToolCounts(); // Get max count seen at once
+        HashMap<String, Integer> lastDetectedTools = onnxRunner.getDetectedClasses(); // Tracks last detected count
 
-        // ✅ Populate "finalToolCounts" using last detected count
+        // Populate "finalToolCounts" using last detected count
         for (String tool : finalTools) {
             finalToolCounts.put(tool, lastDetectedTools.getOrDefault(tool, 1));
         }
 
-        // ✅ Identify "New Tools Introduced" (Tools that were not present at the start but appeared later)
+        // Identify "New Tools Introduced" (Tools that were not present at the start but appeared later)
         HashSet<String> newToolsIntroduced = new HashSet<>(detectedTools.keySet());
         newToolsIntroduced.removeAll(initialTools);
 
-        // ✅ Identify tools whose count decreased between max detected and final count
-        HashMap<String, Integer> reducedTools = new HashMap<>();
-        for (String tool : detectedTools.keySet()) {
-            int maxSeen = detectedTools.getOrDefault(tool, 0);
-            int finalCount = finalToolCounts.getOrDefault(tool, 0);
-
-            if (maxSeen > finalCount) {  // If the max seen is greater than the final count, it means objects were removed
-                reducedTools.put(tool, maxSeen - finalCount);
-            }
-        }
-
-        // Get the real number of times a tool was added
+        // Get the correct total number of times a tool was added
         HashMap<String, Integer> totalToolsAdded = onnxRunner.getTotalTimesAdded();
 
+        // Calculate tools removed using (Total Instances - Final Count)
+        HashMap<String, Integer> toolsRemoved = new HashMap<>();
+        for (String tool : totalToolsAdded.keySet()) {
+            int totalAdded = totalToolsAdded.getOrDefault(tool, 0);
+            int finalCount = finalToolCounts.getOrDefault(tool, 0);
+
+            if (totalAdded > finalCount) {
+                toolsRemoved.put(tool, totalAdded - finalCount); // Tools removed = Total added - Final count
+            }
+        }
 
         String formattedSessionTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")); // format date and time
         String aarPath = sessionDirectory + "/AAR.txt";
@@ -242,7 +241,7 @@ public class FileSession {
                 writer.write("None\n");
             } else {
                 for (String tool : newToolsIntroduced) {
-                    writer.write(tool + ": " + detectedTools.getOrDefault(tool, 1) + "\n");
+                    writer.write(tool+ "\n");
                 }
             }
             writer.write("-----------------------------------------------------\n\n");
@@ -250,10 +249,10 @@ public class FileSession {
             // Displays Tools That Have Been Removed in the Session
             writer.write("Tools remove during session\n");
             writer.write("-----------------------------------------------------\n");
-            if (reducedTools.isEmpty()) {
+            if (toolsRemoved.isEmpty()) {
                 writer.write("None\n");
             } else {
-                for (var entry : reducedTools.entrySet()) {
+                for (var entry : toolsRemoved.entrySet()) {
                     writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
                 }
             }
