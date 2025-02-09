@@ -29,6 +29,27 @@ public class OnnxRunner {
     private HashSet<String> initialToolSet = new HashSet<>();
     private HashSet<String> lastKnownTools = new HashSet<>();
     private Instant startTime;
+    private int peakObjectsSeen = 0;
+
+    private int peakObjectCount = 0;  // Tracks max objects seen at once
+    private int logCounter = 0;        // Tracks log numbering
+
+    private final HashSet<String> activeObjects = new HashSet<>();  // Objects currently detected
+    private final HashSet<String> knownClasses = new HashSet<>();   // Objects that have been seen before
+    private final HashMap<String, Integer> totalToolCounts = new HashMap<>();
+    private final HashMap<String, Integer> totalToolsAdded = new HashMap<>();
+
+
+
+
+    private final HashMap<String, Integer> previousCounts = new HashMap<>();  // Tracks previous frame counts
+    private HashMap<String, Integer> previousClasses = new HashMap<>(); // Tracks previous frame detections
+    private final HashMap<String, Integer> objectPersistence = new HashMap<>(); // Tracks how long an object has been missing
+
+    private static final int STABILITY_THRESHOLD = 3; // How many frames before marking an object as "Left Camera View"
+
+    private final HashMap<String, Integer> totalTimesAdded = new HashMap<>();
+
 
     /** The YOLO inference session used to run the YOLO model. */
     private Yolo inferenceSession;
@@ -49,7 +70,7 @@ public class OnnxRunner {
         initialToolSet.clear();
         lastKnownTools.clear();
 
-        // ✅ Capture initial tool set after 1 sec
+        // Capture initial tool set after 1 sec
         new Thread(() -> {
             try {
                 Thread.sleep(1000);
@@ -60,7 +81,7 @@ public class OnnxRunner {
             }
         }).start();
 
-        // ✅ Continuously track last known tools
+        // Continuously track last known tools
         new Thread(() -> {
             while (true) {
                 try {
@@ -76,7 +97,7 @@ public class OnnxRunner {
     }
 
     /**
-     * ✅ Captures final tools when session ends.
+     * Captures final tools when session ends.
      */
     public void captureFinalTools() {
         try {
@@ -121,14 +142,6 @@ public class OnnxRunner {
         System.out.println("🔹 getClasses() called. Detected classes: " + detectedClasses);
         return detectedClasses;
     }
-
-
-    private HashSet<String> knownClasses = new HashSet<>();
-    private HashMap<String, Integer> previousClasses;
-    private final HashMap<String, Integer> totalObjectAppearances = new HashMap<>();
-
-    // Counter for numbering log entries
-    private int logCounter=1;
 
     public OnnxRunner(LogQueue logQueue) {
 
@@ -189,6 +202,23 @@ public class OnnxRunner {
         System.out.println("=".repeat(header.length()));  // Underline the header with equals signs
     }
 
+    public void updatePeakObjects(int currentCount) {
+        peakObjectsSeen = Math.max(peakObjectsSeen, currentCount);
+    }
+
+
+    public int getPeakObjectsSeen() {
+        return peakObjectsSeen;
+    }
+
+    public HashMap<String, Integer> getMaxToolCounts() {
+        return new HashMap<>(totalToolCounts);
+    }
+
+    public HashMap<String, Integer> getTotalTimesAdded() {
+        return new HashMap<>(totalToolsAdded);
+    }
+
     /**
      * Processes the detected classes, logging any changes in classes, such as additions,
      * removals, or exits from view.
@@ -196,84 +226,85 @@ public class OnnxRunner {
      * @param detections A list of {@link Detection} objects representing the detected items.
      */
     public void processDetections(List<Detection> detections) {
-        detectedClasses.clear(); // Reset previous detections
         DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         DateTimeFormatter formatterTime = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-        for (Detection detection : detections) {
-            detectedClasses.put(detection.label(), detectedClasses.getOrDefault(detection.label(), 0) + 1);
-        }
-
-        System.out.println("🔹 Detected Classes Updated: " + detectedClasses);
-
-        // Count detections for this frame
         HashMap<String, Integer> updatedClasses = new HashMap<>();
+        int currentObjectCount = 0;
+
+        // Count objects in the current frame
         for (Detection detection : detections) {
             String label = detection.label();
             updatedClasses.put(label, updatedClasses.getOrDefault(label, 0) + 1);
+            currentObjectCount++;
+
+            totalToolCounts.put(label, Math.max(totalToolCounts.getOrDefault(label, 0), updatedClasses.get(label)));
         }
 
-        HashMap<String, Integer> currentFrameClasses = new HashMap<>();
-        for (Detection detection : detections) {
-            String label = detection.label();
-            currentFrameClasses.put(label, currentFrameClasses.getOrDefault(label, 0) + 1);
+        // Track the peak number of objects seen at once
+        updatePeakObjects(currentObjectCount);
+
+        // Ensure logs start from Log #1 each session
+        if (logCounter == 0) {
+            logCounter = 1;
         }
 
-        // Check for new detections or count updates
+        // Process detections & log changes
         for (String label : updatedClasses.keySet()) {
-            String date = LocalDateTime.now().format(formatterDate);
-            String time = LocalDateTime.now().format(formatterTime);
-            String logMessage = "";
-            String logAction = "";
+            int newCount = updatedClasses.get(label);
+            int oldCount = previousCounts.getOrDefault(label, 0);
 
-            if (!classes.containsKey(label)) {
-                // New class detected, print in green
-                logAction = "New class detected";
-                //logger.addGreenLog(logMessage);
-            } else if (!updatedClasses.get(label).equals(classes.get(label))) {
-                // Class count updated, print in yellow
-                logMessage = String.format("Log #%-10d Object: %-20s Action: %-10s", logCounter++, label, "Class count updated: " + updatedClasses.get(label));
-                logAction = "Class count updated";
+            if (newCount > oldCount) {  // If count increased, it means an object was added
+                totalToolsAdded.put(label, totalToolsAdded.getOrDefault(label, 0) + (newCount - oldCount));
+            }
+
+            if (!activeObjects.contains(label)) {
+                // Log either "New Object Detected" or "Reappeared in Camera View"
+                String logAction = knownClasses.contains(label) ? "Reappeared in Camera View" : "New Object Detected";
+                String logMessage = formatLogMessage(logCounter++, label, logAction);
+                logQueue.addGreenLog(logMessage);
+
+                activeObjects.add(label);
+                knownClasses.add(label); // Ensures next time it logs as "Reappeared"
+                objectPersistence.remove(label); // Reset disappearance counter
+            } else if (newCount != oldCount) {
+                // Log count changes (e.g., "Class count updated: 2")
+                String logMessage = formatLogMessage(logCounter++, label, "Class count updated: " + newCount);
                 logQueue.addYellowLog(logMessage);
             }
 
-            if (!logMessage.isEmpty()) {  // Only log if a change was detected
-                System.out.println(logMessage);
-            }
-            classes.put(label, updatedClasses.get(label));
+            classes.put(label, newCount);
         }
 
-        // Log objects that are no longer present
-        String date = LocalDateTime.now().format(formatterDate);
-        String time = LocalDateTime.now().format(formatterTime);
-
-        // Check for new or reappearing objects in the current frame
-        for (String label : currentFrameClasses.keySet()) {
-            if (!knownClasses.contains(label)) {
-                // First time seeing this object type, log as new detection
-                String logMessage = formatLogMessage(logCounter++, label, "New Object Detected");
-                logQueue.addGreenLog(logMessage);
-                knownClasses.add(label); // Mark as known for future detections
-            } else if (!previousClasses.containsKey(label)) {
-                // Object was previously seen, left view, and now reappeared
-                String logMessage = formatLogMessage(logCounter++, label, "Reappeared in camera view");
-                logQueue.addGreenLog(logMessage);
-            }
-            //classes.put(label, classes.getOrDefault(label, 0) + 1);
-        }
-
-        for (String label : previousClasses.keySet()) {
+        // Handle objects that disappeared from the frame
+        for (String label : new HashSet<>(activeObjects)) {
             if (!updatedClasses.containsKey(label)) {
-                // Object left camera view, log in red
-                String exitMessage = formatLogMessage(logCounter++, label, "Left Camera View");
-                logQueue.addRedLog(exitMessage);
+                int missingFrames = objectPersistence.getOrDefault(label, 0) + 1;
+                objectPersistence.put(label, missingFrames);
+
+                if (missingFrames >= STABILITY_THRESHOLD) {
+                    // Log "Left Camera View" only after STABILITY_THRESHOLD frames
+                    String logMessage = formatLogMessage(logCounter++, label, "Left Camera View");
+                    logQueue.addRedLog(logMessage);
+                    activeObjects.remove(label);
+                    objectPersistence.remove(label);
+                }
+            } else {
+                objectPersistence.remove(label); // Reset disappearance counter if object is still present
             }
         }
 
-        // Update the previousClasses with the current frame's classes for the next iteration
-        previousClasses = new HashMap<>(currentFrameClasses);
-        // Update previousClasses for the next frame comparison
+        // Update previousCounts & previousClasses for the next frame
+        previousCounts.clear();
+        previousCounts.putAll(updatedClasses);
+
+        // Clear and update, instead of reassigning
         previousClasses.clear();
         previousClasses.putAll(updatedClasses);
+
+        // Update detectedClasses for external usage
+        detectedClasses.clear();
+        detectedClasses.putAll(updatedClasses);
     }
+
 }
