@@ -124,13 +124,18 @@ public class YoloV8 extends Yolo {
     private void displayImage(String title, Mat img, String key) {
 
         // Folder where images will be saved.
-        File folder = new File("debug_images_"+key);
+        File folder = new File("debug_images");
         if (!folder.exists()) {
             folder.mkdirs();
         }
 
+        File subFolder = new File("debug_images/"+key);
+        if (!subFolder.exists()) {
+            subFolder.mkdirs();
+        }
+
         // Create a unique filename using the title
-        String fileName = "debug_images_"+key+"/" + title.replaceAll("\\s+", "_") + ".png";
+        String fileName = "debug_images/"+key+"/"+title.replaceAll("\\s+", "_") + ".png";
 
         // Save the image
         boolean success = opencv_imgcodecs.imwrite(fileName, img);
