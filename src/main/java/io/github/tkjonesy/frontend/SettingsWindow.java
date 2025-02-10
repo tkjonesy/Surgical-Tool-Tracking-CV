@@ -6,6 +6,8 @@ import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Set;
@@ -127,6 +129,57 @@ public class SettingsWindow extends JDialog {
         );
         cameraPanel.setLayout(cameraSettingsLayout);
 
+        /*-----------------+
+        | STORAGE SETTINGS |
+        +-----------------*/
+
+
+        JPanel storagePanel = new JPanel();
+        JLabel storageSelectorLabel = new JLabel("File Save Location");
+        ButtonGroup storageSelectorGroup = new ButtonGroup();
+        JRadioButtonMenuItem defaultSaveOption = new JRadioButtonMenuItem("Default");
+        JRadioButtonMenuItem customSaveOption = new JRadioButtonMenuItem("Custom");
+        storageSelectorGroup.add(defaultSaveOption);
+        storageSelectorGroup.add(customSaveOption);
+        defaultSaveOption.setSelected(true); // TODO this needs to pull from a custom setting later such that it sets the correct selection
+
+        // TODO consider moving this to the initListeners() function instead of keeping it in block
+        // ! Keeping it in block would keep code cleaner, but removal makes it more consistent.
+        //Event Listeners for buttons
+        defaultSaveOption.addActionListener(
+                e -> {
+                    System.out.println("default saving selected");
+                }
+        );
+
+        customSaveOption.addActionListener(
+                e -> {
+                    System.out.println("custom saving selected");
+                }
+        );
+
+        GroupLayout storageLayout = new GroupLayout(storagePanel);
+        storageLayout.setAutoCreateContainerGaps(true);
+        storageLayout.setHorizontalGroup(
+                storageLayout.createSequentialGroup()
+                        .addGroup(
+                                storageLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                                        .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(defaultSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(customSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+
+                        )
+        );
+        storageLayout.setVerticalGroup(
+                storageLayout.createSequentialGroup()
+                        .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(ComponentPlacement.RELATED)
+                        .addComponent(defaultSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(ComponentPlacement.RELATED)
+                        .addComponent(customSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+        );
+        storagePanel.setLayout(storageLayout);
+
         /*--------------+
         | BUTTON LAYOUT |
         +--------------*/
@@ -162,6 +215,7 @@ public class SettingsWindow extends JDialog {
         +----------------------*/
         JTabbedPane settingSelector = new JTabbedPane(SwingConstants.LEFT);
         settingSelector.addTab("Camera", cameraPanel);
+        settingSelector.addTab("Storage", storagePanel);
 
         /*--------------+
         | WINDOW LAYOUT |
