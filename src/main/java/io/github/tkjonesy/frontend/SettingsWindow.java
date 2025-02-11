@@ -133,7 +133,6 @@ public class SettingsWindow extends JDialog {
         | STORAGE SETTINGS |
         +-----------------*/
 
-
         JPanel storagePanel = new JPanel();
         JLabel storageSelectorLabel = new JLabel("File Save Location");
         ButtonGroup storageSelectorGroup = new ButtonGroup();
@@ -210,6 +209,18 @@ public class SettingsWindow extends JDialog {
         );
         storagePanel.setLayout(storageLayout);
 
+        /*---------------+
+        | MODEL SETTINGS |
+        +---------------*/
+
+        JPanel modelPanel = new JPanel();
+
+        /*------------------+
+        | ADVANCED SETTINGS |
+        +------------------*/
+
+        JPanel advancedPanel = new JPanel();
+
         /*--------------+
         | BUTTON LAYOUT |
         +--------------*/
@@ -246,6 +257,8 @@ public class SettingsWindow extends JDialog {
         JTabbedPane settingSelector = new JTabbedPane(SwingConstants.LEFT);
         settingSelector.addTab("Camera", cameraPanel);
         settingSelector.addTab("Storage", storagePanel);
+        settingSelector.addTab("Model", modelPanel);
+        settingSelector.addTab("Advanced", advancedPanel);
 
         /*--------------+
         | WINDOW LAYOUT |
