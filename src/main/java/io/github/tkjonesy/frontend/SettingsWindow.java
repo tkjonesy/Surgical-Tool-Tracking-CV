@@ -6,8 +6,6 @@ import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -150,6 +148,7 @@ public class SettingsWindow extends JDialog {
         final File[] selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
         JButton folderSelectorButton = new JButton("Choose Folder...");
         JLabel selectedFolderLabel = new JLabel(""); // TODO this needs to pull the custom directory from settings
+        folderSelectorButton.setEnabled(!defaultSaveOption.isSelected());
         folderSelectorButton.addActionListener(e -> {
             JFileChooser folderChooser = new JFileChooser();
             folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -168,12 +167,14 @@ public class SettingsWindow extends JDialog {
         //Event Listeners for buttons
         defaultSaveOption.addActionListener(
                 e -> {
+                    folderSelectorButton.setEnabled(false);
                     System.out.println("default saving selected");
                 }
         );
 
         customSaveOption.addActionListener(
                 e -> {
+                    folderSelectorButton.setEnabled(true);
                     System.out.println("custom saving selected");
                 }
         );
