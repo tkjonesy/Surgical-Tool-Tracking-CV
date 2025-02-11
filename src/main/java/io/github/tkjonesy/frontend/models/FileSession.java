@@ -172,6 +172,10 @@ public class FileSession {
         HashMap<String, Integer> initialToolCounts = new HashMap<>();
         HashMap<String, Integer> finalToolCounts = new HashMap<>();
 
+        for (String tool : initialTools) {
+            initialToolCounts.put(tool, onnxRunner.getDetectedClasses().getOrDefault(tool, 1));
+        }
+
         int peakObjects = onnxRunner.getPeakObjectsSeen();
         HashMap<String, Integer> detectedTools = onnxRunner.getMaxToolCounts(); // Get max count seen at once
         HashMap<String, Integer> lastDetectedTools = onnxRunner.getDetectedClasses(); // Tracks last detected count
@@ -181,12 +185,21 @@ public class FileSession {
             finalToolCounts.put(tool, lastDetectedTools.getOrDefault(tool, 1));
         }
 
-        // Identify "New Tools Introduced" (Tools that were not present at the start but appeared later)
-        HashSet<String> newToolsIntroduced = new HashSet<>(detectedTools.keySet());
-        newToolsIntroduced.removeAll(initialTools);
-
         // Get the correct total number of times a tool was added
         HashMap<String, Integer> totalToolsAdded = onnxRunner.getTotalTimesAdded();
+
+        // Identify "New Tools Introduced" (Tools that were not present at the start but appeared later)
+        HashMap<String, Integer> newToolsIntroduced = new HashMap<>();
+        for (String tool : totalToolsAdded.keySet()) {
+            int totalAdded = totalToolsAdded.getOrDefault(tool, 0);
+            int startCount = initialToolCounts.getOrDefault(tool, 0);
+
+            // Only include tools that were NOT present at the start
+            if (totalAdded > startCount && !initialTools.contains(tool)) {
+                newToolsIntroduced.put(tool, totalAdded);
+            }
+        }
+
 
         // Calculate tools removed using (Total Instances - Final Count)
         HashMap<String, Integer> toolsRemoved = new HashMap<>();
@@ -219,7 +232,7 @@ public class FileSession {
             writer.write("-----------------------------------------------------\n\n");
 
             // Displays Tools Present at Start of Recording
-            writer.write("Tools Present at Start:\n");
+            writer.write("Objects Present at Start:\n");
             writer.write("-----------------------------------------------------\n");
             for (String tool : initialTools) {
                 writer.write(tool + ": " + detectedTools.getOrDefault(tool, 1)+ "\n");
@@ -227,7 +240,7 @@ public class FileSession {
             writer.write("-----------------------------------------------------\n\n");
 
             // Displays Tools Present at End of Recording
-            writer.write("Tools Present at End:\n");
+            writer.write("Objects Present at End:\n");
             writer.write("------------------------\n");
             for (var entry : finalToolCounts.entrySet()) {
                 writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
@@ -235,19 +248,19 @@ public class FileSession {
             writer.write("------------------------\n\n");
 
             // Displays New Tools Introduced During Session
-            writer.write("New Tools Introduced During Session:\n");
+            writer.write("New Objects Introduced During Session:\n");
             writer.write("-----------------------------------------------------\n");
             if (newToolsIntroduced.isEmpty()) {
                 writer.write("None\n");
             } else {
-                for (String tool : newToolsIntroduced) {
-                    writer.write(tool+ "\n");
+                for (var entry : newToolsIntroduced.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
                 }
             }
             writer.write("-----------------------------------------------------\n\n");
 
             // Displays Tools That Have Been Removed in the Session
-            writer.write("Tools remove during session\n");
+            writer.write("Objects remove during session\n");
             writer.write("-----------------------------------------------------\n");
             if (toolsRemoved.isEmpty()) {
                 writer.write("None\n");
