@@ -47,6 +47,7 @@ public class SettingsWindow extends JDialog {
          * Model
          * Advanced
          */
+        // TODO When a session is running, disable the settings screen from opening. Just disable the settings button while a session is active. The comment is in here bc I don't want to make another commit to App.java
 
         /*----------------+
         | CAMERA SETTINGS |
