@@ -10,6 +10,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.util.Set;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
@@ -144,6 +145,24 @@ public class SettingsWindow extends JDialog {
         storageSelectorGroup.add(customSaveOption);
         defaultSaveOption.setSelected(true); // TODO this needs to pull from a custom setting later such that it sets the correct selection
 
+        // TODO This needs to integrate and save the selected custom directory in the settings file. If custom storage is saved as the selection in settings, this needs to retain the last picked folder
+        // Logic for folder selector
+        final File[] selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
+        JButton folderSelectorButton = new JButton("Choose Folder...");
+        JLabel selectedFolderLabel = new JLabel(""); // TODO this needs to pull the custom directory from settings
+        folderSelectorButton.addActionListener(e -> {
+            JFileChooser folderChooser = new JFileChooser();
+            folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            folderChooser.setAcceptAllFileFilterUsed(false);
+
+            int returnVal = folderChooser.showOpenDialog(SettingsWindow.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                selectedFolder[0] = folderChooser.getSelectedFile();
+                selectedFolderLabel.setText(selectedFolder[0].getAbsolutePath());
+                System.out.println("Selected Folder: " + selectedFolder[0].getAbsolutePath());
+            }
+        });
+
         // TODO consider moving this to the initListeners() function instead of keeping it in block
         // ! Keeping it in block would keep code cleaner, but removal makes it more consistent.
         //Event Listeners for buttons
@@ -168,7 +187,11 @@ public class SettingsWindow extends JDialog {
                                         .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                                         .addComponent(defaultSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                                         .addComponent(customSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-
+                                        .addGroup(
+                                                storageLayout.createSequentialGroup()
+                                                        .addComponent(folderSelectorButton, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                        .addComponent(selectedFolderLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        )
                         )
         );
         storageLayout.setVerticalGroup(
@@ -178,6 +201,11 @@ public class SettingsWindow extends JDialog {
                         .addComponent(defaultSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(ComponentPlacement.RELATED)
                         .addComponent(customSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        .addGroup(
+                                storageLayout.createParallelGroup()
+                                        .addComponent(folderSelectorButton, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(selectedFolderLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
         );
         storagePanel.setLayout(storageLayout);
 
