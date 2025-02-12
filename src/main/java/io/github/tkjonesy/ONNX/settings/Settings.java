@@ -16,8 +16,10 @@ import java.util.Properties;
  */
 public class Settings {
 
-    public static final String modelPath;   // Path to extracted .onnx file
-    public static final String labelPath;   // Path to extracted .names file
+    public static final String modelName;
+    public static String modelPath;
+    public static String labelPath;
+
 
     public static final int PROCESS_EVERY_NTH_FRAME;
     public static final int CAMERA_FRAME_RATE;
@@ -45,7 +47,7 @@ public class Settings {
             CAMERA_FRAME_RATE = Integer.parseInt(properties.getProperty("CAMERA_FRAME_RATE", "30"));
             VIDEO_CAPTURE_DEVICE_ID = Integer.parseInt(properties.getProperty("VIDEO_CAPTURE_DEVICE_ID", "0"));
 
-            confThreshold = Float.parseFloat(properties.getProperty("confThreshold", "0.3"));
+            confThreshold = Float.parseFloat(properties.getProperty("confThreshold", "0.1"));
             nmsThreshold = Float.parseFloat(properties.getProperty("nmsThreshold", "0.4"));
             gpuDeviceId = Integer.parseInt(properties.getProperty("gpuDeviceId", "0"));
             INPUT_SIZE = Integer.parseInt(properties.getProperty("INPUT_SIZE", "640"));
@@ -57,7 +59,9 @@ public class Settings {
                 INPUT_SHAPE[i] = Long.parseLong(shapeValues[i]);
             }
 
-            FILE_DIRECTORY = System.getProperty("user.home") + "/SurgicalToolTrackingFiles";
+            modelName = properties.getProperty("modelName", "person_hand_face.onnx");
+
+            FILE_DIRECTORY = System.getProperty("user.home") + "/AIMs";
 
             Path aiModelDir = Paths.get(FILE_DIRECTORY, "ai_models");
             if (!Files.exists(aiModelDir)) {
@@ -69,8 +73,17 @@ public class Settings {
         }
 
         // Extract AI model and label files if they don't exist
-        modelPath = extractResourceIfMissing("/ai_models/person_hand_face.onnx", FILE_DIRECTORY + "/ai_models/person_hand_face.onnx");
-        labelPath = extractResourceIfMissing("/ai_models/human.names", FILE_DIRECTORY + "/ai_models/human.names");
+        modelPath = FILE_DIRECTORY + "/ai_models/" + modelName+".onnx";
+        File modelFile = new File(modelPath);
+        if(!modelFile.exists()){
+            modelPath = extractResourceIfMissing("/ai_models/yolo11m.onnx", FILE_DIRECTORY + "/ai_models/yolo11m.onnx");
+        }
+
+        labelPath = FILE_DIRECTORY + "/ai_models/" + modelName + ".names";
+        File labelFile = new File(labelPath);
+        if(!labelFile.exists()){
+            labelPath = extractResourceIfMissing("/ai_models/yolo11m.names", FILE_DIRECTORY + "/ai_models/yolo11m.names");
+        }
     }
 
     /**
