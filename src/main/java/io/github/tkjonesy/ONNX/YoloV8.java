@@ -7,13 +7,8 @@ import ai.onnxruntime.OrtSession;
 
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.FloatPointer;
-import org.bytedeco.opencv.global.opencv_highgui;
-import org.bytedeco.opencv.global.opencv_imgcodecs;
 import org.bytedeco.opencv.opencv_core.Mat;
-import org.bytedeco.opencv.opencv_core.Scalar;
 
-
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -31,7 +26,6 @@ import static io.github.tkjonesy.ONNX.settings.Settings.confThreshold;
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB;
 import static org.bytedeco.opencv.global.opencv_core.CV_32F;
-import static org.bytedeco.opencv.global.opencv_core.multiply;
 
 public class YoloV8 extends Yolo {
 
@@ -65,29 +59,12 @@ public class YoloV8 extends Yolo {
     // Preprocess the image. Returns a map of the input tensor name to the input tensor
     public Map<String, OnnxTensor> preprocess(Mat img) throws OrtException {
 
-        long time = System.currentTimeMillis();
-        String key = time+"";
-
-        displayImage("0_Original image", img, key);
-
         // Resizing with padding
         Mat resizedImg = new Mat();
         ImageUtil.resizeWithPadding(img, resizedImg, INPUT_SIZE, INPUT_SIZE);
-        displayImage("1_Resized with Padding", resizedImg, key);
 
-        // Convert BGR to RGB
-        try{
-            //cvtColor(resizedImg, resizedImg, COLOR_BGR2RGB);
-            displayImage("2_Converted to RGB", resizedImg, key);
-        }catch (Exception e){
-            System.err.println("Error converting BGR to RGB");
-        }
-
-        resizedImg.convertTo(resizedImg, CV_32F);
-        Mat normalizedImg = new Mat();
-        multiply(resizedImg, new Mat(resizedImg.size(), resizedImg.type(), new Scalar(1.0 / 255.0)), normalizedImg);
-        resizedImg = normalizedImg;
-        displayImage("3_Normalized Image", normalizedImg, key); // Should be black
+        // BGR -> RGB
+        cvtColor(resizedImg, resizedImg, COLOR_BGR2RGB);
 
         // Create input tensor container
         Map<String, OnnxTensor> container = new HashMap<>();
@@ -103,6 +80,7 @@ public class YoloV8 extends Yolo {
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE, this.inputType);
 
         } else {
+            resizedImg.convertTo(resizedImg, CV_32F, 1.0 / 255.0 , 0);
             float[] whc = new float[NUM_INPUT_ELEMENTS];
             FloatPointer fp = new FloatPointer(resizedImg.data());
             fp.get(whc);
@@ -120,33 +98,6 @@ public class YoloV8 extends Yolo {
 
         return container;
     }
-
-    private void displayImage(String title, Mat img, String key) {
-
-        // Folder where images will be saved.
-        File folder = new File("debug_images");
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        File subFolder = new File("debug_images/"+key);
-        if (!subFolder.exists()) {
-            subFolder.mkdirs();
-        }
-
-        // Create a unique filename using the title
-        String fileName = "debug_images/"+key+"/"+title.replaceAll("\\s+", "_") + ".png";
-
-        // Save the image
-        boolean success = opencv_imgcodecs.imwrite(fileName, img);
-        if (success) {
-            System.out.println("Saved image: " + fileName);
-        } else {
-            System.err.println("Failed to save image: " + fileName);
-        }
-    }
-
-
 
     public List<Detection> postprocess(float[][] outputs, float orgW, float orgH, float padW, float padH, float gain) {
 
