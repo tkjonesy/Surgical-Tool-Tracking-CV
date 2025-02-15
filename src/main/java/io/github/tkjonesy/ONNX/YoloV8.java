@@ -20,10 +20,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.tkjonesy.ONNX.settings.Settings.INPUT_SHAPE;
-import static io.github.tkjonesy.ONNX.settings.Settings.INPUT_SIZE;
-import static io.github.tkjonesy.ONNX.settings.Settings.NUM_INPUT_ELEMENTS;
-import static io.github.tkjonesy.ONNX.settings.Settings.confThreshold;
+import static io.github.tkjonesy.utils.Settings.DefaultSettings.INPUT_SHAPE;
+import static io.github.tkjonesy.utils.Settings.DefaultSettings.INPUT_SIZE;
+import static io.github.tkjonesy.utils.Settings.DefaultSettings.NUM_INPUT_ELEMENTS;
+import static io.github.tkjonesy.utils.Settings.DefaultSettings.confThreshold;
 
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB;

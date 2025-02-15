@@ -4,7 +4,7 @@ import ai.onnxruntime.OrtException;
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.YoloV8;
-import io.github.tkjonesy.ONNX.settings.Settings;
+import io.github.tkjonesy.utils.Settings.DefaultSettings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The {@code OnnxRunner} class provides a wrapper for running YOLO-based inference
@@ -136,7 +135,7 @@ public class OnnxRunner {
         classes = new HashMap<>();
         previousClasses = new HashMap<>(); // Initializes previousClasses to store previous frame detections
         try {
-            this.inferenceSession = new YoloV8(Settings.modelPath, Settings.labelPath);
+            this.inferenceSession = new YoloV8(DefaultSettings.modelPath, DefaultSettings.labelPath);
         } catch (OrtException | IOException exception) {
             System.err.println("Error initializing YOLO model: " + exception.getMessage());
             System.exit(1);

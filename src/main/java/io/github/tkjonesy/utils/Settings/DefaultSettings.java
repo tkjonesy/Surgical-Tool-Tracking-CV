@@ -1,4 +1,4 @@
-package io.github.tkjonesy.ONNX.settings;
+package io.github.tkjonesy.utils.Settings;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +14,7 @@ import java.util.Properties;
  * but also extracts "ai_models/person_hand_face.onnx" AND "ai_models/human.names"
  * from inside the JAR to "User/SurgicalToolTrackingFiles/ai_models/" if they don't exist.
  */
-public class Settings {
+public class DefaultSettings {
 
     public static final String modelPath;   // Path to extracted .onnx file
     public static final String labelPath;   // Path to extracted .names file
@@ -36,7 +36,7 @@ public class Settings {
 
     static {
         Properties properties = new Properties();
-        try (InputStream input = Settings.class.getClassLoader().getResourceAsStream("onnxSettings.properties")) {
+        try (InputStream input = DefaultSettings.class.getClassLoader().getResourceAsStream("onnxSettings.properties")) {
 
             if (input == null) {
                 throw new RuntimeException("Failed to load settings: 'onnxSettings.properties' not found in resources.");
@@ -89,7 +89,7 @@ public class Settings {
         File targetFile = new File(targetPath);
 
         if (!targetFile.exists()) {
-            try (InputStream in = Settings.class.getResourceAsStream(resourcePath)) {
+            try (InputStream in = DefaultSettings.class.getResourceAsStream(resourcePath)) {
                 if (in == null) {
                     throw new IOException("Resource not found inside JAR: " + resourcePath);
                 }
