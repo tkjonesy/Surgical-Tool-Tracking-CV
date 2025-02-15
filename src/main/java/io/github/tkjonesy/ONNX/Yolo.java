@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.github.tkjonesy.utils.Settings.DefaultSettings.nmsThreshold;
+import static io.github.tkjonesy.utils.settings.DefaultSettings.nmsThreshold;
 
 public abstract class Yolo {
 

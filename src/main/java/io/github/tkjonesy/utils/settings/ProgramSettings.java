@@ -1,10 +1,13 @@
-package io.github.tkjonesy.utils.Settings;
+package io.github.tkjonesy.utils.settings;
 
 import ai.onnxruntime.OrtSession;
-import io.github.tkjonesy.utils.Annotations.SettingsLabel;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.tkjonesy.utils.annotations.SettingsLabel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 
 @AllArgsConstructor
@@ -12,6 +15,8 @@ import java.lang.reflect.Field;
 public class ProgramSettings {
 
     private static ProgramSettings currentSettings;
+
+    private final String FILE_DIRECTORY = System.getProperty("user.home") + "/SurgicalToolTrackingFiles";
 
     // Camera variables
     @SettingsLabel(value = "cameraDeviceId", type = Integer.class)
@@ -82,6 +87,16 @@ public class ProgramSettings {
             case "none" -> OrtSession.SessionOptions.OptLevel.NO_OPT;
             default -> throw new IllegalArgumentException("Invalid optimization level: " + optimizationLevel);
         };
+    }
+
+    public static ProgramSettings getCurrentSettings() throws IOException {
+        // Grab settings.json from directory
+        // If it doesn't exist, create it with default values
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        ProgramSettings programSettings = objectMapper.readValue(new File("settings.json"), ProgramSettings.class);
+
+
     }
 
 }

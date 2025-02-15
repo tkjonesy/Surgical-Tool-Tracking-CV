@@ -1,4 +1,4 @@
-package io.github.tkjonesy.utils.Annotations;
+package io.github.tkjonesy.utils.annotations;
 
 import java.lang.annotation.Retention;
 

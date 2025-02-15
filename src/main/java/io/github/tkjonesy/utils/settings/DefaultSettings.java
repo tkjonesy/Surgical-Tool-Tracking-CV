@@ -1,4 +1,6 @@
-package io.github.tkjonesy.utils.Settings;
+package io.github.tkjonesy.utils.settings;
+
+import lombok.Getter;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,9 @@ import java.util.Properties;
  * from inside the JAR to "User/SurgicalToolTrackingFiles/ai_models/" if they don't exist.
  */
 public class DefaultSettings {
+
+    @Getter
+    private static ProgramSettings defaultSettings;
 
     public static final String modelPath;   // Path to extracted .onnx file
     public static final String labelPath;   // Path to extracted .names file

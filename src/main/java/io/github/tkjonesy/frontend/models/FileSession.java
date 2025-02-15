@@ -2,7 +2,7 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
-import io.github.tkjonesy.utils.Settings.DefaultSettings;
+import io.github.tkjonesy.utils.settings.DefaultSettings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;

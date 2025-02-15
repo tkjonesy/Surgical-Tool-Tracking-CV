@@ -21,7 +21,7 @@ import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
 
-import static io.github.tkjonesy.utils.Settings.DefaultSettings.*;
+import static io.github.tkjonesy.utils.settings.DefaultSettings.*;
 
 public class App extends JFrame {
     private final SessionHandler sessionHandler;

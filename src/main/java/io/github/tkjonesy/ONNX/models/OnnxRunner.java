@@ -4,7 +4,7 @@ import ai.onnxruntime.OrtException;
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.YoloV8;
-import io.github.tkjonesy.utils.Settings.DefaultSettings;
+import io.github.tkjonesy.utils.settings.DefaultSettings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;

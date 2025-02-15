@@ -1,6 +1,6 @@
 package io.github.tkjonesy.frontend;
 
-import io.github.tkjonesy.utils.Settings.DefaultSettings;
+import io.github.tkjonesy.utils.settings.DefaultSettings;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;

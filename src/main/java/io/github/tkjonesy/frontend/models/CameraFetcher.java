@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static io.github.tkjonesy.utils.Settings.DefaultSettings.CAMERA_FRAME_RATE;
-import static io.github.tkjonesy.utils.Settings.DefaultSettings.PROCESS_EVERY_NTH_FRAME;
+import static io.github.tkjonesy.utils.settings.DefaultSettings.CAMERA_FRAME_RATE;
+import static io.github.tkjonesy.utils.settings.DefaultSettings.PROCESS_EVERY_NTH_FRAME;
 
 
 public class CameraFetcher implements Runnable {
