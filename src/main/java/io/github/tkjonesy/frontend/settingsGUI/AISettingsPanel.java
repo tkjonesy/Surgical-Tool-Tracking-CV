@@ -1,5 +1,6 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
+import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
@@ -12,13 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
+
+
 public class AISettingsPanel extends JPanel {
 
     @Getter
     private final JComboBox<String> modelSelector;
     @Getter
     private final JComboBox<String> labelSelector;
-    private final String aiModelsDirectory = SettingsLoader.getAIMS_Directory() + "/ai_models";
 
     @Getter
     private final JSpinner processEveryNthFrameSpinner;
@@ -39,12 +42,12 @@ public class AISettingsPanel extends JPanel {
 
         // Model selector
         JLabel modelLabel = new JLabel("AI Model:");
-        modelSelector = new JComboBox<>(getFilesWithExtension(aiModelsDirectory, ".onnx"));
+        modelSelector = new JComboBox<>(getFilesWithExtension(AIMS_MODELS_DIRECTORY, ".onnx"));
         modelSelector.setSelectedItem(new File(settings.getModelPath()).getName());
 
         // Label Selector
         JLabel labelLabel = new JLabel("Label File:");
-        labelSelector = new JComboBox<>(getFilesWithExtension(aiModelsDirectory, ".names"));
+        labelSelector = new JComboBox<>(getFilesWithExtension(AIMS_MODELS_DIRECTORY, ".names"));
         labelSelector.setSelectedItem(new File(settings.getLabelPath()).getName());
 
         // Process Every Nth Frame (Spinner)
@@ -179,7 +182,7 @@ public class AISettingsPanel extends JPanel {
 
     // Open AI Models Directory in File Explorer
     private void openAIDirectory() {
-        File dir = new File(aiModelsDirectory);
+        File dir = new File(AIMS_MODELS_DIRECTORY);
         if (!dir.exists()) {
             JOptionPane.showMessageDialog(this, "AI Models directory does not exist!", "Error", JOptionPane.ERROR_MESSAGE);
             return;

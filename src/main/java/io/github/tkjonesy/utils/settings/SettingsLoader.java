@@ -11,17 +11,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-public class SettingsLoader {
+import static io.github.tkjonesy.utils.Paths.*;
 
-    /*
-        AIMS_Directory is the directory where all settings and model files are stored.
-        SETTINGS_FILE_PATH is the path to the settings file on user's device.
-        DEFAULT_SETTINGS_FILE_PATH is the path to the default settings file inside the JAR.
-     */
-    @Getter
-    private static final String AIMS_Directory = System.getProperty("user.home") + "/AIMs";
-    private static final String SETTINGS_FILE_PATH = AIMS_Directory + "/settings.json";
-    private static final String DEFAULT_SETTINGS_FILE_PATH = "/defaultSettings.json";
+public class SettingsLoader {
 
     // Default model to use if none is specified
     private static final String DEFAULT_MODEL = "yolo11m";
@@ -33,7 +25,7 @@ public class SettingsLoader {
 
         // Save the default settings to the file
         if(defaultSettings != null){
-            saveSettings(defaultSettings, SETTINGS_FILE_PATH);
+            saveSettings(defaultSettings);
             ProgramSettings.setCurrentSettings(defaultSettings);
             System.out.println("Reset settings to default.");
         }
@@ -56,7 +48,7 @@ public class SettingsLoader {
 
         // Save the settings to the file, then verify that the specified model and label files exist
         if(settings != null){
-            saveSettings(settings, SETTINGS_FILE_PATH);
+            saveSettings(settings);
             verifyModelAndLabels(settings);
         }
 
@@ -65,29 +57,29 @@ public class SettingsLoader {
 
     private static void initializeParentDirectory() {
         try {
-            Path parentDirectory = Paths.get(AIMS_Directory);
+            Path parentDirectory = Paths.get(AIMS_DIRECTORY);
             if (!Files.exists(parentDirectory)) {
                 Files.createDirectories(parentDirectory);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create settings directory: " + AIMS_Directory, e);
+            throw new RuntimeException("Failed to create settings directory: " + AIMS_DIRECTORY, e);
         }
     }
 
     private static ProgramSettings loadSettingsFromFile(ObjectMapper objectMapper) {
-        File settingsFile = new File(SETTINGS_FILE_PATH);
+        File settingsFile = new File(AIMS_SETTINGS_FILE_PATH);
         if (settingsFile.exists()) {
             try {
                 return objectMapper.readValue(settingsFile, ProgramSettings.class);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to load settings from file: " + SETTINGS_FILE_PATH, e);
+                throw new RuntimeException("Failed to load settings from file: " + AIMS_DIRECTORY, e);
             }
         }
         return null;
     }
 
     private static ProgramSettings loadSettingsFromResource(ObjectMapper objectMapper) {
-        try (InputStream inputStream = SettingsLoader.class.getResourceAsStream(DEFAULT_SETTINGS_FILE_PATH)) {
+        try (InputStream inputStream = SettingsLoader.class.getResourceAsStream(RESOURCE_DEFAULT_SETTINGS_PATH)) {
             if (inputStream != null) {
                 return objectMapper.readValue(inputStream, ProgramSettings.class);
             } else {
@@ -99,17 +91,13 @@ public class SettingsLoader {
         return null;
     }
 
-    private static void saveSettings(ProgramSettings settings, String filePath){
+    public static void saveSettings(ProgramSettings settings){
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.writeValue(new File(filePath), settings);
+            objectMapper.writeValue(new File(AIMS_SETTINGS_FILE_PATH), settings);
         } catch (IOException e) {
             System.err.println("Failed to save settings: " + e.getMessage());
         }
-    }
-
-    public static void saveSettings(ProgramSettings settings){
-        saveSettings(settings, SETTINGS_FILE_PATH);
     }
 
     // Verify that the model and label files exist, extracting them from resources if they don't
@@ -120,14 +108,14 @@ public class SettingsLoader {
         File modelFile = new File(modelPath);
         if (!modelFile.exists()) {
             System.out.println("Model file not found, extracting default model.");
-            modelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".onnx", AIMS_Directory + "/ai_models/" + DEFAULT_MODEL + ".onnx");
+            modelPath = extractResourceIfMissing(RESOURCE_DEFAULT_MODEL_PATH, AIMS_MODELS_DIRECTORY + "/" + DEFAULT_MODEL + ".onnx");
             settings.setModelPath(modelPath);
         }
 
         File labelFile = new File(labelPath);
         if (!labelFile.exists()) {
             System.out.println("Label file not found, extracting default labels.");
-            labelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".names", AIMS_Directory + "/ai_models/" + DEFAULT_MODEL + ".names");
+            labelPath = extractResourceIfMissing(RESOURCE_DEFAULT_LABELS_PATH, AIMS_MODELS_DIRECTORY + "/" + DEFAULT_MODEL + ".names");
             settings.setLabelPath(labelPath);
         }
     }

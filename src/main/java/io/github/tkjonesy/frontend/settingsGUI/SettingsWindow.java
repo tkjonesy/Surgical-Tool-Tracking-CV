@@ -20,6 +20,8 @@ import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Set;
 
+import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
+
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 
 public class SettingsWindow extends JDialog {
@@ -364,7 +366,7 @@ public class SettingsWindow extends JDialog {
         addSettingChangeListener(modelSelector, (ActionListener)
                 e -> {
                     String value = (String) modelSelector.getSelectedItem();
-                    String path = SettingsLoader.getAIMS_Directory() + "/ai_models/" + value;
+                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
                     System.out.println("Model: " + modelSelector.getSelectedItem());
                     settingsUpdates.put("modelPath", path);
                     if(settings.getModelPath().equals(path))
@@ -375,7 +377,7 @@ public class SettingsWindow extends JDialog {
         addSettingChangeListener(labelSelector, (ActionListener)
                 e -> {
                     String value = (String) labelSelector.getSelectedItem();
-                    String path = SettingsLoader.getAIMS_Directory() + "/ai_models/" + value;
+                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
                     System.out.println("Labels: " + labelSelector.getSelectedItem());
                     settingsUpdates.put("labelPath", path);
                     if(settings.getLabelPath().equals(path))
