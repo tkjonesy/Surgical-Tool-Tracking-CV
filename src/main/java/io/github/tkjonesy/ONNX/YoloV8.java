@@ -5,11 +5,10 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 
+import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.opencv.opencv_core.Mat;
-import org.bytedeco.opencv.opencv_core.Scalar;
-
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -20,17 +19,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.tkjonesy.ONNX.settings.Settings.INPUT_SHAPE;
-import static io.github.tkjonesy.ONNX.settings.Settings.INPUT_SIZE;
-import static io.github.tkjonesy.ONNX.settings.Settings.NUM_INPUT_ELEMENTS;
-import static io.github.tkjonesy.ONNX.settings.Settings.confThreshold;
-
 import static org.bytedeco.opencv.global.opencv_imgproc.cvtColor;
 import static org.bytedeco.opencv.global.opencv_imgproc.COLOR_BGR2RGB;
 import static org.bytedeco.opencv.global.opencv_core.CV_32F;
-import static org.bytedeco.opencv.global.opencv_core.multiply;
 
 public class YoloV8 extends Yolo {
+
+    private static final ProgramSettings settings = ProgramSettings.getCurrentSettings();
 
     public YoloV8(String modelPath, String labelPath) throws OrtException, IOException {
         super(modelPath, labelPath);
@@ -41,6 +36,8 @@ public class YoloV8 extends Yolo {
 
         float orgW = (float) img.size().width();
         float orgH = (float) img.size().height();
+
+        float INPUT_SIZE = settings.getInputSize();
 
         float gain = Math.min((float) INPUT_SIZE / orgW, (float) INPUT_SIZE / orgH);
         float padW = (INPUT_SIZE - orgW * gain) * 0.5f;
@@ -64,22 +61,17 @@ public class YoloV8 extends Yolo {
 
         // Resizing with padding
         Mat resizedImg = new Mat();
+        int INPUT_SIZE = settings.getInputSize();
         ImageUtil.resizeWithPadding(img, resizedImg, INPUT_SIZE, INPUT_SIZE);
 
-        // Convert BGR to RGB
-        try{
-            cvtColor(resizedImg, resizedImg, COLOR_BGR2RGB);
-        }catch (Exception e){
-            System.err.println("Error converting BGR to RGB");
-        }
-
-        resizedImg.convertTo(resizedImg, CV_32F);
-        Mat normalizedImg = new Mat();
-        multiply(resizedImg, new Mat(resizedImg.size(), resizedImg.type(), new Scalar(1.0 / 255.0)), normalizedImg);
-        resizedImg = normalizedImg;
+        // BGR -> RGB
+        cvtColor(resizedImg, resizedImg, COLOR_BGR2RGB);
 
         // Create input tensor container
         Map<String, OnnxTensor> container = new HashMap<>();
+
+        int NUM_INPUT_ELEMENTS = settings.getNumInputElements();
+        long[] INPUT_SHAPE = settings.getInputShape();
 
         if (this.inputType.equals(OnnxJavaType.UINT8)) {
             byte[] whc = new byte[NUM_INPUT_ELEMENTS];
@@ -92,6 +84,7 @@ public class YoloV8 extends Yolo {
             inputTensor = OnnxTensor.createTensor(this.env, inputBuffer, INPUT_SHAPE, this.inputType);
 
         } else {
+            resizedImg.convertTo(resizedImg, CV_32F, 1.0 / 255.0 , 0);
             float[] whc = new float[NUM_INPUT_ELEMENTS];
             FloatPointer fp = new FloatPointer(resizedImg.data());
             fp.get(whc);
@@ -110,7 +103,6 @@ public class YoloV8 extends Yolo {
         return container;
     }
 
-
     public List<Detection> postprocess(float[][] outputs, float orgW, float orgH, float padW, float padH, float gain) {
 
         // predictions
@@ -123,7 +115,7 @@ public class YoloV8 extends Yolo {
             float[] conditionalProbabilities = Arrays.copyOfRange(bbox, 4, 84);
             int label = argmax(conditionalProbabilities);
             float conf = conditionalProbabilities[label];
-            if (conf < confThreshold) continue;
+            if (conf < settings.getConfThreshold()) continue;
 
             bbox[4] = conf;
 

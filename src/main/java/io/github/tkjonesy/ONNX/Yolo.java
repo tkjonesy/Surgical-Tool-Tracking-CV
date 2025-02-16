@@ -8,6 +8,7 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import ai.onnxruntime.TensorInfo;
 
+import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.BufferedReader;
@@ -18,8 +19,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static io.github.tkjonesy.ONNX.settings.Settings.nmsThreshold;
 
 public abstract class Yolo {
 
@@ -90,7 +89,7 @@ public abstract class Yolo {
 //            float[] bestBbox = bboxes.removeLast();
             float [] bestBbox = bboxes.remove(bboxes.size() - 1);
             bestBboxes.add(bestBbox);
-            bboxes = bboxes.stream().filter(a -> computeIOU(a, bestBbox) < nmsThreshold).collect(Collectors.toList());
+            bboxes = bboxes.stream().filter(a -> computeIOU(a, bestBbox) < ProgramSettings.getCurrentSettings().getNmsThreshold()).collect(Collectors.toList());
         }
 
         return bestBboxes;

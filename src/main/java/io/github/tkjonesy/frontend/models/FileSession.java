@@ -2,7 +2,6 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
-import io.github.tkjonesy.ONNX.settings.Settings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -18,13 +17,14 @@ import java.util.HashSet;
 import java.time.Duration;
 import java.time.Instant;
 
+import static io.github.tkjonesy.utils.Paths.AIMS_DIRECTORY;
+import static io.github.tkjonesy.utils.Paths.AIMS_SESSIONS_DIRECTORY;
+
 /**
  * Represents a session for saving video and log files. Handles session lifecycle, including
  * initialization, writing to files, and cleanup of resources.
  */
 public class FileSession {
-
-    private static final String ROOT_DIRECTORY = Settings.FILE_DIRECTORY;
 
     private Instant startTime;
     private final OnnxRunner onnxRunner;
@@ -58,12 +58,12 @@ public class FileSession {
         startTime = Instant.now();
 
         // Ensure the parent directory exists
-        Files.createDirectories(Paths.get(ROOT_DIRECTORY));
-        Files.createDirectories(Paths.get(ROOT_DIRECTORY+"/sessions"));
+        Files.createDirectories(Paths.get(AIMS_DIRECTORY));
+        Files.createDirectories(Paths.get(AIMS_SESSIONS_DIRECTORY));
 
         String dateTime = java.time.LocalDateTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm"));
-        this.sessionDirectory = ROOT_DIRECTORY + "/sessions/" + this.title + "_" + dateTime;
+        this.sessionDirectory = AIMS_SESSIONS_DIRECTORY + "/" + this.title + "_" + dateTime;
 
         // Create the session directory
         if (!new java.io.File(sessionDirectory).mkdir()) {

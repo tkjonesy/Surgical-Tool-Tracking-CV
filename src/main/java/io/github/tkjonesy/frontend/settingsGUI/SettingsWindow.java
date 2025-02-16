@@ -1,21 +1,51 @@
-package io.github.tkjonesy.frontend;
+package io.github.tkjonesy.frontend.settingsGUI;
 
-import io.github.tkjonesy.ONNX.settings.Settings;
+
+import ai.onnxruntime.OrtSession;
+import io.github.tkjonesy.utils.settings.ProgramSettings;
+import io.github.tkjonesy.utils.settings.SettingsLoader;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.event.ChangeListener;
 
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.util.EventListener;
+import java.util.HashMap;
 import java.util.Set;
+
+import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 
 public class SettingsWindow extends JDialog {
 
+    private ProgramSettings settings = ProgramSettings.getCurrentSettings();
+    private final HashMap<String, Object> settingsUpdates = new HashMap<>();
+
     private JButton confirmButton, cancelButton, applyButton;
+
+    private JComboBox<String> cameraSelector;
+    private JSpinner cameraFpsSpinner;
+
+    private JSpinner processEveryNthFrameSpinner;
+    private JSlider confThresholdSlider;
+    private JCheckBox boundingBoxCheckbox;
+
+    private JComboBox<String> modelSelector, labelSelector;
+
+    private JComboBox<String> gpuDeviceSelector;
+    private JSlider nmsThresholdSlider;
+    private JComboBox<String> optimizationLevelComboBox;
+    private JSpinner numInputElementsSpinner;
+    private JSpinner inputSizeSpinner;
+    private JTextField inputShapeTextField;
 
     private static final Color OCEAN = new Color(55, 90, 129);
 
@@ -54,10 +84,10 @@ public class SettingsWindow extends JDialog {
         // Components
         JPanel cameraPanel = new JPanel();
         JLabel cameraSelectorLabel = new JLabel("Camera Selection");
-        JComboBox<String> cameraSelector = new JComboBox<>();
-        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes",Settings.DISPLAY_BOUNDING_BOXES);
+        this.cameraSelector = new JComboBox<>();
+        this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes", settings.isShowBoundingBoxes());
         JLabel cameraFpsLabel = new JLabel("Camera Frames Per Second");
-        JSpinner cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(Settings.CAMERA_FRAME_RATE, 0, 60, 1));
+        this.cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraFps(), 0, 60, 1));
         JLabel cameraFpsWarningLabel = new JLabel("");
 
         // Populate camera selection menu with list of available cameras.
@@ -66,14 +96,14 @@ public class SettingsWindow extends JDialog {
         for(String cameraName: cameraNames) {
             cameraSelector.addItem(cameraName);
             // Automatically set the selected camera to whatever camera is selected in the settings file.
-            if(AVAILABLE_CAMERAS.get(cameraName) == Settings.VIDEO_CAPTURE_DEVICE_ID)
+            if(AVAILABLE_CAMERAS.get(cameraName) == settings.getCameraDeviceId())
                 cameraSelector.setSelectedIndex(itemIndex);
             itemIndex++;
         }
 
         // Bounding box details
-        boundingBoxCheck.setHorizontalTextPosition(SwingConstants.LEFT);
-        boundingBoxCheck.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
+        boundingBoxCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
+        boundingBoxCheckbox.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
 
         // Camera FPS details
         cameraFpsSpinner.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
@@ -100,7 +130,7 @@ public class SettingsWindow extends JDialog {
                                         .addPreferredGap(ComponentPlacement.RELATED)
                                         .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
-                        .addComponent(boundingBoxCheck)
+                        .addComponent(boundingBoxCheckbox)
                         .addGroup(
                                 cameraSettingsLayout.createSequentialGroup()
                                         .addComponent(cameraFpsLabel)
@@ -118,7 +148,7 @@ public class SettingsWindow extends JDialog {
                                         .addComponent(cameraSelector)
                         )
                         .addPreferredGap(ComponentPlacement.UNRELATED)
-                        .addComponent(boundingBoxCheck)
+                        .addComponent(boundingBoxCheckbox)
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addGroup(
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
@@ -213,13 +243,24 @@ public class SettingsWindow extends JDialog {
         | MODEL SETTINGS |
         +---------------*/
 
-        JPanel modelPanel = new JPanel();
+        AISettingsPanel modelPanel = new AISettingsPanel();
+        this.modelSelector = modelPanel.getModelSelector();
+        this.labelSelector = modelPanel.getLabelSelector();
+        this.processEveryNthFrameSpinner = modelPanel.getProcessEveryNthFrameSpinner();
+        this.confThresholdSlider = modelPanel.getConfThresholdSlider();
+
 
         /*------------------+
         | ADVANCED SETTINGS |
         +------------------*/
 
-        JPanel advancedPanel = new JPanel();
+        AdvancedSettingsPanel advancedPanel = new AdvancedSettingsPanel();
+        this.gpuDeviceSelector = advancedPanel.getGpuDeviceSelector();
+        this.nmsThresholdSlider = advancedPanel.getNmsThresholdSlider();
+        this.optimizationLevelComboBox = advancedPanel.getOptimizationLevelComboBox();
+        this.numInputElementsSpinner = advancedPanel.getNumInputElementsSpinner();
+        this.inputSizeSpinner = advancedPanel.getInputSizeSpinner();
+        this.inputShapeTextField = advancedPanel.getInputShapeTextField();
 
         /*--------------+
         | BUTTON LAYOUT |
@@ -230,6 +271,8 @@ public class SettingsWindow extends JDialog {
         confirmButton.setBackground(OCEAN);
         cancelButton = new JButton("Cancel");
         applyButton = new JButton("Apply");
+        applyButton.setEnabled(false);
+
 
         // Layout
         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
@@ -257,7 +300,7 @@ public class SettingsWindow extends JDialog {
         JTabbedPane settingSelector = new JTabbedPane(SwingConstants.LEFT);
         settingSelector.addTab("Camera", cameraPanel);
         settingSelector.addTab("Storage", storagePanel);
-        settingSelector.addTab("Model", modelPanel);
+        settingSelector.addTab("AI Model", modelPanel);
         settingSelector.addTab("Advanced", advancedPanel);
 
         /*--------------+
@@ -283,46 +326,247 @@ public class SettingsWindow extends JDialog {
         this.setLocationRelativeTo(null); // Center application
     }
 
+    // Method to enable/disable the Apply button
+    private void updateApplyButtonState() {
+        applyButton.setEnabled(!settingsUpdates.isEmpty());
+    }
+
     private void initListeners() {
-        confirmButton.addActionListener(
+
+        addSettingChangeListener(cameraSelector, (ActionListener)
                 e -> {
-                    System.out.println("Pressed ok");
-                    applyChanges();
-                    this.dispose();
+                    String value = (String) cameraSelector.getSelectedItem();
+                    System.out.println("Camera: " + cameraSelector.getSelectedItem());
+                    settingsUpdates.put("cameraDeviceId", AVAILABLE_CAMERAS.get(value));
+                    if(settings.getCameraDeviceId() == AVAILABLE_CAMERAS.get(value))
+                        settingsUpdates.remove("cameraDeviceId");
                 }
         );
 
-        cancelButton.addActionListener(
+        addSettingChangeListener(cameraFpsSpinner, (ChangeListener)
                 e -> {
-                    System.out.println("Pressed cancel");
-                    cancelChanges();
-                    this.dispose();
+                    int value = (int) cameraFpsSpinner.getValue();
+                    System.out.println("Camera FPS: " + cameraFpsSpinner.getValue());
+                    settingsUpdates.put("cameraFps", value);
+                    if(settings.getCameraFps() == value)
+                        settingsUpdates.remove("cameraFps");
                 }
         );
 
-        applyButton.addActionListener(
+        addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
                 e -> {
-                    System.out.println("Pressed apply");
-                    applyChanges();
-
+                    boolean value = boundingBoxCheckbox.isSelected();
+                    System.out.println("Bounding boxes: " + boundingBoxCheckbox.isSelected());
+                    settingsUpdates.put("showBoundingBoxes", value);
+                    if(settings.isShowBoundingBoxes() == value)
+                        settingsUpdates.remove("showBoundingBoxes");
                 }
         );
+
+        addSettingChangeListener(modelSelector, (ActionListener)
+                e -> {
+                    String value = (String) modelSelector.getSelectedItem();
+                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
+                    System.out.println("Model: " + modelSelector.getSelectedItem());
+                    settingsUpdates.put("modelPath", path);
+                    if(settings.getModelPath().equals(path))
+                        settingsUpdates.remove("modelPath");
+                }
+        );
+
+        addSettingChangeListener(labelSelector, (ActionListener)
+                e -> {
+                    String value = (String) labelSelector.getSelectedItem();
+                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
+                    System.out.println("Labels: " + labelSelector.getSelectedItem());
+                    settingsUpdates.put("labelPath", path);
+                    if(settings.getLabelPath().equals(path))
+                        settingsUpdates.remove("labelPath");
+                }
+        );
+
+        addSettingChangeListener(processEveryNthFrameSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) processEveryNthFrameSpinner.getValue();
+                    System.out.println("Process every nth frame: " + processEveryNthFrameSpinner.getValue());
+                    settingsUpdates.put("processEveryNthFrame", value);
+                    if(settings.getProcessEveryNthFrame() == value)
+                        settingsUpdates.remove("processEveryNthFrame");
+                }
+        );
+
+        addSettingChangeListener(confThresholdSlider, (ChangeListener)
+                e -> {
+                    float value = confThresholdSlider.getValue() / 100f;
+                    System.out.println("Confidence threshold: " + value);
+                    settingsUpdates.put("confThreshold", value);
+                    if(settings.getConfThreshold() == value)
+                        settingsUpdates.remove("confThreshold");
+                }
+        );
+
+        addSettingChangeListener(gpuDeviceSelector, (ActionListener)
+                e -> {
+                    String value = (String) gpuDeviceSelector.getSelectedItem();
+                    System.out.println("GPU device: " + value);
+                    assert value != null;
+                    settingsUpdates.put("gpuDeviceId", Integer.parseInt(value));
+                    if(settings.getGpuDeviceId() == Integer.parseInt(value))
+                        settingsUpdates.remove("gpuDeviceId");
+                }
+        );
+
+        addSettingChangeListener(nmsThresholdSlider, (ChangeListener)
+                e -> {
+                    float value = nmsThresholdSlider.getValue() / 100f;
+                    System.out.println("NMS threshold: " + value);
+                    settingsUpdates.put("nmsThreshold", value);
+                    if(settings.getNmsThreshold() == value)
+                        settingsUpdates.remove("nmsThreshold");
+                }
+        );
+
+        addSettingChangeListener(optimizationLevelComboBox, (ActionListener)
+                e -> {
+                    String value = (String) optimizationLevelComboBox.getSelectedItem();
+                    System.out.println("Optimization level: " + value);
+                    settingsUpdates.put("optimizationLevel", OrtSession.SessionOptions.OptLevel.valueOf(value));
+                    if(settings.getOptimizationLevel().toString().equals(value))
+                        settingsUpdates.remove("optimizationLevel");
+                }
+        );
+
+        addSettingChangeListener(numInputElementsSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) numInputElementsSpinner.getValue();
+                    System.out.println("Num input elements: " + value);
+                    settingsUpdates.put("numInputElements", value);
+                    if(settings.getNumInputElements() == value)
+                        settingsUpdates.remove("numInputElements");
+                }
+        );
+
+        addSettingChangeListener(inputSizeSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) inputSizeSpinner.getValue();
+                    System.out.println("Input size: " + value);
+                    settingsUpdates.put("inputSize", value);
+                    if(settings.getInputSize() == value)
+                        settingsUpdates.remove("inputSize");
+                }
+        );
+
+        addSettingChangeListener(inputShapeTextField, (PropertyChangeListener)
+                e -> {
+                    String value = inputShapeTextField.getText();
+                    System.out.println("Input shape: " + value);
+                    settingsUpdates.put("inputShape", value);
+                    if(settings.getInputShape().toString().equals(value))
+                        settingsUpdates.remove("inputShape");
+                }
+        );
+
+        confirmButton.addActionListener(e -> {handleCloseAttempt();});
+
+        cancelButton.addActionListener(e -> {handleCancelAttempt();});
+
+        applyButton.addActionListener(e -> {applyChanges();});
 
         this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                System.out.println("Settings window closing");
-                cancelChanges();
-                SettingsWindow.this.dispose();
+                handleCloseAttempt();
             }
         });
     }
 
+    private <T extends EventListener> void addSettingChangeListener(JComponent component, T listener) {
+        if (component instanceof AbstractButton button && listener instanceof ActionListener actionListener) {
+            button.addActionListener(e -> {
+                actionListener.actionPerformed(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JCheckBox checkBox && listener instanceof ItemListener itemListener) {
+            checkBox.addItemListener(e -> {
+                itemListener.itemStateChanged(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JTextField textField && listener instanceof PropertyChangeListener propertyChangeListener) {
+            textField.addPropertyChangeListener(evt -> {
+                propertyChangeListener.propertyChange(evt);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JComboBox<?> comboBox && listener instanceof ActionListener actionListener) {
+            comboBox.addActionListener(e -> {
+                actionListener.actionPerformed(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JSlider slider && listener instanceof ChangeListener changeListener) {
+            slider.addChangeListener(e -> {
+                changeListener.stateChanged(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JSpinner spinner && listener instanceof ChangeListener changeListener) {
+            spinner.addChangeListener(e -> {
+                changeListener.stateChanged(e);
+                updateApplyButtonState();
+            });
+        } else {
+            throw new IllegalArgumentException("Unsupported listener type for component: " + component.getClass().getName());
+        }
+    }
+
+    // Show popup when closing window or confirm button with unsaved changes
+    private void handleCloseAttempt() {
+        if (!settingsUpdates.isEmpty()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "You have unsaved changes. Do you want to save before exiting?",
+                    "Unsaved Changes",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                applyChanges();
+                dispose();
+            } else if (choice == JOptionPane.NO_OPTION) {
+                settingsUpdates.clear();
+                dispose();
+            }
+
+        } else {
+            dispose();
+        }
+    }
+
+    // Show popup when pressing cancel button with unsaved changes
+    private void handleCancelAttempt() {
+        if (!settingsUpdates.isEmpty()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Discard unsaved changes?",
+                    "Cancel Changes",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                cancelChanges();
+                dispose();
+            }
+        } else {
+            dispose();
+        }
+    }
+
     private void applyChanges() {
         System.out.println("Applying changed settings");
-        // TODO compare camera selection with what is already selected. If there has been a change, save the new camera index value.
+        settings.updateSettings(settingsUpdates);
+        settingsUpdates.clear();
+        updateApplyButtonState();
     }
     private void cancelChanges() {
-        System.out.println("Cancelling changed settings");
+        settingsUpdates.clear();
     }
 }
