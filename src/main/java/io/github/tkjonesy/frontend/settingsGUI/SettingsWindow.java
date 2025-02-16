@@ -1,7 +1,9 @@
-package io.github.tkjonesy.frontend;
+package io.github.tkjonesy.frontend.settingsGUI;
 
 
+import ai.onnxruntime.OrtSession;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
+import io.github.tkjonesy.utils.settings.SettingsLoader;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -28,8 +30,20 @@ public class SettingsWindow extends JDialog {
     private JButton confirmButton, cancelButton, applyButton;
 
     private JComboBox<String> cameraSelector;
-    private JCheckBox boundingBoxCheckbox;
     private JSpinner cameraFpsSpinner;
+
+    private JSpinner processEveryNthFrameSpinner;
+    private JSlider confThresholdSlider;
+    private JCheckBox boundingBoxCheckbox;
+
+    private JComboBox<String> modelSelector, labelSelector;
+
+    private JComboBox<String> gpuDeviceSelector;
+    private JSlider nmsThresholdSlider;
+    private JComboBox<String> optimizationLevelComboBox;
+    private JSpinner numInputElementsSpinner;
+    private JSpinner inputSizeSpinner;
+    private JTextField inputShapeTextField;
 
     private static final Color OCEAN = new Color(55, 90, 129);
 
@@ -227,13 +241,24 @@ public class SettingsWindow extends JDialog {
         | MODEL SETTINGS |
         +---------------*/
 
-        JPanel modelPanel = new JPanel();
+        AISettingsPanel modelPanel = new AISettingsPanel();
+        this.modelSelector = modelPanel.getModelSelector();
+        this.labelSelector = modelPanel.getLabelSelector();
+        this.processEveryNthFrameSpinner = modelPanel.getProcessEveryNthFrameSpinner();
+        this.confThresholdSlider = modelPanel.getConfThresholdSlider();
+
 
         /*------------------+
         | ADVANCED SETTINGS |
         +------------------*/
 
-        JPanel advancedPanel = new JPanel();
+        AdvancedSettingsPanel advancedPanel = new AdvancedSettingsPanel();
+        this.gpuDeviceSelector = advancedPanel.getGpuDeviceSelector();
+        this.nmsThresholdSlider = advancedPanel.getNmsThresholdSlider();
+        this.optimizationLevelComboBox = advancedPanel.getOptimizationLevelComboBox();
+        this.numInputElementsSpinner = advancedPanel.getNumInputElementsSpinner();
+        this.inputSizeSpinner = advancedPanel.getInputSizeSpinner();
+        this.inputShapeTextField = advancedPanel.getInputShapeTextField();
 
         /*--------------+
         | BUTTON LAYOUT |
@@ -273,7 +298,7 @@ public class SettingsWindow extends JDialog {
         JTabbedPane settingSelector = new JTabbedPane(SwingConstants.LEFT);
         settingSelector.addTab("Camera", cameraPanel);
         settingSelector.addTab("Storage", storagePanel);
-        settingSelector.addTab("Model", modelPanel);
+        settingSelector.addTab("AI Model", modelPanel);
         settingSelector.addTab("Advanced", advancedPanel);
 
         /*--------------+
@@ -308,7 +333,11 @@ public class SettingsWindow extends JDialog {
 
         addSettingChangeListener(cameraSelector, (ActionListener)
                 e -> {
-                    System.out.println("Selected camera: " + cameraSelector.getSelectedItem());
+                    String value = (String) cameraSelector.getSelectedItem();
+                    System.out.println("Camera: " + cameraSelector.getSelectedItem());
+                    settingsUpdates.put("cameraDeviceId", AVAILABLE_CAMERAS.get(value));
+                    if(settings.getCameraDeviceId() == AVAILABLE_CAMERAS.get(value))
+                        settingsUpdates.remove("cameraDeviceId");
                 }
         );
 
@@ -329,6 +358,109 @@ public class SettingsWindow extends JDialog {
                     settingsUpdates.put("showBoundingBoxes", value);
                     if(settings.isShowBoundingBoxes() == value)
                         settingsUpdates.remove("showBoundingBoxes");
+                }
+        );
+
+        addSettingChangeListener(modelSelector, (ActionListener)
+                e -> {
+                    String value = (String) modelSelector.getSelectedItem();
+                    String path = SettingsLoader.getAIMS_Directory() + "/ai_models/" + value;
+                    System.out.println("Model: " + modelSelector.getSelectedItem());
+                    settingsUpdates.put("modelPath", path);
+                    if(settings.getModelPath().equals(path))
+                        settingsUpdates.remove("modelPath");
+                }
+        );
+
+        addSettingChangeListener(labelSelector, (ActionListener)
+                e -> {
+                    String value = (String) labelSelector.getSelectedItem();
+                    String path = SettingsLoader.getAIMS_Directory() + "/ai_models/" + value;
+                    System.out.println("Labels: " + labelSelector.getSelectedItem());
+                    settingsUpdates.put("labelPath", path);
+                    if(settings.getLabelPath().equals(path))
+                        settingsUpdates.remove("labelPath");
+                }
+        );
+
+        addSettingChangeListener(processEveryNthFrameSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) processEveryNthFrameSpinner.getValue();
+                    System.out.println("Process every nth frame: " + processEveryNthFrameSpinner.getValue());
+                    settingsUpdates.put("processEveryNthFrame", value);
+                    if(settings.getProcessEveryNthFrame() == value)
+                        settingsUpdates.remove("processEveryNthFrame");
+                }
+        );
+
+        addSettingChangeListener(confThresholdSlider, (ChangeListener)
+                e -> {
+                    float value = confThresholdSlider.getValue() / 100f;
+                    System.out.println("Confidence threshold: " + value);
+                    settingsUpdates.put("confThreshold", value);
+                    if(settings.getConfThreshold() == value)
+                        settingsUpdates.remove("confThreshold");
+                }
+        );
+
+        addSettingChangeListener(gpuDeviceSelector, (ActionListener)
+                e -> {
+                    String value = (String) gpuDeviceSelector.getSelectedItem();
+                    System.out.println("GPU device: " + value);
+                    assert value != null;
+                    settingsUpdates.put("gpuDeviceId", Integer.parseInt(value));
+                    if(settings.getGpuDeviceId() == Integer.parseInt(value))
+                        settingsUpdates.remove("gpuDeviceId");
+                }
+        );
+
+        addSettingChangeListener(nmsThresholdSlider, (ChangeListener)
+                e -> {
+                    float value = nmsThresholdSlider.getValue() / 100f;
+                    System.out.println("NMS threshold: " + value);
+                    settingsUpdates.put("nmsThreshold", value);
+                    if(settings.getNmsThreshold() == value)
+                        settingsUpdates.remove("nmsThreshold");
+                }
+        );
+
+        addSettingChangeListener(optimizationLevelComboBox, (ActionListener)
+                e -> {
+                    String value = (String) optimizationLevelComboBox.getSelectedItem();
+                    System.out.println("Optimization level: " + value);
+                    settingsUpdates.put("optimizationLevel", OrtSession.SessionOptions.OptLevel.valueOf(value));
+                    if(settings.getOptimizationLevel().toString().equals(value))
+                        settingsUpdates.remove("optimizationLevel");
+                }
+        );
+
+        addSettingChangeListener(numInputElementsSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) numInputElementsSpinner.getValue();
+                    System.out.println("Num input elements: " + value);
+                    settingsUpdates.put("numInputElements", value);
+                    if(settings.getNumInputElements() == value)
+                        settingsUpdates.remove("numInputElements");
+                }
+        );
+
+        addSettingChangeListener(inputSizeSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) inputSizeSpinner.getValue();
+                    System.out.println("Input size: " + value);
+                    settingsUpdates.put("inputSize", value);
+                    if(settings.getInputSize() == value)
+                        settingsUpdates.remove("inputSize");
+                }
+        );
+
+        addSettingChangeListener(inputShapeTextField, (PropertyChangeListener)
+                e -> {
+                    String value = inputShapeTextField.getText();
+                    System.out.println("Input shape: " + value);
+                    settingsUpdates.put("inputShape", value);
+                    if(settings.getInputShape().toString().equals(value))
+                        settingsUpdates.remove("inputShape");
                 }
         );
 

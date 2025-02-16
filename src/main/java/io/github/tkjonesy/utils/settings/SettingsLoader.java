@@ -26,6 +26,19 @@ public class SettingsLoader {
     // Default model to use if none is specified
     private static final String DEFAULT_MODEL = "yolo11m";
 
+    public static void resetToDefaultSettings(){
+        // Load default settings from resources
+        ObjectMapper objectMapper = new ObjectMapper();
+        ProgramSettings defaultSettings = loadSettingsFromResource(objectMapper);
+
+        // Save the default settings to the file
+        if(defaultSettings != null){
+            saveSettings(defaultSettings, SETTINGS_FILE_PATH);
+            ProgramSettings.setCurrentSettings(defaultSettings);
+            System.out.println("Reset settings to default.");
+        }
+    }
+
     // Method to load the settings
     public static ProgramSettings loadSettings(){
         // Initialize the AIMs directory

@@ -14,6 +14,7 @@ import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
@@ -50,7 +51,8 @@ public class App extends JFrame {
         }
     }
 
-    private final OnnxRunner onnxRunner;
+    @Getter
+    private static OnnxRunner onnxRunner = null;
     private ProgramSettings settings;
 
     @Getter
@@ -89,7 +91,7 @@ public class App extends JFrame {
         LogHandler logHandler = new LogHandler(logTextPane);
         this.sessionHandler = new SessionHandler(logHandler);
 
-        this.onnxRunner = new OnnxRunner(logHandler.getLogQueue());
+        onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
         // Camera fetcher thread task
         CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, sessionHandler);

@@ -7,6 +7,7 @@ import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 
+import lombok.Setter;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.IOException;
@@ -30,6 +31,7 @@ public class OnnxRunner {
     private Instant startTime;
 
     /** The YOLO inference session used to run the YOLO model. */
+    @Setter
     private Yolo inferenceSession;
 
     /** A queue of logs to be displayed in the UI. */

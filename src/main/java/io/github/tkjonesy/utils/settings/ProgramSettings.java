@@ -1,10 +1,14 @@
 package io.github.tkjonesy.utils.settings;
 
+import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import io.github.tkjonesy.ONNX.YoloV8;
+import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.annotations.SettingsLabel;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
@@ -58,8 +62,20 @@ public class ProgramSettings {
     // -------------------------------------------------------------------------
 
     public void updateSettings(HashMap<String, Object> newSettings) {
+        boolean updateONNX = false;
         for (String key : newSettings.keySet()) {
             setSettings(key, newSettings.get(key));
+            if(key.equals("modelPath") || key.equals("labelPath")){
+                updateONNX = true;
+            }
+        }
+        if(updateONNX){
+            try {
+                System.out.println("Updating ONNX model and label paths to: " + this.modelPath + ", " + this.labelPath);
+                App.getOnnxRunner().setInferenceSession(new YoloV8(this.modelPath, this.labelPath));
+            }catch (IOException | OrtException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
