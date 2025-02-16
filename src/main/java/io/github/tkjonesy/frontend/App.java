@@ -53,7 +53,7 @@ public class App extends JFrame {
 
     @Getter
     private static OnnxRunner onnxRunner = null;
-    private ProgramSettings settings;
+    private final ProgramSettings settings;
 
     @Getter
     private final VideoCapture camera;
@@ -80,7 +80,6 @@ public class App extends JFrame {
         initComponents();
         initListeners();
         this.setVisible(true);
-        //this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
         this.camera = new VideoCapture(settings.getCameraDeviceId());
         if (!camera.isOpened()) {
             System.err.println("Error: Camera could not be opened. Exiting...");
@@ -231,7 +230,7 @@ public class App extends JFrame {
                             }
 
                             // Start new session
-                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, this.onnxRunner);
+                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, onnxRunner);
 
                             // If session started successfully, update UI and begin logging
                             if (sessionStarted) {
