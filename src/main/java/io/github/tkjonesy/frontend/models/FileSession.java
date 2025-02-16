@@ -2,7 +2,7 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
-import io.github.tkjonesy.utils.settings.DefaultSettings;
+import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -24,7 +24,7 @@ import java.time.Instant;
  */
 public class FileSession {
 
-    private static final String ROOT_DIRECTORY = DefaultSettings.FILE_DIRECTORY;
+    private static final String ROOT_DIRECTORY = SettingsLoader.getAIMS_Directory();
 
     private Instant startTime;
     private final OnnxRunner onnxRunner;

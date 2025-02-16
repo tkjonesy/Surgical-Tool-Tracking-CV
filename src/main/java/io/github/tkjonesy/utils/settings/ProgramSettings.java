@@ -11,12 +11,13 @@ import java.util.HashMap;
 
 import static io.github.tkjonesy.utils.settings.SettingsLoader.loadSettings;
 
-@AllArgsConstructor
 @Getter
 public class ProgramSettings {
 
-    private static final ProgramSettings currentSettings;
-    static {currentSettings = loadSettings();}
+    @Setter
+    @Getter
+    private static ProgramSettings currentSettings;
+    //static {currentSettings = loadSettings();}
 
     private static final String FILE_DIRECTORY = System.getProperty("user.home") + "/AIMs";
 
@@ -45,13 +46,18 @@ public class ProgramSettings {
     private float confThreshold;
 
     // Advanced AI settings
-    @SettingsLabel(value = "nmsThreshold", type = Float.class)
-    private float nmsThreshold;
-    @SettingsLabel(value = "optimizationLevelString", type = String.class) // all, extended, basic, none
-    private String optimizationLevel;
-    private OrtSession.SessionOptions.OptLevel optimizationLevelEnum;
     @SettingsLabel(value = "gpuDeviceId", type = Integer.class)
     private int gpuDeviceId;
+    @SettingsLabel(value = "nmsThreshold", type = Float.class)
+    private float nmsThreshold;
+    @SettingsLabel(value = "optimizationLevel", type = OrtSession.SessionOptions.OptLevel.class) // all, extended, basic, no
+    private OrtSession.SessionOptions.OptLevel optimizationLevel;
+    @SettingsLabel(value = "numInputElements", type = Integer.class)
+    private int numInputElements;
+    @SettingsLabel(value = "inputSize", type = Integer.class)
+    private int inputSize;
+    @SettingsLabel(value = "inputShape", type = long[].class)
+    private long[] inputShape;
 
     // -------------------------------------------------------------------------
 
@@ -72,9 +78,6 @@ public class ProgramSettings {
                         if (annotation.type().isInstance(value)) {
                             field.set(this, value);
 
-                            if(label.equals("optimizationLevelString")) {
-                                this.optimizationLevelEnum = getSessionOptimizations((String) value);
-                            }
                         } else {
                             System.out.println("Type mismatch: Cannot assign " +
                                     value.getClass().getSimpleName() + " to " +
@@ -90,15 +93,23 @@ public class ProgramSettings {
         System.err.println("No setting found with label: " + label);
     }
 
-    private OrtSession.SessionOptions.OptLevel getSessionOptimizations(String optimizationLevel) {
-        return switch (optimizationLevel.toLowerCase()) {
-            case "all" -> OrtSession.SessionOptions.OptLevel.ALL_OPT;
-            case "extended" -> OrtSession.SessionOptions.OptLevel.EXTENDED_OPT;
-            case "basic" -> OrtSession.SessionOptions.OptLevel.BASIC_OPT;
-            case "none" -> OrtSession.SessionOptions.OptLevel.NO_OPT;
-            default -> throw new IllegalArgumentException("Invalid optimization level: " + optimizationLevel);
-        };
+    @Override
+    public String toString(){
+        return "ProgramSettings{" +
+                "cameraDeviceId=" + cameraDeviceId +
+                ", cameraFps=" + cameraFps +
+                ", fileDirectory='" + fileDirectory + '\'' +
+                ", modelPath='" + modelPath + '\'' +
+                ", labelPath='" + labelPath + '\'' +
+                ", processEveryNthFrame=" + processEveryNthFrame +
+                ", showBoundingBoxes=" + showBoundingBoxes +
+                ", confThreshold=" + confThreshold +
+                ", gpuDeviceId=" + gpuDeviceId +
+                ", nmsThreshold=" + nmsThreshold +
+                ", optimizationLevel=" + optimizationLevel +
+                ", numInputElements=" + numInputElements +
+                ", inputSize=" + inputSize +
+                '}';
     }
-
 
 }

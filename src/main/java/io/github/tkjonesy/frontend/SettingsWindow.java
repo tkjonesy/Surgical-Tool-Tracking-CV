@@ -1,6 +1,7 @@
 package io.github.tkjonesy.frontend;
 
-import io.github.tkjonesy.utils.settings.DefaultSettings;
+
+import io.github.tkjonesy.utils.settings.ProgramSettings;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -15,6 +16,8 @@ import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 
 public class SettingsWindow extends JDialog {
 
+
+    private ProgramSettings settings = ProgramSettings.getCurrentSettings();
     // Settings variables
 
     // Camera variables
@@ -76,9 +79,9 @@ public class SettingsWindow extends JDialog {
         JPanel cameraPanel = new JPanel();
         JLabel cameraSelectorLabel = new JLabel("Camera Selection");
         cameraSelector = new JComboBox<>();
-        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes", DefaultSettings.DISPLAY_BOUNDING_BOXES);
+        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes", settings.isShowBoundingBoxes());
         JLabel cameraFpsLabel = new JLabel("Camera Frames Per Second");
-        JSpinner cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(DefaultSettings.CAMERA_FRAME_RATE, 0, 60, 1));
+        JSpinner cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraFps(), 0, 60, 1));
         JLabel cameraFpsWarningLabel = new JLabel("");
 
         // Populate camera selection menu with list of available cameras.
@@ -87,7 +90,7 @@ public class SettingsWindow extends JDialog {
         for(String cameraName: cameraNames) {
             cameraSelector.addItem(cameraName);
             // Automatically set the selected camera to whatever camera is selected in the settings file.
-            if(AVAILABLE_CAMERAS.get(cameraName) == DefaultSettings.VIDEO_CAPTURE_DEVICE_ID)
+            if(AVAILABLE_CAMERAS.get(cameraName) == settings.getCameraDeviceId())
                 cameraSelector.setSelectedIndex(itemIndex);
             itemIndex++;
         }

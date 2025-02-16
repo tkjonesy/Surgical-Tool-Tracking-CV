@@ -14,14 +14,14 @@ import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
+import io.github.tkjonesy.utils.settings.ProgramSettings;
+import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
 import lombok.Setter;
 
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
-
-import static io.github.tkjonesy.utils.settings.DefaultSettings.*;
 
 public class App extends JFrame {
     private final SessionHandler sessionHandler;
@@ -48,23 +48,10 @@ public class App extends JFrame {
         for (String cameraName : AVAILABLE_CAMERAS.keySet()) {
             System.out.println(cameraName);
         }
-
-
-        // Check first 10 device ports for any connected cameras, add them to available cameras
-//        AVAILABLE_CAMERAS = new ArrayList<>();
-//        final int MAX_PORTS_TO_CHECK = 10;
-//        for(int i = 0; i < MAX_PORTS_TO_CHECK; i++)
-//        {
-//            try(VideoCapture camera = new VideoCapture(i)) {
-//                if (camera.isOpened()) {
-//                    AVAILABLE_CAMERAS.add(i);
-//                    camera.release();
-//                }
-//            }
-//        }
     }
 
     private final OnnxRunner onnxRunner;
+    private ProgramSettings settings;
 
     @Getter
     private final VideoCapture camera;
@@ -82,10 +69,17 @@ public class App extends JFrame {
     private static final Color CHARCOAL = new Color(30, 31, 34);
 
     public App() {
+
+        this.settings = SettingsLoader.loadSettings();
+        ProgramSettings.setCurrentSettings(settings);
+
+        System.out.println(settings);
+
         initComponents();
         initListeners();
         this.setVisible(true);
-        this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
+        //this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
+        this.camera = new VideoCapture(settings.getCameraDeviceId());
         if (!camera.isOpened()) {
             System.err.println("Error: Camera could not be opened. Exiting...");
             System.exit(-1);
@@ -268,6 +262,9 @@ public class App extends JFrame {
                         "Confirm Exit", JOptionPane.YES_NO_OPTION);
 
                 if (confirmation == JOptionPane.YES_OPTION) {
+
+                    SettingsLoader.saveSettings(settings);
+
                     System.out.println("Beginning cleanup Process...");
                     System.out.println("Stopping camera feed thread...");
                     if(cameraFetcherThread != null) cameraFetcherThread.interrupt();

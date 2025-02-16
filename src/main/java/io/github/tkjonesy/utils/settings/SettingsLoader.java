@@ -1,6 +1,7 @@
 package io.github.tkjonesy.utils.settings;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.nio.file.StandardCopyOption;
 
 public class SettingsLoader {
 
+    @Getter
     private static final String AIMS_Directory = System.getProperty("user.home") + "/AIMs";
     private static final String SETTINGS_FILE_PATH = AIMS_Directory + "/settings.json";
     private static final String DEFAULT_SETTINGS_FILE_PATH = "/defaultSettings.json";
@@ -25,12 +27,14 @@ public class SettingsLoader {
         ProgramSettings settings = loadSettingsFromFile(objectMapper, SETTINGS_FILE_PATH);
 
         if(settings == null){
+            System.out.println("No settings file found, loading default settings.");
             settings = loadSettingsFromResource(objectMapper, DEFAULT_SETTINGS_FILE_PATH);
         }
 
         if(settings != null){
-            verifyModelAndLabels(settings);
             saveSettings(settings, SETTINGS_FILE_PATH);
+            verifyModelAndLabels(settings);
+
         }
 
         return settings;
@@ -81,20 +85,29 @@ public class SettingsLoader {
         }
     }
 
+    public static void saveSettings(ProgramSettings settings){
+        saveSettings(settings, SETTINGS_FILE_PATH);
+    }
+
     // Verify that the model and label files exist, extracting them from resources if they don't
     private static void verifyModelAndLabels(ProgramSettings settings) {
         String modelPath = settings.getModelPath();
         String labelPath = settings.getLabelPath();
 
+        System.out.println("Verifying model and label files...");
+        System.out.println("Model Path: " + modelPath);
+        System.out.println("Label Path: " + labelPath);
+
         File modelFile = new File(modelPath);
         if (!modelFile.exists()) {
-            modelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".onnx", modelPath);
+            System.out.println("Model file not found, extracting from resources...");
+            modelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".onnx", AIMS_Directory + "/ai_models/" + DEFAULT_MODEL + ".onnx");
             settings.setModelPath(modelPath);
         }
 
         File labelFile = new File(labelPath);
         if (!labelFile.exists()) {
-            labelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".names", labelPath);
+            labelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".names", AIMS_Directory + "/ai_models/" + DEFAULT_MODEL + ".names");
             settings.setLabelPath(labelPath);
         }
     }
@@ -103,7 +116,7 @@ public class SettingsLoader {
         File targetFile = new File(targetPath);
 
         if (!targetFile.exists()) {
-            try (InputStream in = DefaultSettings.class.getResourceAsStream(resourcePath)) {
+            try (InputStream in = SettingsLoader.class.getResourceAsStream(resourcePath)) {
                 if (in == null) {
                     throw new IOException("Resource not found inside JAR: " + resourcePath);
                 }
