@@ -1,5 +1,6 @@
-package io.github.tkjonesy.ONNX.settings;
+package io.github.tkjonesy.utils.settings;
 
+import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 import java.io.File;
 import java.io.IOException;
