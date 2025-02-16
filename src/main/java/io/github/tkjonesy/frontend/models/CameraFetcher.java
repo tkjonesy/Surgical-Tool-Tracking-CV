@@ -99,7 +99,8 @@ public class CameraFetcher implements Runnable {
                     }
 
                     // Overlay predictions & resize
-                    ImageUtil.drawPredictions(frame, detections);
+                    if(settings.isShowBoundingBoxes())
+                        ImageUtil.drawPredictions(frame, detections);
                     try {
                         resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 

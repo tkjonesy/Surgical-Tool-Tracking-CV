@@ -2,14 +2,11 @@ package io.github.tkjonesy.utils.settings;
 
 import ai.onnxruntime.OrtSession;
 import io.github.tkjonesy.utils.annotations.SettingsLabel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
-
-import static io.github.tkjonesy.utils.settings.SettingsLoader.loadSettings;
 
 @Getter
 public class ProgramSettings {
@@ -17,7 +14,6 @@ public class ProgramSettings {
     @Setter
     @Getter
     private static ProgramSettings currentSettings;
-    //static {currentSettings = loadSettings();}
 
     private static final String FILE_DIRECTORY = System.getProperty("user.home") + "/AIMs";
 

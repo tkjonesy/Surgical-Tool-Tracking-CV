@@ -13,28 +13,38 @@ import java.nio.file.StandardCopyOption;
 
 public class SettingsLoader {
 
+    /*
+        AIMS_Directory is the directory where all settings and model files are stored.
+        SETTINGS_FILE_PATH is the path to the settings file on user's device.
+        DEFAULT_SETTINGS_FILE_PATH is the path to the default settings file inside the JAR.
+     */
     @Getter
     private static final String AIMS_Directory = System.getProperty("user.home") + "/AIMs";
     private static final String SETTINGS_FILE_PATH = AIMS_Directory + "/settings.json";
     private static final String DEFAULT_SETTINGS_FILE_PATH = "/defaultSettings.json";
 
+    // Default model to use if none is specified
     private static final String DEFAULT_MODEL = "yolo11m";
 
+    // Method to load the settings
     public static ProgramSettings loadSettings(){
+        // Initialize the AIMs directory
         initializeParentDirectory();
 
+        // Load settings from the Settings file
         ObjectMapper objectMapper = new ObjectMapper();
-        ProgramSettings settings = loadSettingsFromFile(objectMapper, SETTINGS_FILE_PATH);
+        ProgramSettings settings = loadSettingsFromFile(objectMapper);
 
+        // If settings are null, load default settings from resources
         if(settings == null){
             System.out.println("No settings file found, loading default settings.");
-            settings = loadSettingsFromResource(objectMapper, DEFAULT_SETTINGS_FILE_PATH);
+            settings = loadSettingsFromResource(objectMapper);
         }
 
+        // Save the settings to the file, then verify that the specified model and label files exist
         if(settings != null){
             saveSettings(settings, SETTINGS_FILE_PATH);
             verifyModelAndLabels(settings);
-
         }
 
         return settings;
@@ -51,20 +61,20 @@ public class SettingsLoader {
         }
     }
 
-    private static ProgramSettings loadSettingsFromFile(ObjectMapper objectMapper, String filePath) {
-        File settingsFile = new File(filePath);
+    private static ProgramSettings loadSettingsFromFile(ObjectMapper objectMapper) {
+        File settingsFile = new File(SETTINGS_FILE_PATH);
         if (settingsFile.exists()) {
             try {
                 return objectMapper.readValue(settingsFile, ProgramSettings.class);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to load settings from file: " + filePath, e);
+                throw new RuntimeException("Failed to load settings from file: " + SETTINGS_FILE_PATH, e);
             }
         }
         return null;
     }
 
-    private static ProgramSettings loadSettingsFromResource(ObjectMapper objectMapper, String resourcePath) {
-        try (InputStream inputStream = SettingsLoader.class.getResourceAsStream(resourcePath)) {
+    private static ProgramSettings loadSettingsFromResource(ObjectMapper objectMapper) {
+        try (InputStream inputStream = SettingsLoader.class.getResourceAsStream(DEFAULT_SETTINGS_FILE_PATH)) {
             if (inputStream != null) {
                 return objectMapper.readValue(inputStream, ProgramSettings.class);
             } else {
@@ -94,19 +104,16 @@ public class SettingsLoader {
         String modelPath = settings.getModelPath();
         String labelPath = settings.getLabelPath();
 
-        System.out.println("Verifying model and label files...");
-        System.out.println("Model Path: " + modelPath);
-        System.out.println("Label Path: " + labelPath);
-
         File modelFile = new File(modelPath);
         if (!modelFile.exists()) {
-            System.out.println("Model file not found, extracting from resources...");
+            System.out.println("Model file not found, extracting default model.");
             modelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".onnx", AIMS_Directory + "/ai_models/" + DEFAULT_MODEL + ".onnx");
             settings.setModelPath(modelPath);
         }
 
         File labelFile = new File(labelPath);
         if (!labelFile.exists()) {
+            System.out.println("Label file not found, extracting default labels.");
             labelPath = extractResourceIfMissing("/ai_models/" + DEFAULT_MODEL + ".names", AIMS_Directory + "/ai_models/" + DEFAULT_MODEL + ".names");
             settings.setLabelPath(labelPath);
         }

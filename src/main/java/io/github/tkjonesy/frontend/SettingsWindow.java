@@ -5,41 +5,31 @@ import io.github.tkjonesy.utils.settings.ProgramSettings;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.event.ChangeListener;
 
 import java.awt.*;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.util.EventListener;
+import java.util.HashMap;
 import java.util.Set;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 
 public class SettingsWindow extends JDialog {
 
-
     private ProgramSettings settings = ProgramSettings.getCurrentSettings();
-    // Settings variables
-
-    // Camera variables
-    private String cameraSelection;
-    private boolean showBoundingBoxes;
-    private int cameraFps;
-
-    // Storage variables
-    private String fileDirectory;
-
-    // AI settings
-    private String modelPath;
-    private int processEveryNthFrame;
-    private float confThreshold;
-
-    // Advanced AI settings. Not 100% sure if changing input shape/size is a good idea, ONNX is picky
-    private int gpuDeviceId;
-    private float nmsThreshold;
+    private final HashMap<String, Object> settingsUpdates = new HashMap<>();
 
     private JButton confirmButton, cancelButton, applyButton;
 
     private JComboBox<String> cameraSelector;
+    private JCheckBox boundingBoxCheckbox;
+    private JSpinner cameraFpsSpinner;
 
     private static final Color OCEAN = new Color(55, 90, 129);
 
@@ -78,10 +68,10 @@ public class SettingsWindow extends JDialog {
         // Components
         JPanel cameraPanel = new JPanel();
         JLabel cameraSelectorLabel = new JLabel("Camera Selection");
-        cameraSelector = new JComboBox<>();
-        JCheckBox boundingBoxCheck = new JCheckBox("Bounding Boxes", settings.isShowBoundingBoxes());
+        this.cameraSelector = new JComboBox<>();
+        this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes", settings.isShowBoundingBoxes());
         JLabel cameraFpsLabel = new JLabel("Camera Frames Per Second");
-        JSpinner cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraFps(), 0, 60, 1));
+        this.cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraFps(), 0, 60, 1));
         JLabel cameraFpsWarningLabel = new JLabel("");
 
         // Populate camera selection menu with list of available cameras.
@@ -96,8 +86,8 @@ public class SettingsWindow extends JDialog {
         }
 
         // Bounding box details
-        boundingBoxCheck.setHorizontalTextPosition(SwingConstants.LEFT);
-        boundingBoxCheck.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
+        boundingBoxCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
+        boundingBoxCheckbox.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
 
         // Camera FPS details
         cameraFpsSpinner.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
@@ -124,7 +114,7 @@ public class SettingsWindow extends JDialog {
                                         .addPreferredGap(ComponentPlacement.RELATED)
                                         .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
-                        .addComponent(boundingBoxCheck)
+                        .addComponent(boundingBoxCheckbox)
                         .addGroup(
                                 cameraSettingsLayout.createSequentialGroup()
                                         .addComponent(cameraFpsLabel)
@@ -142,7 +132,7 @@ public class SettingsWindow extends JDialog {
                                         .addComponent(cameraSelector)
                         )
                         .addPreferredGap(ComponentPlacement.UNRELATED)
-                        .addComponent(boundingBoxCheck)
+                        .addComponent(boundingBoxCheckbox)
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addGroup(
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
@@ -254,6 +244,8 @@ public class SettingsWindow extends JDialog {
         confirmButton.setBackground(OCEAN);
         cancelButton = new JButton("Cancel");
         applyButton = new JButton("Apply");
+        applyButton.setEnabled(false);
+
 
         // Layout
         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
@@ -307,53 +299,140 @@ public class SettingsWindow extends JDialog {
         this.setLocationRelativeTo(null); // Center application
     }
 
+    // Method to enable/disable the Apply button
+    private void updateApplyButtonState() {
+        applyButton.setEnabled(!settingsUpdates.isEmpty());
+    }
+
     private void initListeners() {
 
-        cameraSelector.addActionListener(
+        addSettingChangeListener(cameraSelector, (ActionListener)
                 e -> {
                     System.out.println("Selected camera: " + cameraSelector.getSelectedItem());
                 }
         );
 
-        confirmButton.addActionListener(
+        addSettingChangeListener(cameraFpsSpinner, (ChangeListener)
                 e -> {
-                    System.out.println("Pressed ok");
-                    applyChanges();
-                    this.dispose();
+                    int value = (int) cameraFpsSpinner.getValue();
+                    System.out.println("Camera FPS: " + cameraFpsSpinner.getValue());
+                    settingsUpdates.put("cameraFps", value);
+                    if(settings.getCameraFps() == value)
+                        settingsUpdates.remove("cameraFps");
                 }
         );
 
-        cancelButton.addActionListener(
+        addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
                 e -> {
-                    System.out.println("Pressed cancel");
-                    cancelChanges();
-                    this.dispose();
+                    boolean value = boundingBoxCheckbox.isSelected();
+                    System.out.println("Bounding boxes: " + boundingBoxCheckbox.isSelected());
+                    settingsUpdates.put("showBoundingBoxes", value);
+                    if(settings.isShowBoundingBoxes() == value)
+                        settingsUpdates.remove("showBoundingBoxes");
                 }
         );
 
-        applyButton.addActionListener(
-                e -> {
-                    System.out.println("Pressed apply");
-                    applyChanges();
+        confirmButton.addActionListener(e -> {handleCloseAttempt();});
 
-                }
-        );
+        cancelButton.addActionListener(e -> {handleCancelAttempt();});
+
+        applyButton.addActionListener(e -> {applyChanges();});
 
         this.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                System.out.println("Settings window closing");
-                cancelChanges();
-                SettingsWindow.this.dispose();
+                handleCloseAttempt();
             }
         });
     }
 
+    private <T extends EventListener> void addSettingChangeListener(JComponent component, T listener) {
+        if (component instanceof AbstractButton button && listener instanceof ActionListener actionListener) {
+            button.addActionListener(e -> {
+                actionListener.actionPerformed(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JCheckBox checkBox && listener instanceof ItemListener itemListener) {
+            checkBox.addItemListener(e -> {
+                itemListener.itemStateChanged(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JTextField textField && listener instanceof PropertyChangeListener propertyChangeListener) {
+            textField.addPropertyChangeListener(evt -> {
+                propertyChangeListener.propertyChange(evt);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JComboBox<?> comboBox && listener instanceof ActionListener actionListener) {
+            comboBox.addActionListener(e -> {
+                actionListener.actionPerformed(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JSlider slider && listener instanceof ChangeListener changeListener) {
+            slider.addChangeListener(e -> {
+                changeListener.stateChanged(e);
+                updateApplyButtonState();
+            });
+        } else if (component instanceof JSpinner spinner && listener instanceof ChangeListener changeListener) {
+            spinner.addChangeListener(e -> {
+                changeListener.stateChanged(e);
+                updateApplyButtonState();
+            });
+        } else {
+            throw new IllegalArgumentException("Unsupported listener type for component: " + component.getClass().getName());
+        }
+    }
+
+    // Show popup when closing window or confirm button with unsaved changes
+    private void handleCloseAttempt() {
+        if (!settingsUpdates.isEmpty()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "You have unsaved changes. Do you want to save before exiting?",
+                    "Unsaved Changes",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                applyChanges();
+                dispose();
+            } else if (choice == JOptionPane.NO_OPTION) {
+                settingsUpdates.clear();
+                dispose();
+            }
+
+        } else {
+            dispose();
+        }
+    }
+
+    // Show popup when pressing cancel button with unsaved changes
+    private void handleCancelAttempt() {
+        if (!settingsUpdates.isEmpty()) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "Discard unsaved changes?",
+                    "Cancel Changes",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            if (choice == JOptionPane.YES_OPTION) {
+                cancelChanges();
+                dispose();
+            }
+        } else {
+            dispose();
+        }
+    }
+
     private void applyChanges() {
         System.out.println("Applying changed settings");
-        // TODO compare camera selection with what is already selected. If there has been a change, save the new camera index value.
+        settings.updateSettings(settingsUpdates);
+        settingsUpdates.clear();
+        updateApplyButtonState();
     }
     private void cancelChanges() {
-        System.out.println("Cancelling changed settings");
+        settingsUpdates.clear();
     }
 }
