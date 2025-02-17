@@ -30,6 +30,7 @@ public class FileSession {
 
     /** BufferedWriter for saving log messages to a .log file. */
     private BufferedWriter logBufferedWriter = null;
+    private BufferedWriter csvBufferedWriter = null;
 
     /** Tracks whether a session is active. */
     private final AtomicBoolean sessionActive = new AtomicBoolean(false);
@@ -65,6 +66,10 @@ public class FileSession {
 
             // Initialize BufferedWriter for saving logs
             this.logBufferedWriter = new BufferedWriter(new FileWriter(saveDir + "/logfile.log", true));
+
+            // Initialize BufferedWriter for saving CSVs
+            this.csvBufferedWriter = new BufferedWriter(new FileWriter(saveDir + "/log.csv", true));
+            csvBufferedWriter.write("Timestamp,LogNumber,Object,Action,ActionType\n");
 
             // Mark the session as active
             sessionActive.set(true);
@@ -127,10 +132,34 @@ public class FileSession {
             try {
                 String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
                 this.logBufferedWriter.write(fullMessage + "\n");
+
+                String[]parsedMessage = parseLogMessage(log.getMessage());
+                this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "," + log.getLogType() + "\n");
             } catch (IOException e) {
                 System.err.println("IO Exception writing log to file: " + e.getMessage());
             }
         }
+    }
+
+    private String[] parseLogMessage(String message){
+        String logNumber = "";
+        String object = "";
+        String action = "";
+
+        try{
+            //Extract Log Number, Object, and Action
+            if(message.contains("Log #") && message.contains("Object:") && message.contains("Action:")){
+                logNumber = message.split(" ")[1];
+                object = message.split("Object:")[1].split("Action:")[0];
+                action = message.split("Action:")[1];
+            }
+            else{
+                logNumber = message;
+            }
+        } catch(Exception e){
+            System.err.println("Erorr parsing log message: " + e.getMessage());
+        }
+        return new String[]{logNumber, object, action};
     }
 
     /**
@@ -140,9 +169,13 @@ public class FileSession {
         System.out.println("\u001B[33m☐ Ending current FileSession...\u001B[0m");
         sessionActive.set(false);
         closeLogWriter();
+        closeCsvWriter();
 
         if(logBufferedWriter == null) {
             System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + saveDir + "/logfile.log\u001B[0m");
+        }
+        if(csvBufferedWriter == null) {
+            System.out.println("\u001B[32m☑ FileSession ended successfully. CSV file saved to: " + saveDir + "/log.csv\u001B[0m");
         }
     }
 
@@ -159,6 +192,19 @@ public class FileSession {
             System.err.println("Failed to close log writer: " + e.getMessage());
         } finally {
             logBufferedWriter = null;
+        }
+    }
+
+    private void closeCsvWriter() {
+        try {
+            if (csvBufferedWriter != null) {
+                csvBufferedWriter.flush();
+                csvBufferedWriter.close();
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to close csv writer: " + e.getMessage());
+        } finally {
+            csvBufferedWriter = null;
         }
     }
 }
