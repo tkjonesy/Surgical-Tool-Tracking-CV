@@ -33,6 +33,7 @@ public class SettingsWindow extends JDialog {
 
     private JComboBox<String> cameraSelector;
     private JSpinner cameraFpsSpinner;
+    private JSpinner cameraRotationSpinner;
 
     private JSpinner processEveryNthFrameSpinner;
     private JSlider confThresholdSlider;
@@ -119,27 +120,41 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
-        // Layout
+        // Camera rotation input
+        cameraRotationSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraRotation(), 0, 360, 90));
+        cameraRotationSpinner.setToolTipText("<html><body style='width:200px'>Set the rotation of the camera feed. This is useful for cameras that are mounted upside down or sideways. Default is 0.</body></html>");
+
+        JLabel cameraRotationLabel = new JLabel("Camera Rotation"); // Explicitly define label
+
+// Layout
         GroupLayout cameraSettingsLayout = new GroupLayout(cameraPanel);
         cameraSettingsLayout.setAutoCreateContainerGaps(true);
+
         cameraSettingsLayout.setHorizontalGroup(
                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addGroup(
                                 cameraSettingsLayout.createSequentialGroup()
                                         .addComponent(cameraSelectorLabel)
-                                        .addPreferredGap(ComponentPlacement.RELATED)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addComponent(boundingBoxCheckbox)
                         .addGroup(
                                 cameraSettingsLayout.createSequentialGroup()
                                         .addComponent(cameraFpsLabel)
-                                        .addPreferredGap(ComponentPlacement.RELATED)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(cameraFpsSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(ComponentPlacement.RELATED)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(cameraFpsWarningLabel)
                         )
+                        .addGroup(
+                                cameraSettingsLayout.createSequentialGroup()
+                                        .addComponent(cameraRotationLabel) // Ensure label is in horizontal group
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(cameraRotationSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
         );
+
         cameraSettingsLayout.setVerticalGroup(
                 cameraSettingsLayout.createSequentialGroup()
                         .addGroup(
@@ -147,16 +162,23 @@ public class SettingsWindow extends JDialog {
                                         .addComponent(cameraSelectorLabel)
                                         .addComponent(cameraSelector)
                         )
-                        .addPreferredGap(ComponentPlacement.UNRELATED)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(boundingBoxCheckbox)
-                        .addPreferredGap(ComponentPlacement.UNRELATED)
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(cameraFpsLabel)
                                         .addComponent(cameraFpsSpinner)
                                         .addComponent(cameraFpsWarningLabel)
                         )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(cameraRotationLabel) // Ensure label is in vertical group
+                                        .addComponent(cameraRotationSpinner)
+                        )
         );
+
         cameraPanel.setLayout(cameraSettingsLayout);
 
         /*-----------------+
@@ -350,6 +372,16 @@ public class SettingsWindow extends JDialog {
                     settingsUpdates.put("cameraFps", value);
                     if(settings.getCameraFps() == value)
                         settingsUpdates.remove("cameraFps");
+                }
+        );
+
+        addSettingChangeListener(cameraRotationSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) cameraRotationSpinner.getValue();
+                    System.out.println("Camera rotation: " + cameraRotationSpinner.getValue());
+                    settingsUpdates.put("cameraRotation", value);
+                    if(settings.getCameraRotation() == value)
+                        settingsUpdates.remove("cameraRotation");
                 }
         );
 

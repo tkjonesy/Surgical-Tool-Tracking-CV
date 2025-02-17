@@ -106,7 +106,16 @@ public class CameraFetcher implements Runnable {
                         ImageUtil.drawPredictions(frame, detections);
                     try {
                         resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
-                        opencv_core.rotate(frame, frame, 1);
+
+                        int settingsRotation = settings.getCameraRotation();
+                        int ROTA = 3;
+                        switch (settingsRotation) {
+                            case 90 -> ROTA = opencv_core.ROTATE_90_CLOCKWISE;
+                            case 180 -> ROTA = opencv_core.ROTATE_180;
+                            case 270 -> ROTA = opencv_core.ROTATE_90_COUNTERCLOCKWISE;
+                        }
+
+                        opencv_core.rotate(frame, frame, ROTA);
                         // Show frame in label
                         BufferedImage biFrame = cvt2bi(frame);
                         ImageIcon icon = new ImageIcon(biFrame);

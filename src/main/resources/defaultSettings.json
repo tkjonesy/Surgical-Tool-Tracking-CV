@@ -1,6 +1,7 @@
 {
   "cameraDeviceId": 0,
   "cameraFps": 30,
+  "cameraRotation": 0,
   "modelPath": "/ai_models/yolo11m.onnx",
   "labelPath": "/ai_models/yolo11m.names",
   "processEveryNthFrame": 30,

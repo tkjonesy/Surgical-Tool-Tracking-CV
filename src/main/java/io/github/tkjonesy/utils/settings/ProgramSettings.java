@@ -26,6 +26,8 @@ public class ProgramSettings {
     private int cameraDeviceId;
     @SettingsLabel(value = "cameraFps", type = Integer.class)
     private int cameraFps;
+    @SettingsLabel(value = "cameraRotation", type = Integer.class)
+    private int cameraRotation;
 
     // Storage variables
     @SettingsLabel(value = "fileDirectory", type = String.class)
@@ -77,6 +79,7 @@ public class ProgramSettings {
                 throw new RuntimeException(e);
             }
         }
+        SettingsLoader.saveSettings(this);
     }
 
     private void setSettings(String label, Object value) {

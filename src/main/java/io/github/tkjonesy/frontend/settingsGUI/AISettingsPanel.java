@@ -52,7 +52,7 @@ public class AISettingsPanel extends JPanel {
 
         // Process Every Nth Frame (Spinner)
         JLabel processNthLabel = new JLabel("Process Every Nth Frame:");
-        processEveryNthFrameSpinner = new JSpinner(new SpinnerNumberModel(settings.getProcessEveryNthFrame(), 1, 60, 1));
+        processEveryNthFrameSpinner = new JSpinner(new SpinnerNumberModel(settings.getProcessEveryNthFrame(), 1, 1000, 1));
         processEveryNthFrameSpinner.setToolTipText("Controls how often the AI processes frames. Higher values improve performance.");
 
         // Confidence Threshold (Slider + Editable TextField)
