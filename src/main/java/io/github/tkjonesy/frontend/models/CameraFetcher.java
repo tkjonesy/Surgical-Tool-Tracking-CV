@@ -17,6 +17,9 @@ import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 import static org.bytedeco.opencv.global.opencv_videoio.CAP_PROP_FRAME_WIDTH;
 import static org.bytedeco.opencv.global.opencv_videoio.CAP_PROP_FRAME_HEIGHT;
 
+import org.bytedeco.opencv.global.opencv_core;
+
+
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -103,9 +106,11 @@ public class CameraFetcher implements Runnable {
                         ImageUtil.drawPredictions(frame, detections);
                     try {
                         resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
-
+                        opencv_core.rotate(frame, frame, 1);
                         // Show frame in label
                         BufferedImage biFrame = cvt2bi(frame);
+                        ImageIcon icon = new ImageIcon(biFrame);
+
                         cameraFeed.setIcon(new ImageIcon(biFrame));
                     } catch (Exception e ){
                         System.out.println("Camera Fetcher had to stop! If you are closing the program, this is expected.");
