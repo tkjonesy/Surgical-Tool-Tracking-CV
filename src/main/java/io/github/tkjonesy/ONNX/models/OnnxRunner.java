@@ -5,17 +5,13 @@ import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import lombok.Getter;
+import lombok.*;
 
-import lombok.Setter;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,33 +22,8 @@ import java.time.Instant;
  * detected classes.
  */
 public class OnnxRunner {
-    private HashSet<String> initialToolSet = new HashSet<>();
-    private HashSet<String> lastKnownTools = new HashSet<>();
+
     private Instant startTime;
-    private int peakObjectsSeen = 0;
-
-    private int peakObjectCount = 0;  // Tracks max objects seen at once
-    private int logCounter = 0;        // Tracks log numbering
-
-    private final HashSet<String> activeObjects = new HashSet<>();  // Objects currently detected
-    private final HashSet<String> knownClasses = new HashSet<>();   // Objects that have been seen before
-    private final HashMap<String, Integer> totalToolCounts = new HashMap<>();
-    private final HashMap<String, Integer> totalToolsAdded = new HashMap<>();
-    private final HashMap<String, Integer> countUpdateBuffer = new HashMap<>();
-
-
-
-
-    private final HashMap<String, Integer> previousCounts = new HashMap<>();  // Tracks previous frame counts
-    private HashMap<String, Integer> previousClasses = new HashMap<>(); // Tracks previous frame detections
-    private final HashMap<String, Integer> objectPersistence = new HashMap<>(); // Tracks how long an object has been missing
-
-    private static final int STABILITY_THRESHOLD = 50; // How many frames before marking an object as "Left Camera View"
-    private static final int COUNT_UPDATE_THRESHOLD = 30;
-    private static final int REAPPEAR_THRESHOLD = 15;
-
-    private final HashMap<String, Integer> totalTimesAdded = new HashMap<>();
-
 
     /** The YOLO inference session used to run the YOLO model. */
     @Setter
@@ -62,95 +33,16 @@ public class OnnxRunner {
     @Getter
     private final LogQueue logQueue;
 
-    /** A hashmap for tracking detected classes and their counts. */
+    /** A hashmap for tracking the currently active classes and their counts.
+     * Active means that these detections have passed through the buffer */
     @Getter
-    private final HashMap<String, Integer> classes;
+    private final HashMap<String, Integer> activeDetections;
+    /** A hashmap to act as a buffer to filter out detection flickers*/
+    @Getter
+    private final HashMap<DetectionWithCount, Integer> detectionBuffer;
 
-    /**
-     * Resets all counters and tracking data after AAR generation.
-     */
-    public void resetTrackingData() {
-        peakObjectsSeen = 0;
-        logCounter = 1;
-
-        HashMap<String, Integer> lastKnownObjects = new HashMap<>(detectedClasses);
-
-        // Clear all tracking HashMaps
-        activeObjects.clear();
-        knownClasses.clear();
-        totalToolCounts.clear();
-        totalToolsAdded.clear();
-        previousCounts.clear();
-        previousClasses.clear();
-        objectPersistence.clear();
-        detectedClasses.clear();
-
-        detectedClasses.putAll(lastKnownObjects);
-    }
-
-
-    /**
-     * ✅ Starts tracking tools when session begins.
-     */
-    public void startTracking() {
-        startTime = Instant.now();
-        initialToolSet.clear();
-        lastKnownTools.clear();
-
-        // Capture initial tool set after 1 sec
-        new Thread(() -> {
-            try {
-                Thread.sleep(1000);
-                initialToolSet.addAll(getClasses().keySet());
-                System.out.println("✅ Initial tools captured: " + initialToolSet);
-            } catch (InterruptedException e) {
-                System.err.println("Failed to capture initial tool set: " + e.getMessage());
-            }
-        }).start();
-
-        // Continuously track last known tools
-        new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(500);
-                    lastKnownTools.clear();
-                    lastKnownTools.addAll(getClasses().keySet());
-                    //System.out.println("🔍 Updated Last Known Tools: " + lastKnownTools);
-                } catch (InterruptedException e) {
-                    System.err.println("Error updating last known tools: " + e.getMessage());
-                }
-            }
-        }).start();
-    }
-
-    /**
-     * Captures final tools when session ends.
-     */
-    public void captureFinalTools() {
-        try {
-            Thread.sleep(500); // Small delay for final detection update
-        } catch (InterruptedException e) {
-            System.err.println("Warning: Delay interrupted before final tool capture.");
-        }
-
-        lastKnownTools.clear();
-        lastKnownTools.addAll(getClasses().keySet());
-        System.out.println("🔍 Final tools detected: " + lastKnownTools);
-    }
-
-    /**
-     * ✅ Returns initial tools detected.
-     */
-    public HashSet<String> getInitialToolSet() {
-        return new HashSet<>(initialToolSet);
-    }
-
-    /**
-     * ✅ Returns final tools detected.
-     */
-    public HashSet<String> getFinalToolSet() {
-        return new HashSet<>(lastKnownTools);
-    }
+    @Setter
+    private int bufferThreshold = 3;
 
     /**
      * ✅ Returns session duration.
@@ -159,22 +51,12 @@ public class OnnxRunner {
         return Duration.between(startTime, Instant.now());
     }
 
-    @Getter
-    private final HashMap<String, Integer> detectedClasses = new HashMap<>();
-
-    /**
-     * ✅ Simulated function that returns detected tools.
-     */
-    public HashMap<String, Integer> getClasses() {
-        //System.out.println("🔹 getClasses() called. Detected classes: " + detectedClasses);
-        return detectedClasses;
-    }
-
     public OnnxRunner(LogQueue logQueue) {
 
         this.logQueue = logQueue;
-        classes = new HashMap<>();
-        previousClasses = new HashMap<>(); // Initializes previousClasses to store previous frame detections
+        this.activeDetections = new HashMap<>();
+        this.detectionBuffer = new HashMap<>();
+
         try {
             ProgramSettings settings = ProgramSettings.getCurrentSettings();
             this.inferenceSession = new YoloV8(settings.getModelPath(), settings.getLabelPath());
@@ -189,17 +71,7 @@ public class OnnxRunner {
      * Clears the classes hashmap, removing all tracked classes.
      */
     public void clearClasses() {
-        classes.clear();
-        previousClasses.clear();
-        knownClasses.clear();
-    }
-
-    // Utility method to format log messages
-    private String formatLogMessage(int logIndex, String label, String action) {
-        return String.format(
-                "Log #%d    Object: %-15s    Action: %-25s",
-                logIndex, label, action
-        );
+        this.activeDetections.clear();
     }
 
     /**
@@ -213,6 +85,7 @@ public class OnnxRunner {
 
         try {
             detectionList = inferenceSession.run(frame);
+
         } catch (OrtException ortException) {
 
             logQueue.addRedLog("Error running inference: " + ortException.getMessage());
@@ -222,6 +95,18 @@ public class OnnxRunner {
         return new OnnxOutput(detectionList);
     }
 
+    private HashMap<String, Integer> detectionsListToMap(List<Detection> detections){
+
+        HashMap<String, Integer> currentDetections = new HashMap<>();
+        for(Detection detection: detections){
+            int currentCount = currentDetections.getOrDefault(detection.label(), 0);
+            currentDetections.put(detection.label(), ++currentCount);
+        }
+
+        return currentDetections;
+    }
+
+
     // Method to print the header row
     private void printHeader() {
         String header = String.format("%-10s %-20s %-20s",
@@ -230,21 +115,12 @@ public class OnnxRunner {
         System.out.println("=".repeat(header.length()));  // Underline the header with equals signs
     }
 
-    public void updatePeakObjects(int currentCount) {
-        peakObjectsSeen = Math.max(peakObjectsSeen, currentCount);
-    }
-
-
-    public int getPeakObjectsSeen() {
-        return peakObjectsSeen;
-    }
-
-    public HashMap<String, Integer> getMaxToolCounts() {
-        return new HashMap<>(totalToolCounts);
-    }
-
-    public HashMap<String, Integer> getTotalTimesAdded() {
-        return new HashMap<>(totalToolsAdded);
+    // Utility method to format log messages
+    private String formatLogMessage(int logIndex, String label, String action) {
+        return String.format(
+                "Log #%d    Object: %-15s    Action: %-25s",
+                logIndex, label, action
+        );
     }
 
     /**
@@ -254,84 +130,93 @@ public class OnnxRunner {
      * @param detections A list of {@link Detection} objects representing the detected items.
      */
     public void processDetections(List<Detection> detections) {
-        DateTimeFormatter formatterDate = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        DateTimeFormatter formatterTime = DateTimeFormatter.ofPattern("HH:mm:ss");
+        final HashMap<String, Integer> currentDetections = detectionsListToMap(detections);
 
-        HashMap<String, Integer> updatedClasses = new HashMap<>();
-        int currentObjectCount = 0;
+        System.out.println("BEFORE");
+        System.out.println("Current detections: " + currentDetections);
+        System.out.println("Detection buffer: " + detectionBuffer);
+        System.out.println("Active detections: " + activeDetections);
 
-        // Count objects in the current frame
-        for (Detection detection : detections) {
-            String label = detection.label();
-            updatedClasses.put(label, updatedClasses.getOrDefault(label, 0) + 1);
-            currentObjectCount++;
-
-            totalToolCounts.put(label, Math.max(totalToolCounts.getOrDefault(label, 0), updatedClasses.get(label)));
-        }
-
-        // Track the peak number of objects seen at once
-        updatePeakObjects(currentObjectCount);
-
-        // Ensure logs start from Log #1 each session
-        if (logCounter == 0) {
-            logCounter = 1;
-        }
-
-        // Process detections & log changes
-        for (String label : updatedClasses.keySet()) {
-            int newCount = updatedClasses.get(label);
-            int oldCount = previousCounts.getOrDefault(label, 0);
-
-            if (newCount > oldCount) {  // If count increased, it means an object was added
-                totalToolsAdded.put(label, totalToolsAdded.getOrDefault(label, 0) + (newCount - oldCount));
+        for(var detection: activeDetections.entrySet()){
+            if(currentDetections.containsKey(detection.getKey())){
+                continue;
             }
 
-            if (!activeObjects.contains(label)) {
-                // Log either "New Object Detected" or "Reappeared in Camera View"
-                String logAction = knownClasses.contains(label) ? "Reappeared in Camera View" : "New Object Detected";
-                String logMessage = formatLogMessage(logCounter++, label, logAction);
-                logQueue.addGreenLog(logMessage);
+            currentDetections.put(detection.getKey(), 0);
+            System.out.println("Detection " + detection.getKey() + " has exited the view. Adding removal to buffer");
 
-                activeObjects.add(label);
-                knownClasses.add(label); // Ensures next time it logs as "Reappeared"
-                objectPersistence.remove(label); // Reset disappearance counter
-            } else if (newCount != oldCount) {
-                // Log count changes (e.g., "Class count updated: 2")
-                String logMessage = formatLogMessage(logCounter++, label, "Class count updated: " + newCount);
-                logQueue.addYellowLog(logMessage);
-            }
-
-            classes.put(label, newCount);
         }
 
-        // Handle objects that disappeared from the frame
-        for (String label : new HashSet<>(activeObjects)) {
-            if (!updatedClasses.containsKey(label)) {
-                int missingFrames = objectPersistence.getOrDefault(label, 0) + 1;
-                objectPersistence.put(label, missingFrames);
+        // Add new detections to the detectionBuffer from the current frame
+        for(var detection: currentDetections.entrySet()){
 
-                if (missingFrames >= STABILITY_THRESHOLD) {
-                    // Log "Left Camera View" only after STABILITY_THRESHOLD frames
-                    String logMessage = formatLogMessage(logCounter++, label, "Left Camera View");
-                    logQueue.addRedLog(logMessage);
-                    activeObjects.remove(label);
-                    objectPersistence.remove(label);
+            DetectionWithCount detectionWithCount = new DetectionWithCount(detection.getKey(), detection.getValue());
+            int currentCount = detectionBuffer.getOrDefault(detectionWithCount, 0);
+            currentCount = Math.max(currentCount, 0) + 1;
+
+            System.out.println("Detection " + detectionWithCount + " has entered the view. Adding to buffer");
+            if(currentCount >= bufferThreshold){
+                if(detectionWithCount.count == 0){
+                    System.out.println("Detection " + detectionWithCount + " has passed through the buffer. Removing from active detections");
+                    activeDetections.remove(detection.getKey());
+                }else{
+                    System.out.println("Detection " + detectionWithCount + " has passed through the buffer. Adding to active detections");
+                    activeDetections.put(detection.getKey(), detection.getValue());
                 }
-            } else {
-                objectPersistence.remove(label); // Reset disappearance counter if object is still present
+
+                detectionBuffer.remove(detectionWithCount);
+            }else{
+
+                System.out.println("Detection " + detectionWithCount + " is still in the buffer. Adding to buffer");
+                detectionBuffer.put(detectionWithCount, currentCount);
             }
         }
 
-        // Update previousCounts & previousClasses for the next frame
-        previousCounts.clear();
-        previousCounts.putAll(updatedClasses);
+        // Decrement detections from detectionBuffer that are not present in the current frame
+        for(var detection: detectionBuffer.entrySet()){
 
-        // Clear and update, instead of reassigning
-        previousClasses.clear();
-        previousClasses.putAll(updatedClasses);
+            int objectCount = detection.getKey().count;
+            int currentDetectionCount = currentDetections.getOrDefault(detection.getKey().label, 0);
+            if(currentDetections.containsKey(detection.getKey().label) && objectCount == currentDetectionCount){
+                continue;
+            }
 
-        // Update detectedClasses for external usage
-        detectedClasses.clear();
-        detectedClasses.putAll(updatedClasses);
+            int currentBufferCount = detection.getValue();
+            currentBufferCount = Math.min(currentBufferCount, 0) - 1;
+
+            System.out.println("Detection " + detection.getKey() + " has exited the view. Removing from buffer");
+            if(currentBufferCount <= -bufferThreshold) {
+                System.out.println("Detection " + detection.getKey() + " has failed the buffer. Removing from active detections");
+                detectionBuffer.remove(detection.getKey());
+
+            }else{
+                System.out.println("Detection " + detection.getKey() + " is still in the buffer. Adding to buffer");
+                detectionBuffer.put(detection.getKey(), currentBufferCount);
+            }
+        }
+
+        System.out.println("AFTER");
+        System.out.println("Detection buffer: " + detectionBuffer);
+        System.out.println("Active detections: " + activeDetections);
+        System.out.println("Current detections: " + currentDetections);
+        System.out.println("\n\n");
+
     }
+
+    private void handleUpsert(DetectionWithCount detectionWithCount){
+        int originalValue = activeDetections.get(detectionWithCount.label);
+
+        activeDetections.put(detectionWithCount.label, detectionWithCount.count);
+
+        int newValue = activeDetections.get(detectionWithCount.label);
+
+    }
+}
+
+@AllArgsConstructor
+@EqualsAndHashCode
+@ToString
+class DetectionWithCount {
+    public final String label;
+    public final int count;
 }
