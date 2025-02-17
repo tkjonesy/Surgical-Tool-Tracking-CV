@@ -18,6 +18,7 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.util.EventListener;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Set;
 
 import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
@@ -33,7 +34,7 @@ public class SettingsWindow extends JDialog {
 
     private JComboBox<String> cameraSelector;
     private JSpinner cameraFpsSpinner;
-    private JSpinner cameraRotationSpinner;
+    private JSlider cameraRotationSlider;
 
     private JSpinner processEveryNthFrameSpinner;
     private JSlider confThresholdSlider;
@@ -120,13 +121,24 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
-        // Camera rotation input
-        cameraRotationSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraRotation(), 0, 360, 90));
-        cameraRotationSpinner.setToolTipText("<html><body style='width:200px'>Set the rotation of the camera feed. This is useful for cameras that are mounted upside down or sideways. Default is 0.</body></html>");
+        // Camera Rotation (Slider)
+        JLabel cameraRotationLabel = new JLabel("Camera Rotation:");
 
-        JLabel cameraRotationLabel = new JLabel("Camera Rotation"); // Explicitly define label
+        this.cameraRotationSlider = new JSlider(0, 270, settings.getCameraRotation());
+        cameraRotationSlider.setMajorTickSpacing(90);  // Only allow 0, 90, 180, 270
+        cameraRotationSlider.setSnapToTicks(true);
+        cameraRotationSlider.setPaintTicks(true);
+        cameraRotationSlider.setPaintLabels(true);
 
-// Layout
+        // Define custom labels for the tick positions
+        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+        labelTable.put(0, new JLabel("0"));
+        labelTable.put(90, new JLabel("90"));
+        labelTable.put(180, new JLabel("180"));
+        labelTable.put(270, new JLabel("270"));
+        cameraRotationSlider.setLabelTable(labelTable);
+
+        // Layout
         GroupLayout cameraSettingsLayout = new GroupLayout(cameraPanel);
         cameraSettingsLayout.setAutoCreateContainerGaps(true);
 
@@ -149,9 +161,9 @@ public class SettingsWindow extends JDialog {
                         )
                         .addGroup(
                                 cameraSettingsLayout.createSequentialGroup()
-                                        .addComponent(cameraRotationLabel) // Ensure label is in horizontal group
+                                        .addComponent(cameraRotationLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cameraRotationSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(cameraRotationSlider, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE) // Slider
                         )
         );
 
@@ -174,11 +186,10 @@ public class SettingsWindow extends JDialog {
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(cameraRotationLabel) // Ensure label is in vertical group
-                                        .addComponent(cameraRotationSpinner)
+                                        .addComponent(cameraRotationLabel)
+                                        .addComponent(cameraRotationSlider)
                         )
         );
-
         cameraPanel.setLayout(cameraSettingsLayout);
 
         /*-----------------+
@@ -375,10 +386,10 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
-        addSettingChangeListener(cameraRotationSpinner, (ChangeListener)
+        addSettingChangeListener(cameraRotationSlider, (ChangeListener)
                 e -> {
-                    int value = (int) cameraRotationSpinner.getValue();
-                    System.out.println("Camera rotation: " + cameraRotationSpinner.getValue());
+                    int value = (int) cameraRotationSlider.getValue();
+                    System.out.println("Camera rotation: " + cameraRotationSlider.getValue());
                     settingsUpdates.put("cameraRotation", value);
                     if(settings.getCameraRotation() == value)
                         settingsUpdates.remove("cameraRotation");
