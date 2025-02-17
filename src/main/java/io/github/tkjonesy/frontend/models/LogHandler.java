@@ -90,4 +90,16 @@ public class LogHandler {
             timer.stop();
         }
     }
+
+
+    /**
+     * Clears the log display when a session ends.
+     */
+    public void clearLogPane() {
+        logHtmlContent.setLength(0); // Reset log HTML content
+        logHtmlContent.append("<html><body style='color:white;'>"); // Keep formatting
+        logTextPane.setText(logHtmlContent + "</body></html>");
+
+        //logQueue.flushLogs();
+    }
 }

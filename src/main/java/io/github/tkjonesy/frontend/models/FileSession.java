@@ -29,12 +29,14 @@ public class FileSession {
 
     private Instant startTime;
     private final OnnxRunner onnxRunner;
+    private final LogHandler logHandler;
     private final String title;
     private String sessionDirectory;
 
-    public FileSession(OnnxRunner onnxRunner, String title)  {
+    public FileSession(OnnxRunner onnxRunner, String title, LogHandler logHandler)  {
         this.onnxRunner = onnxRunner;
         this.title = title;
+        this.logHandler = logHandler;
         try{
             startNewSession(); // Throws IOException if fails
         }catch (IOException e) {
@@ -57,14 +59,20 @@ public class FileSession {
      */
     public void startNewSession() throws IOException {
         System.out.println("\u001B[33m☐ Starting new FileSession...\u001B[0m");
+
+        onnxRunner.resetTrackingData();
+        if (logHandler != null) {
+            logHandler.clearLogPane();
+            System.out.println("🔄 Log panel fully reset.");
+        }
+
         startTime = Instant.now();
 
         // Ensure the parent directory exists
         Files.createDirectories(Paths.get(ROOT_DIRECTORY));
         Files.createDirectories(Paths.get(ROOT_DIRECTORY+"/sessions"));
 
-        String dateTime = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm"));
+        String dateTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm"));
         this.sessionDirectory = ROOT_DIRECTORY + "/sessions/" + this.title + "_" + dateTime;
 
         // Create the session directory
@@ -179,6 +187,12 @@ public class FileSession {
         if(logBufferedWriter == null) {
             System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + sessionDirectory + "/logfile.log\u001B[0m");
         }
+
+        if (logHandler != null) {
+            logHandler.clearLogPane();
+            System.out.println("🔄 Log panel cleared after session end.");
+        }
+        onnxRunner.resetTrackingData();
     }
 
     private String formatDuration(Duration duration) {
@@ -301,6 +315,7 @@ public class FileSession {
             writer.write("-----------------------------------------------------\n");
 
             System.out.println("✅ AAR saved to: " + aarPath);
+            onnxRunner.resetTrackingData();
         } catch (IOException e) {
             System.err.println("❌ Failed to write AAR: " + e.getMessage());
         }

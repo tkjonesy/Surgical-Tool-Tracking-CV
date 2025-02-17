@@ -38,6 +38,7 @@ public class OnnxRunner {
     private final HashSet<String> knownClasses = new HashSet<>();   // Objects that have been seen before
     private final HashMap<String, Integer> totalToolCounts = new HashMap<>();
     private final HashMap<String, Integer> totalToolsAdded = new HashMap<>();
+    private final HashMap<String, Integer> countUpdateBuffer = new HashMap<>();
 
 
 
@@ -46,7 +47,9 @@ public class OnnxRunner {
     private HashMap<String, Integer> previousClasses = new HashMap<>(); // Tracks previous frame detections
     private final HashMap<String, Integer> objectPersistence = new HashMap<>(); // Tracks how long an object has been missing
 
-    private static final int STABILITY_THRESHOLD = 3; // How many frames before marking an object as "Left Camera View"
+    private static final int STABILITY_THRESHOLD = 50; // How many frames before marking an object as "Left Camera View"
+    private static final int COUNT_UPDATE_THRESHOLD = 30;
+    private static final int REAPPEAR_THRESHOLD = 15;
 
     private final HashMap<String, Integer> totalTimesAdded = new HashMap<>();
 
@@ -61,6 +64,29 @@ public class OnnxRunner {
     /** A hashmap for tracking detected classes and their counts. */
     @Getter
     private final HashMap<String, Integer> classes;
+
+    /**
+     * Resets all counters and tracking data after AAR generation.
+     */
+    public void resetTrackingData() {
+        peakObjectsSeen = 0;
+        logCounter = 1;
+
+        HashMap<String, Integer> lastKnownObjects = new HashMap<>(detectedClasses);
+
+        // Clear all tracking HashMaps
+        activeObjects.clear();
+        knownClasses.clear();
+        totalToolCounts.clear();
+        totalToolsAdded.clear();
+        previousCounts.clear();
+        previousClasses.clear();
+        objectPersistence.clear();
+        detectedClasses.clear();
+
+        detectedClasses.putAll(lastKnownObjects);
+    }
+
 
     /**
      * ✅ Starts tracking tools when session begins.
@@ -88,7 +114,7 @@ public class OnnxRunner {
                     Thread.sleep(500);
                     lastKnownTools.clear();
                     lastKnownTools.addAll(getClasses().keySet());
-                    System.out.println("🔍 Updated Last Known Tools: " + lastKnownTools);
+                    //System.out.println("🔍 Updated Last Known Tools: " + lastKnownTools);
                 } catch (InterruptedException e) {
                     System.err.println("Error updating last known tools: " + e.getMessage());
                 }
@@ -139,7 +165,7 @@ public class OnnxRunner {
      * ✅ Simulated function that returns detected tools.
      */
     public HashMap<String, Integer> getClasses() {
-        System.out.println("🔹 getClasses() called. Detected classes: " + detectedClasses);
+        //System.out.println("🔹 getClasses() called. Detected classes: " + detectedClasses);
         return detectedClasses;
     }
 
@@ -306,5 +332,4 @@ public class OnnxRunner {
         detectedClasses.clear();
         detectedClasses.putAll(updatedClasses);
     }
-
 }

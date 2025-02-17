@@ -24,7 +24,7 @@ public class SessionHandler {
         this.sessionDescription = description;
 
         try{
-            this.fileSession = new FileSession(onnxRunner, title); // Throws RunTimeException if fails
+            this.fileSession = new FileSession(onnxRunner, title, logHandler); // Throws RunTimeException if fails
             this.logHandler.setFileSession(fileSession);
 
         }catch (RuntimeException e) {
