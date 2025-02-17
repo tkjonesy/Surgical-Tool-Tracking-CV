@@ -46,15 +46,15 @@ mvn clean package
 Run the following jpackage command:
 
 ```sh
-jpackage --name "SurgicalToolTracker" \
-    --input target/ \
-    --main-jar stt-1.0-SNAPSHOT.jar \
-    --main-class io.github.tkjonesy.frontend.App \
-    --type exe \
-    --win-shortcut \
-    --win-dir-chooser \
-    --win-per-user-install \
-    --win-upgrade-uuid "123e4567-e89b-12d3-a456-426614174000" \
+jpackage --name "SurgicalToolTracker" `
+    --input target/ `
+    --main-jar stt-1.0-SNAPSHOT.jar `
+    --main-class io.github.tkjonesy.frontend.App `
+    --type exe `
+    --win-shortcut `
+    --win-dir-chooser `
+    --win-per-user-install `
+    --win-upgrade-uuid "123e4567-e89b-12d3-a456-426614174000" 
 ```
 
 Note: You must have Wix Toolset installed to create the installer. You can download it from [here](https://github.com/wixtoolset/wix3/releases).

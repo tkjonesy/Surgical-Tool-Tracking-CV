@@ -1,0 +1,15 @@
+{
+  "cameraDeviceId": 0,
+  "cameraFps": 30,
+  "modelPath": "/ai_models/yolo11m.onnx",
+  "labelPath": "/ai_models/yolo11m.names",
+  "processEveryNthFrame": 30,
+  "showBoundingBoxes": true,
+  "confThreshold": 0.6,
+  "gpuDeviceId": 0,
+  "nmsThreshold": 0.45,
+  "optimizationLevel": "ALL_OPT",
+  "numInputElements": 1228800,
+  "inputSize": 640,
+  "inputShape": [1, 3, 640, 640]
+}

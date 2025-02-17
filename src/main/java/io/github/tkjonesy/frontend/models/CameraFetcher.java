@@ -5,6 +5,7 @@ import io.github.tkjonesy.ONNX.ImageUtil;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 
+import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.javacpp.BytePointer;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -24,9 +25,6 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static io.github.tkjonesy.ONNX.settings.Settings.CAMERA_FRAME_RATE;
-import static io.github.tkjonesy.ONNX.settings.Settings.PROCESS_EVERY_NTH_FRAME;
-
 
 public class CameraFetcher implements Runnable {
 
@@ -35,6 +33,8 @@ public class CameraFetcher implements Runnable {
     private final Timer timer;
     private final SessionHandler sessionHandler;
     private final OnnxRunner onnxRunner;
+
+    private final ProgramSettings settings = ProgramSettings.getCurrentSettings();
 
     public CameraFetcher(JLabel cameraFeed, VideoCapture camera, OnnxRunner onnxRunner, SessionHandler sessionHandler) {
         this.cameraFeed = cameraFeed;
@@ -89,7 +89,7 @@ public class CameraFetcher implements Runnable {
                     Mat inferenceFrame = frame.clone();
 
                     // Every Nth frame, run object detection
-                    if (++currentFrame % PROCESS_EVERY_NTH_FRAME == 0) {
+                    if (++currentFrame % settings.getProcessEveryNthFrame() == 0) {
                         new Thread(() -> {
                             onnxOutput = onnxRunner.runInference(inferenceFrame);
                             detections = onnxOutput.getDetectionList();
@@ -99,7 +99,8 @@ public class CameraFetcher implements Runnable {
                     }
 
                     // Overlay predictions & resize
-                    ImageUtil.drawPredictions(frame, detections);
+                    if(settings.isShowBoundingBoxes())
+                        ImageUtil.drawPredictions(frame, detections);
                     try {
                         resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 
@@ -129,6 +130,6 @@ public class CameraFetcher implements Runnable {
             }
         };
         // Schedule the capture task
-        timer.schedule(task,0,1000/CAMERA_FRAME_RATE);
+        timer.schedule(task,0,1000/settings.getCameraFps());
     }
 }

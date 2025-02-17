@@ -14,6 +14,8 @@ public class SessionInputDialog extends JDialog {
     @Getter
     private boolean confirmed;
 
+    private static final Color OCEAN = new Color(55, 90, 129);
+
     public SessionInputDialog(Frame parent) {
         super(parent, "New Session", true);
         setSize(400, 300);
@@ -61,6 +63,8 @@ public class SessionInputDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton confirmButton = new JButton("Start");
         JButton cancelButton = new JButton("Cancel");
+
+        confirmButton.setBackground(OCEAN);
 
         confirmButton.addActionListener(e -> {
             confirmed = true;

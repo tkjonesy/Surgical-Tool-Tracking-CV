@@ -7,8 +7,16 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.util.HashMap;
+
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.models.*;
+import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
+import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
+import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
+import io.github.tkjonesy.utils.settings.ProgramSettings;
+import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,16 +24,36 @@ import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
 
-import static io.github.tkjonesy.ONNX.settings.Settings.*;
-
 public class App extends JFrame {
     private final SessionHandler sessionHandler;
 
+    public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
     static {
+        // Load OpenCV
         Loader.load(opencv_core.class);
+
+        CameraGrabber grabber;
+
+        if(System.getProperty("os.name").toLowerCase().contains("mac")) {
+            grabber = new MacOSCameraGrabber();
+        } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
+            grabber = new WindowsCameraGrabber();
+        }else{
+            throw new UnsupportedOperationException("Unsupported OS");
+        }
+
+        AVAILABLE_CAMERAS = grabber.getCameraNames();
+
+        //print cameras
+        System.out.println("Available Cameras:");
+        for (String cameraName : AVAILABLE_CAMERAS.keySet()) {
+            System.out.println(cameraName);
+        }
     }
 
-    private final OnnxRunner onnxRunner;
+    @Getter
+    private static OnnxRunner onnxRunner = null;
+    private final ProgramSettings settings;
 
     @Getter
     private final VideoCapture camera;
@@ -38,12 +66,21 @@ public class App extends JFrame {
     @Setter
     private JTextPane logTextPane;
 
+    private static final Color SUNSET = new Color(255, 40, 79);
+    private static final Color OCEAN = new Color(55, 90, 129);
+    private static final Color CHARCOAL = new Color(30, 31, 34);
+
     public App() {
+
+        this.settings = SettingsLoader.loadSettings();
+        ProgramSettings.setCurrentSettings(settings);
+
+        System.out.println(settings);
+
         initComponents();
         initListeners();
         this.setVisible(true);
-
-        this.camera = new VideoCapture(VIDEO_CAPTURE_DEVICE_ID);
+        this.camera = new VideoCapture(settings.getCameraDeviceId());
         if (!camera.isOpened()) {
             System.err.println("Error: Camera could not be opened. Exiting...");
             System.exit(-1);
@@ -53,7 +90,7 @@ public class App extends JFrame {
         LogHandler logHandler = new LogHandler(logTextPane);
         this.sessionHandler = new SessionHandler(logHandler);
 
-        this.onnxRunner = new OnnxRunner(logHandler.getLogQueue());
+        onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
         // Camera fetcher thread task
         CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, sessionHandler);
@@ -64,9 +101,17 @@ public class App extends JFrame {
     private void initComponents() {
 
         // Titling, sizing, and exit actions
-        this.setTitle("Surgical Tool Tracker");
+        this.setTitle("AIM: Surgical");
         this.setMinimumSize(new Dimension(746, 401));
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+
+        // Icon
+        try {
+            ImageIcon appIcon = new ImageIcon("src/main/resources/logo32.png");
+            this.setIconImage(appIcon.getImage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         // Camera Panel
         JPanel cameraPanel = new JPanel();
@@ -93,7 +138,7 @@ public class App extends JFrame {
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);
         this.logTextPane.setContentType("text/html");
-        this.logTextPane.setBackground(new Color(30, 31, 34));
+        this.logTextPane.setBackground(CHARCOAL);
 
         // Log tracker scroll pane for text area
         JScrollPane scrollPane = new JScrollPane(logTextPane);
@@ -117,6 +162,7 @@ public class App extends JFrame {
         JPanel bottomPanel = new JPanel();
 
         startSessionButton = new JToggleButton("Start Session");
+        startSessionButton.setBackground(OCEAN);
         settingsButton = new JButton("Settings");
 
         GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
@@ -146,6 +192,7 @@ public class App extends JFrame {
         bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
         this.add(bottomPanel, bottomPanelConstraints);
         this.pack();
+        this.setLocationRelativeTo(null); // Center application
     }
 
     private GridBagConstraints createConstraints(int gridX, int gridY, double weightX, double weightY) {
@@ -183,11 +230,12 @@ public class App extends JFrame {
                             }
 
                             // Start new session
-                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, this.onnxRunner);
+                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, onnxRunner);
 
                             // If session started successfully, update UI and begin logging
                             if (sessionStarted) {
                                 startSessionButton.setText("Stop Session");
+                                startSessionButton.setBackground(SUNSET);
                             } else {
                                 JOptionPane.showMessageDialog(App.this,
                                         "Failed to start session. Please check the console for more information.",
@@ -197,15 +245,14 @@ public class App extends JFrame {
 
                     } else if (startSessionButton.getText().equals("Stop Session")) {
                         startSessionButton.setText("Start Session");
+                        startSessionButton.setBackground(OCEAN);
                         sessionHandler.endSession();
                     }
                 }
         );
 
         // Settings Listener
-        settingsButton.addActionListener(e -> {
-            // Add settings logic here
-        });
+        settingsButton.addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
 
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {
@@ -216,11 +263,14 @@ public class App extends JFrame {
                         "Confirm Exit", JOptionPane.YES_NO_OPTION);
 
                 if (confirmation == JOptionPane.YES_OPTION) {
+
+                    SettingsLoader.saveSettings(settings);
+
                     System.out.println("Beginning cleanup Process...");
                     System.out.println("Stopping camera feed thread...");
-                    cameraFetcherThread.interrupt();
+                    if(cameraFetcherThread != null) cameraFetcherThread.interrupt();
                     System.out.println("Closing camera access...");
-                    if (camera.isOpened())
+                    if (camera != null && camera.isOpened())
                         camera.release();
                     System.out.println("Done cleanup process.");
 
