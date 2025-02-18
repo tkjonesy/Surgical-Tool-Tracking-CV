@@ -121,8 +121,10 @@ public class CameraFetcher implements Runnable {
                             onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
                         }
                         fileSession.writeVideoFrame(frame);
+                        if (currentFrame % settings.getProcessEveryNthFrame() == 0)
+                            onnxRunner.processDetections(detections);
 
-                        onnxRunner.processDetections(detections);
+
                     } else {
                         onnxRunner.clearClasses();
                     }
