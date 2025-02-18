@@ -192,7 +192,7 @@ public class OnnxRunner {
                     System.out.println("Removed " + detection.getKey() + " from active detections.");
                 }else{
                     //activeDetections.put(detection.getKey(), detection.getValue());
-                    handleUpsert(detectionWithCount);
+                    handleUpdate(detectionWithCount);
                 }
 
                 // Remove the detection from the buffer
@@ -246,7 +246,7 @@ public class OnnxRunner {
         }
     }
 
-    private void handleUpsert(DetectionWithCount detectionWithCount){
+    private void handleUpdate(DetectionWithCount detectionWithCount){
         int originalValue = activeDetections.getOrDefault(detectionWithCount.label, 0);
 
         activeDetections.put(detectionWithCount.label, detectionWithCount.count);
