@@ -121,13 +121,27 @@ public class App extends JFrame {
         cameraFeed.setMinimumSize(new Dimension(320, 240));
 
         GroupLayout cameraPanelLayout = new GroupLayout(cameraPanel);
-        cameraPanelLayout.setAutoCreateContainerGaps(true);
+
+//        cameraPanelLayout.setAutoCreateContainerGaps(true);
+//        cameraPanelLayout.setHorizontalGroup(
+//                cameraPanelLayout.createSequentialGroup()
+//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+//                        .addComponent(cameraFeed, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+//        );
+//
+//        cameraPanelLayout.setVerticalGroup(
+//                cameraPanelLayout.createSequentialGroup()
+//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+//                        .addComponent(cameraFeed, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+//        );
         cameraPanelLayout.setHorizontalGroup(
-                cameraPanelLayout.createSequentialGroup()
+                cameraPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(cameraFeed)
         );
         cameraPanelLayout.setVerticalGroup(
-                cameraPanelLayout.createSequentialGroup()
+                cameraPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(cameraFeed)
         );
         cameraPanel.setLayout(cameraPanelLayout);

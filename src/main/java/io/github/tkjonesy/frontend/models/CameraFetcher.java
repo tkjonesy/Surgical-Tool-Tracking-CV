@@ -21,6 +21,9 @@ import org.bytedeco.opencv.global.opencv_core;
 
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.util.ArrayList;
@@ -45,6 +48,33 @@ public class CameraFetcher implements Runnable {
         this.timer = new Timer();
         this.onnxRunner = onnxRunner;
         this.sessionHandler = sessionHandler;
+
+        this.cameraFeed.getParent().addComponentListener(
+                new ComponentAdapter() {
+                    @Override
+                    public void componentResized(ComponentEvent e) {
+                        // Get the current width and height of the feed
+                        // Get the new width and height of the panel containing the feed
+                        // Determine which value is smaller, and that will be the new dimension to scale with
+                        // If width is smaller, the height will now become (width / 16 * 9)
+                        // If height is smaller, the width will now become (height / 9 * 16)
+                        // The video resizer later will pull these values each frame to compensate
+                        int curW = cameraFeed.getWidth(),
+                                curH = cameraFeed.getHeight(),
+                                newW = cameraFeed.getParent().getWidth(),
+                                newH = cameraFeed.getParent().getHeight();
+                        // New container width is larger than the new container height
+                        if (newW - newH > 0) {
+                            System.out.println("Height is smaller");
+                            newW = newH * 16 / 9;
+                        } else {
+                            System.out.println("Width is smaller");
+                            newH = newW * 9 / 16;
+                        }
+                        cameraFeed.setMinimumSize(new Dimension(newW, newH)); // TODO change this to (newW, newH) when done coding size calculation
+                    }
+                }
+        );
     }
 
     /**
