@@ -54,19 +54,23 @@ public class FileSession {
     private BufferedWriter csvBufferedWriter = null;
 
 
+
+
     /**
      * Starts a new session by creating a directory and initializing resources for saving video and log files.
      */
     public void startNewSession() throws IOException {
         System.out.println("\u001B[33m☐ Starting new FileSession...\u001B[0m");
+        onnxRunner.resetTrackingData();
 
-        //onnxRunner.resetTrackingData();
+        onnxRunner.startTracking();
         if (logHandler != null) {
             logHandler.clearLogPane();
             System.out.println("🔄 Log panel fully reset.");
         }
 
         startTime = Instant.now();
+
 
         // Ensure the parent directory exists
         Files.createDirectories(Paths.get(AIMS_DIRECTORY));
@@ -140,7 +144,6 @@ public class FileSession {
             try {
                 String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
                 this.logBufferedWriter.write(fullMessage + "\n");
-
                 String[]parsedMessage = parseLogMessage(log.getMessage());
                 this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "," + log.getLogType() + "\n");
             } catch (IOException e) {
@@ -178,11 +181,15 @@ public class FileSession {
         closeLogWriter();
         closeCsvWriter();
 
-        Duration recordDuration = Duration.between(startTime, Instant.now());
-       // HashSet<String> initialTools = onnxRunner.getInitialToolSet();
-        //HashSet<String> finalTools = onnxRunner.getFinalToolSet();
+        onnxRunner.captureFinalTools();
 
-        //generateAAR(initialTools, finalTools, recordDuration);
+        Duration recordDuration = Duration.between(startTime, Instant.now());
+        HashSet<String> initialTools = onnxRunner.getInitialToolSet();
+        HashSet<String> finalTools = onnxRunner.getFinalToolSet();
+
+
+        generateAAR(initialTools, finalTools, Duration.between(startTime, Instant.now()));
+
 
         if(logBufferedWriter == null) {
             System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + sessionDirectory + "/logfile.log\u001B[0m");
@@ -192,7 +199,7 @@ public class FileSession {
             logHandler.clearLogPane();
             System.out.println("🔄 Log panel cleared after session end.");
         }
-        //onnxRunner.resetTrackingData();
+        onnxRunner.resetTrackingData();
     }
 
     private String formatDuration(Duration duration) {
@@ -211,118 +218,120 @@ public class FileSession {
         return formattedDuration.toString().trim();
     }
 
-//    private void generateAAR(HashSet<String> initialTools, HashSet<String> finalTools, Duration recordDuration) {
-//        HashMap<String, Integer> initialToolCounts = new HashMap<>();
-//        HashMap<String, Integer> finalToolCounts = new HashMap<>();
-//
-//        for (String tool : initialTools) {
-//            initialToolCounts.put(tool, onnxRunner.getDetectedClasses().getOrDefault(tool, 1));
-//        }
-//
-//        int peakObjects = onnxRunner.getPeakObjectsSeen();
-//        HashMap<String, Integer> detectedTools = onnxRunner.getMaxToolCounts(); // Get max count seen at once
-//        HashMap<String, Integer> lastDetectedTools = onnxRunner.getDetectedClasses(); // Tracks last detected count
-//
-//        // Populate "finalToolCounts" using last detected count
-//        for (String tool : finalTools) {
-//            finalToolCounts.put(tool, lastDetectedTools.getOrDefault(tool, 1));
-//        }
-//
-//        // Get the correct total number of times a tool was added
-//        HashMap<String, Integer> totalToolsAdded = onnxRunner.getTotalTimesAdded();
-//
-//        // Identify "New Tools Introduced" (Tools that were not present at the start but appeared later)
-//        HashMap<String, Integer> newToolsIntroduced = new HashMap<>();
-//        for (String tool : totalToolsAdded.keySet()) {
-//            int totalAdded = totalToolsAdded.getOrDefault(tool, 0);
-//            int startCount = initialToolCounts.getOrDefault(tool, 0);
-//
-//            // Only include tools that were NOT present at the start
-//            if (totalAdded > startCount && !initialTools.contains(tool)) {
-//                newToolsIntroduced.put(tool, totalAdded);
-//            }
-//        }
-//
-//
-//        // Calculate tools removed using (Total Instances - Final Count)
-//        HashMap<String, Integer> toolsRemoved = new HashMap<>();
-//        for (String tool : totalToolsAdded.keySet()) {
-//            int totalAdded = totalToolsAdded.getOrDefault(tool, 0);
-//            int finalCount = finalToolCounts.getOrDefault(tool, 0);
-//
-//            if (totalAdded > finalCount) {
-//                toolsRemoved.put(tool, totalAdded - finalCount); // Tools removed = Total added - Final count
-//            }
-//        }
-//
-//        String formattedSessionTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")); // format date and time
-//        String aarPath = sessionDirectory + "/AAR.txt";
-//
-//        try (BufferedWriter writer = new BufferedWriter(new FileWriter(aarPath))) {
-//            writer.write("After Action Report (AAR)\n");
-//            writer.write("==========================\n");
-//            writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
-//            writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
-//            writer.write("Session Time: " + formattedSessionTime + "\n\n");
-//            writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
-//
-//
-//            writer.write("Total Instances of Each Tool Ever Added:\n");
-//            writer.write("-----------------------------------------------------\n");
-//            for (var entry : totalToolsAdded.entrySet()) {
-//                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-//            }
-//            writer.write("-----------------------------------------------------\n\n");
-//
-//            // Displays Tools Present at Start of Recording
-//            writer.write("Objects Present at Start:\n");
-//            writer.write("-----------------------------------------------------\n");
-//            for (String tool : initialTools) {
-//                writer.write(tool + ": " + detectedTools.getOrDefault(tool, 1)+ "\n");
-//            }
-//            writer.write("-----------------------------------------------------\n\n");
-//
-//            // Displays Tools Present at End of Recording
-//            writer.write("Objects Present at End:\n");
-//            writer.write("------------------------\n");
-//            for (var entry : finalToolCounts.entrySet()) {
-//                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-//            }
-//            writer.write("------------------------\n\n");
-//
-//            // Displays New Tools Introduced During Session
-//            writer.write("New Objects Introduced During Session:\n");
-//            writer.write("-----------------------------------------------------\n");
-//            if (newToolsIntroduced.isEmpty()) {
-//                writer.write("None\n");
-//            } else {
-//                for (var entry : newToolsIntroduced.entrySet()) {
-//                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-//                }
-//            }
-//            writer.write("-----------------------------------------------------\n\n");
-//
-//            // Displays Tools That Have Been Removed in the Session
-//            writer.write("Objects remove during session\n");
-//            writer.write("-----------------------------------------------------\n");
-//            if (toolsRemoved.isEmpty()) {
-//                writer.write("None\n");
-//            } else {
-//                for (var entry : toolsRemoved.entrySet()) {
-//                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-//                }
-//            }
-//            writer.write("-----------------------------------------------------\n");
-//
-//            System.out.println("✅ AAR saved to: " + aarPath);
-//            onnxRunner.resetTrackingData();
-//        } catch (IOException e) {
-//            System.err.println("❌ Failed to write AAR: " + e.getMessage());
-//        }
-//        if(csvBufferedWriter == null) {
-//            System.out.println("\u001B[32m☑ FileSession ended successfully. CSV file saved to: " + sessionDirectory + "/log.csv\u001B[0m");
-//        }
-//    }
+    private void generateAAR(HashSet<String> initialTools, HashSet<String> finalTools, Duration recordDuration) {
+        int peakObjects = onnxRunner.getPeakObjectsSeen();
+
+        // Get correct start and end counts
+        HashMap<String, Integer> initialToolCounts = new HashMap<>();
+        for (String tool : onnxRunner.getInitialToolSet()) {
+            initialToolCounts.put(tool, 1);  // Assume at least 1 instance of each tool was detected
+        }
+        HashMap<String, Integer> finalToolCounts = new HashMap<>(onnxRunner.getActiveDetections());
+        HashMap<String, Integer> totalToolsAdded = new HashMap<>(onnxRunner.getTotalInstancesAdded());
+
+        // Compute "New Tools Introduced"
+        HashMap<String, Integer> newToolsIntroduced = new HashMap<>();
+        for (String tool : totalToolsAdded.keySet()) {
+            int totalAdded = totalToolsAdded.getOrDefault(tool, 0);
+            int startCount = initialToolCounts.getOrDefault(tool, 0);
+
+            // Only count tools that had more instances added than the starting count
+            if (totalAdded > startCount) {
+                newToolsIntroduced.put(tool, totalAdded - startCount);
+            }
+        }
+
+        // Compute "Tools Removed During Session"
+        HashMap<String, Integer> toolsRemoved = new HashMap<>();
+        for (String tool : totalToolsAdded.keySet()) {
+            int totalAdded = totalToolsAdded.getOrDefault(tool, 0);
+            int finalCount = finalToolCounts.getOrDefault(tool, 0);
+
+            // If tool was added more times than it remains at the end, count it as removed
+            if (totalAdded > finalCount) {
+                toolsRemoved.put(tool, totalAdded - finalCount);
+            }
+        }
+
+
+        // 🔍 Debugging output
+        System.out.println("🔍 DEBUG: Start Count Per Class: " + initialToolCounts);
+        System.out.println("🔍 DEBUG: Final Tool Counts: " + finalToolCounts);
+
+        String formattedSessionTime = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String aarPath = sessionDirectory + "/AAR.txt";
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(aarPath))) {
+            writer.write("After Action Report (AAR)\n");
+            writer.write("==========================\n");
+            writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
+            writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
+            writer.write("Session Time: " + formattedSessionTime + "\n\n");
+            writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
+
+            writer.write("Total Instances of Each Tool Ever Added:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (totalToolsAdded.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : totalToolsAdded.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            // Objects Present at Start
+            writer.write("Objects Present at Start:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (initialToolCounts.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : initialToolCounts.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            // Objects Present at End
+            writer.write("Objects Present at End:\n");
+            writer.write("------------------------\n");
+            if (finalToolCounts.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : finalToolCounts.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("------------------------\n\n");
+
+            writer.write("New Tools Introduced During Session:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (newToolsIntroduced.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : newToolsIntroduced.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            writer.write("Tools Removed During Session:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (toolsRemoved.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : toolsRemoved.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            System.out.println("✅ AAR saved to: " + aarPath);
+        } catch (IOException e) {
+            System.err.println("❌ Failed to write AAR: " + e.getMessage());
+        }
+    }
 
     /**
      * Closes the BufferedWriter used for saving logs.
