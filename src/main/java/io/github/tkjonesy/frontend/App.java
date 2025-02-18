@@ -122,20 +122,6 @@ public class App extends JFrame {
 
         GroupLayout cameraPanelLayout = new GroupLayout(cameraPanel);
 
-//        cameraPanelLayout.setAutoCreateContainerGaps(true);
-//        cameraPanelLayout.setHorizontalGroup(
-//                cameraPanelLayout.createSequentialGroup()
-//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                        .addComponent(cameraFeed, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//        );
-//
-//        cameraPanelLayout.setVerticalGroup(
-//                cameraPanelLayout.createSequentialGroup()
-//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                        .addComponent(cameraFeed, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-//                        .addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//        );
         cameraPanelLayout.setHorizontalGroup(
                 cameraPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
                         .addComponent(cameraFeed)

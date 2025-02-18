@@ -62,7 +62,7 @@ public class CameraFetcher implements Runnable {
                         int curW = cameraFeed.getWidth(),
                                 curH = cameraFeed.getHeight(),
                                 newW = cameraFeed.getParent().getWidth(),
-                                newH = cameraFeed.getParent().getHeight();
+                                newH = cameraFeed.getParent().getHeight() - 50;
                         // New container width is larger than the new container height
                         if (newW - newH > 0) {
                             System.out.println("Height is smaller");
@@ -71,7 +71,7 @@ public class CameraFetcher implements Runnable {
                             System.out.println("Width is smaller");
                             newH = newW * 9 / 16;
                         }
-                        cameraFeed.setMinimumSize(new Dimension(newW, newH)); // TODO change this to (newW, newH) when done coding size calculation
+                        cameraFeed.setSize(new Dimension(newW, newH)); // TODO change this to (newW, newH) when done coding size calculation
                     }
                 }
         );
