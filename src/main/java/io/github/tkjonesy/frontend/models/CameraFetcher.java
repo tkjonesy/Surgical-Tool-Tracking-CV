@@ -126,7 +126,7 @@ public class CameraFetcher implements Runnable {
 
 
                     } else {
-                        onnxRunner.clearClasses();
+                        onnxRunner.clearOnnxRunnerMaps();
                     }
                 }
             }

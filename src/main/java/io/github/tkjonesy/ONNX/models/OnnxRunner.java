@@ -10,9 +10,7 @@ import lombok.*;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -41,6 +39,18 @@ public class OnnxRunner {
     @Getter
     private final HashMap<DetectionWithCount, Integer> detectionBuffer;
 
+    // AAR - related maps
+    /** A hashmap to track the start count of each class detected. */
+    @Getter
+    private final HashMap<String, Integer> startCountPerClass;
+    /** A hashmap to track the end count of each class detected. */
+    @Getter
+    private final HashMap<String, Integer> endCountPerClass;
+    /** A hashmap to track the total count of each class detected. */
+    @Getter
+    private final HashMap<String, Integer> totalCountPerClass;
+
+
     @Setter
     private int bufferThreshold = 3;
 
@@ -57,6 +67,10 @@ public class OnnxRunner {
         this.activeDetections = new HashMap<>();
         this.detectionBuffer = new HashMap<>();
 
+        this.startCountPerClass = new HashMap<>();
+        this.endCountPerClass = new HashMap<>();
+        this.totalCountPerClass = new HashMap<>();
+
         try {
             ProgramSettings settings = ProgramSettings.getCurrentSettings();
             this.inferenceSession = new YoloV8(settings.getModelPath(), settings.getLabelPath());
@@ -70,8 +84,11 @@ public class OnnxRunner {
     /**
      * Clears the classes hashmap, removing all tracked classes.
      */
-    public void clearClasses() {
+    public void clearOnnxRunnerMaps() {
         this.activeDetections.clear();
+        this.detectionBuffer.clear();
+        this.startCountPerClass.clear();
+        this.totalCountPerClass.clear();
     }
 
     /**
@@ -132,83 +149,111 @@ public class OnnxRunner {
     public void processDetections(List<Detection> detections) {
         final HashMap<String, Integer> currentDetections = detectionsListToMap(detections);
 
-        System.out.println("BEFORE");
-        System.out.println("Current detections: " + currentDetections);
-        System.out.println("Detection buffer: " + detectionBuffer);
-        System.out.println("Active detections: " + activeDetections);
-
+        // <String, Integer> activeDetections
+        // key = label
+        // value = count
+        // For labels that are in activeDetections but not in the current frame, add the label with count 0 to currentDetections
         for(var detection: activeDetections.entrySet()){
+            // If the label is in the current frame, skip
             if(currentDetections.containsKey(detection.getKey())){
                 continue;
             }
 
+            // If the label is not in the current frame, add its removal to the buffer
             currentDetections.put(detection.getKey(), 0);
-            System.out.println("Detection " + detection.getKey() + " has exited the view. Adding removal to buffer");
-
         }
 
-        // Add new detections to the detectionBuffer from the current frame
+        /*
+        * <String, Integer> currentDetections
+        * key = label
+        * value = count
+        * Add the labels in currentDetections to the detectionBuffer
+        *     If the label is already in the buffer, increment its count
+        *     If the label is not in the buffer, add it with count 1
+        *     If the buffer value is greater than the buffer threshold, remove the label from the buffer and add it to activeDetections
+        */
         for(var detection: currentDetections.entrySet()){
 
+            // Create a DetectionWithCount object to use as a key for the detectionBuffer. example: "person3"
             DetectionWithCount detectionWithCount = new DetectionWithCount(detection.getKey(), detection.getValue());
-            int currentCount = detectionBuffer.getOrDefault(detectionWithCount, 0);
-            currentCount = Math.max(currentCount, 0) + 1;
 
-            System.out.println("Detection " + detectionWithCount + " has entered the view. Adding to buffer");
-            if(currentCount >= bufferThreshold){
+            // currentBufferValue is the number of consecutive frames the detection has been in the buffer
+            int currentBufferValue = detectionBuffer.getOrDefault(detectionWithCount, 0);
+
+            // Increment the buffer value by 1. If the value is negative, default it to 0
+            currentBufferValue = Math.max(currentBufferValue, 0) + 1;
+
+            // If the buffer value is greater than or equal to the buffer threshold
+            if(currentBufferValue >= bufferThreshold){
+
+                // If the count is 0, remove the label from activeDetections. Otherwise, add it to activeDetections
                 if(detectionWithCount.count == 0){
-                    System.out.println("Detection " + detectionWithCount + " has passed through the buffer. Removing from active detections");
                     activeDetections.remove(detection.getKey());
+                    System.out.println("Removed " + detection.getKey() + " from active detections.");
                 }else{
-                    System.out.println("Detection " + detectionWithCount + " has passed through the buffer. Adding to active detections");
-                    activeDetections.put(detection.getKey(), detection.getValue());
+                    //activeDetections.put(detection.getKey(), detection.getValue());
+                    handleUpsert(detectionWithCount);
                 }
 
+                // Remove the detection from the buffer
                 detectionBuffer.remove(detectionWithCount);
             }else{
 
-                System.out.println("Detection " + detectionWithCount + " is still in the buffer. Adding to buffer");
-                detectionBuffer.put(detectionWithCount, currentCount);
+                // Update the bufferValue for the detection
+                detectionBuffer.put(detectionWithCount, currentBufferValue);
             }
         }
 
-        // Decrement detections from detectionBuffer that are not present in the current frame
+        // Since you can't remove items from a hashmap while iterating through it, we need to store the items to be removed in a queue
+        Queue<DetectionWithCount> queueForBufferRemoval = new LinkedList<>();
+
+        // <DetectionWithCount, Integer> detectionBuffer
+        // key = label + count
+        // value = number of consecutive frames the detection has been in the buffer
+        // For labels that are in the buffer but not in the current frame, decrement. Aka decrement detection outliers/flickers
         for(var detection: detectionBuffer.entrySet()){
 
-            int objectCount = detection.getKey().count;
-            int currentDetectionCount = currentDetections.getOrDefault(detection.getKey().label, 0);
-            if(currentDetections.containsKey(detection.getKey().label) && objectCount == currentDetectionCount){
+            // Grab the count of the detection in the buffer and the current count of the detection
+            int detectionCountInBuffer = detection.getKey().count;
+            int detectionCountInCurrentDetections = currentDetections.getOrDefault(detection.getKey().label, 0);
+
+            // If the label is in the current frame and the count is the same, skip
+            if(currentDetections.containsKey(detection.getKey().label) && detectionCountInBuffer == detectionCountInCurrentDetections){
                 continue;
             }
 
-            int currentBufferCount = detection.getValue();
-            currentBufferCount = Math.min(currentBufferCount, 0) - 1;
+            // currentBufferValue is the number of consecutive frames the detection has been in the buffer
+            int currentBufferValue = detection.getValue();
 
-            System.out.println("Detection " + detection.getKey() + " has exited the view. Removing from buffer");
-            if(currentBufferCount <= -bufferThreshold) {
-                System.out.println("Detection " + detection.getKey() + " has failed the buffer. Removing from active detections");
-                detectionBuffer.remove(detection.getKey());
+            // Decrement the buffer value by 1. If the value is positive, default it to 0
+            currentBufferValue = Math.min(currentBufferValue, 0) - 1;
+
+            // If the buffer value is less than or equal to the negative buffer threshold, remove it from the buffer
+            if(currentBufferValue <= -bufferThreshold) {
+                queueForBufferRemoval.add(detection.getKey());
 
             }else{
-                System.out.println("Detection " + detection.getKey() + " is still in the buffer. Adding to buffer");
-                detectionBuffer.put(detection.getKey(), currentBufferCount);
+
+                // Update the bufferValue for the detection
+                detectionBuffer.put(detection.getKey(), currentBufferValue);
             }
         }
 
-        System.out.println("AFTER");
-        System.out.println("Detection buffer: " + detectionBuffer);
-        System.out.println("Active detections: " + activeDetections);
-        System.out.println("Current detections: " + currentDetections);
-        System.out.println("\n\n");
-
+        // Remove the detections from the buffer
+        while(!queueForBufferRemoval.isEmpty()){
+            DetectionWithCount detection = queueForBufferRemoval.poll();
+            detectionBuffer.remove(detection);
+        }
     }
 
     private void handleUpsert(DetectionWithCount detectionWithCount){
-        int originalValue = activeDetections.get(detectionWithCount.label);
+        int originalValue = activeDetections.getOrDefault(detectionWithCount.label, 0);
 
         activeDetections.put(detectionWithCount.label, detectionWithCount.count);
 
-        int newValue = activeDetections.get(detectionWithCount.label);
+        int newValue = activeDetections.getOrDefault(detectionWithCount.label, originalValue);
+
+        int difference = newValue - originalValue;
 
     }
 }
