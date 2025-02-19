@@ -7,6 +7,7 @@ import lombok.Getter;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_videoio.VideoWriter;
+import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -32,6 +33,9 @@ public class FileSession {
     private final LogHandler logHandler;
     private final String title;
     private String sessionDirectory;
+
+    // Field to store the intended frame size for the video
+    private Size videoFrameSize;
 
     public FileSession(OnnxRunner onnxRunner, String title, LogHandler logHandler)  {
         this.onnxRunner = onnxRunner;
@@ -84,9 +88,9 @@ public class FileSession {
         this.logBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/logfile.log", true));
 
         onnxRunner.startTracking();
-            // Initialize BufferedWriter for saving CSVs
-            this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
-            csvBufferedWriter.write("Timestamp,LogNumber,Object,Action,ActionType\n");
+        // Initialize BufferedWriter for saving CSVs
+        this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
+        csvBufferedWriter.write("Timestamp,LogNumber,Object,Action,ActionType\n");
 
         System.out.println("\u001B[32m☑ FileSession started successfully. Files will be saved to: " + sessionDirectory + "\u001B[0m");
     }
@@ -99,11 +103,12 @@ public class FileSession {
      * @throws IllegalStateException if the session is not active.
      */
     protected void initVideoWriter(Mat frame) throws IllegalStateException {
-        final Size frameSize = new Size(frame.cols(), frame.rows());
+        // Set the intended video frame size based on the first frame
+        videoFrameSize = new Size(frame.cols(), frame.rows());
         String videoPath = sessionDirectory + "/recording.mp4";
         int codec = VideoWriter.fourcc((byte) 'a', (byte) 'v', (byte) 'c', (byte) '1');
 
-        videoWriter = new VideoWriter(videoPath, codec, 30.0, frameSize, true);
+        videoWriter = new VideoWriter(videoPath, codec, 30.0, videoFrameSize, true);
 
         if (!videoWriter.isOpened()) {
             throw new IllegalStateException("Failed to open VideoWriter with path: " + videoPath);
@@ -126,7 +131,16 @@ public class FileSession {
      */
     protected void writeVideoFrame(Mat frame) {
         if (videoWriter != null && videoWriter.isOpened()) {
-            videoWriter.write(frame);
+            // Check if the frame dimensions match the expected videoFrameSize
+            if(frame.cols() != videoFrameSize.width() || frame.rows() != videoFrameSize.height()){
+                // Resize frame if dimensions do not match
+                Mat resizedFrame = new Mat();
+                resize(frame, resizedFrame, videoFrameSize);
+                videoWriter.write(resizedFrame);
+                resizedFrame.release();
+            } else {
+                videoWriter.write(frame);
+            }
         }
     }
 
@@ -141,7 +155,7 @@ public class FileSession {
                 String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
                 this.logBufferedWriter.write(fullMessage + "\n");
 
-                String[]parsedMessage = parseLogMessage(log.getMessage());
+                String[] parsedMessage = parseLogMessage(log.getMessage());
                 this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "," + log.getLogType() + "\n");
             } catch (IOException e) {
                 System.err.println("IO Exception writing log to file: " + e.getMessage());
@@ -155,7 +169,7 @@ public class FileSession {
         String action = "";
 
         try{
-            //Extract Log Number, Object, and Action
+            // Extract Log Number, Object, and Action
             if(message.contains("Log #") && message.contains("Object:") && message.contains("Action:")){
                 logNumber = message.split(" ")[1];
                 object = message.split("Object:")[1].split("Action:")[0];
@@ -165,7 +179,7 @@ public class FileSession {
                 logNumber = message;
             }
         } catch(Exception e){
-            System.err.println("Erorr parsing log message: " + e.getMessage());
+            System.err.println("Error parsing log message: " + e.getMessage());
         }
         return new String[]{logNumber, object, action};
     }
@@ -243,7 +257,6 @@ public class FileSession {
             }
         }
 
-
         // Calculate tools removed using (Total Instances - Final Count)
         HashMap<String, Integer> toolsRemoved = new HashMap<>();
         for (String tool : totalToolsAdded.keySet()) {
@@ -265,7 +278,6 @@ public class FileSession {
             writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
             writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
-
 
             writer.write("Total Instances of Each Tool Ever Added:\n");
             writer.write("-----------------------------------------------------\n");
