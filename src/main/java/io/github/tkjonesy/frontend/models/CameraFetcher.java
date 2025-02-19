@@ -5,6 +5,7 @@ import io.github.tkjonesy.ONNX.ImageUtil;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 
+import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.javacpp.BytePointer;
 
@@ -21,9 +22,6 @@ import org.bytedeco.opencv.global.opencv_core;
 
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.util.ArrayList;
@@ -35,7 +33,7 @@ import java.util.TimerTask;
 public class CameraFetcher implements Runnable {
 
     private final JLabel cameraFeed;
-    private final VideoCapture camera;
+    private VideoCapture camera;
     private final Timer timer;
     private final SessionHandler sessionHandler;
     private final OnnxRunner onnxRunner;
@@ -90,6 +88,10 @@ public class CameraFetcher implements Runnable {
 
             @Override
             public void run() {
+                if(camera != App.getCamera()) {
+                    System.out.println("Camera has been updated, changing to new camera");
+                    camera = App.getCamera();
+                }
                 if (!Thread.currentThread().isInterrupted()) {
                     camera.read(frame);
                     Mat inferenceFrame = frame.clone();
@@ -121,7 +123,6 @@ public class CameraFetcher implements Runnable {
                         opencv_core.rotate(frame, frame, ROTA);
                         // Show frame in label
                         BufferedImage biFrame = cvt2bi(frame);
-                        ImageIcon icon = new ImageIcon(biFrame);
 
                         cameraFeed.setIcon(new ImageIcon(biFrame));
                     } catch (Exception e ){

@@ -64,11 +64,14 @@ public class ProgramSettings {
     // -------------------------------------------------------------------------
 
     public void updateSettings(HashMap<String, Object> newSettings) {
-        boolean updateONNX = false;
+        boolean updateONNX = false, updateCamera = false;
         for (String key : newSettings.keySet()) {
             setSettings(key, newSettings.get(key));
             if(key.equals("modelPath") || key.equals("labelPath")){
                 updateONNX = true;
+            }
+            if(key.equals("cameraDeviceId")){
+                updateCamera = true;
             }
         }
         if(updateONNX){
@@ -79,6 +82,12 @@ public class ProgramSettings {
                 throw new RuntimeException(e);
             }
         }
+
+        if(updateCamera){
+            App.updateCamera((int)newSettings.get("cameraDeviceId"));
+
+        }
+
         SettingsLoader.saveSettings(this);
     }
 
