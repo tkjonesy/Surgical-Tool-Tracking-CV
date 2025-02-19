@@ -80,7 +80,7 @@ public class FileSession {
 
         // Initialize BufferedWriter for saving CSVs
         this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
-        csvBufferedWriter.write("Timestamp,LogNumber,Object,Action,ActionType\n");
+        csvBufferedWriter.write("Timestamp,LogNumber,Object,Action\n");
 
         System.out.println("\u001B[32m☑ FileSession started successfully. Files will be saved to: " + sessionDirectory + "\u001B[0m");
     }
@@ -136,7 +136,7 @@ public class FileSession {
                 String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
                 this.logBufferedWriter.write(fullMessage + "\n");
                 String[]parsedMessage = parseLogMessage(log.getMessage());
-                this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "," + log.getLogType() + "\n");
+                this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "\n");
             } catch (IOException e) {
                 System.err.println("IO Exception writing log to file: " + e.getMessage());
             }
