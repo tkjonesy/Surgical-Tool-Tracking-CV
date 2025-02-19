@@ -127,7 +127,9 @@ public class FileSession {
      */
     protected void writeVideoFrame(Mat frame) {
         if (videoWriter != null && videoWriter.isOpened()) {
-            videoWriter.write(frame);
+            Mat formattedFrame = new Mat();
+            frame.convertTo(formattedFrame, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
+            videoWriter.write(formattedFrame);
         }
     }
 
@@ -175,6 +177,9 @@ public class FileSession {
      */
     public void endSession() {
         System.out.println("\u001B[33m☐ Ending current FileSession...\u001B[0m");
+
+        destroyVideoWriter();
+
         closeLogWriter();
         closeCsvWriter();
 
