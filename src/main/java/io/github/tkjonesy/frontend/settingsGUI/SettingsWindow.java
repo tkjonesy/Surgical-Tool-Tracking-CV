@@ -16,10 +16,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.util.EventListener;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Set;
+import java.util.*;
 
 import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
 
@@ -504,7 +501,7 @@ public class SettingsWindow extends JDialog {
                     String value = inputShapeTextField.getText();
                     System.out.println("Input shape: " + value);
                     settingsUpdates.put("inputShape", value);
-                    if(settings.getInputShape().toString().equals(value))
+                    if(Arrays.toString(settings.getInputShape()).equals(value))
                         settingsUpdates.remove("inputShape");
                 }
         );

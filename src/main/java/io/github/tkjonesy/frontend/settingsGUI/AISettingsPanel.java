@@ -1,8 +1,6 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
-import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -42,12 +40,12 @@ public class AISettingsPanel extends JPanel {
 
         // Model selector
         JLabel modelLabel = new JLabel("AI Model:");
-        modelSelector = new JComboBox<>(getFilesWithExtension(AIMS_MODELS_DIRECTORY, ".onnx"));
+        modelSelector = new JComboBox<>(getFilesWithExtension(".onnx"));
         modelSelector.setSelectedItem(new File(settings.getModelPath()).getName());
 
         // Label Selector
         JLabel labelLabel = new JLabel("Label File:");
-        labelSelector = new JComboBox<>(getFilesWithExtension(AIMS_MODELS_DIRECTORY, ".names"));
+        labelSelector = new JComboBox<>(getFilesWithExtension(".names"));
         labelSelector.setSelectedItem(new File(settings.getLabelPath()).getName());
 
         // Process Every Nth Frame (Spinner)
@@ -167,8 +165,8 @@ public class AISettingsPanel extends JPanel {
     }
 
     // Get files with specific extension from a directory
-    private String[] getFilesWithExtension(String directory, String extension) {
-        File dir = new File(directory);
+    private String[] getFilesWithExtension(String extension) {
+        File dir = new File(AIMS_MODELS_DIRECTORY);
         if (!dir.exists() || !dir.isDirectory()) return new String[]{};
 
         List<String> files = new ArrayList<>();

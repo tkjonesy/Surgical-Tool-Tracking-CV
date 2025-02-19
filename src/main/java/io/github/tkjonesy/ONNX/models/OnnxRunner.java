@@ -226,11 +226,11 @@ public class OnnxRunner {
         for (var detection : detectionBuffer.entrySet()) {
 
             // Grab the count of the detection in the buffer and the current count of the detection
-            int detectionCountInBuffer = detection.getKey().count;
-            int detectionCountInCurrentDetections = currentDetections.getOrDefault(detection.getKey().label, 0);
+            int detectionCountInBuffer = detection.getKey().count();
+            int detectionCountInCurrentDetections = currentDetections.getOrDefault(detection.getKey().label(), 0);
 
             // If the label is in the current frame and the count is the same, skip
-            if (currentDetections.containsKey(detection.getKey().label) && detectionCountInBuffer == detectionCountInCurrentDetections) {
+            if (currentDetections.containsKey(detection.getKey().label()) && detectionCountInBuffer == detectionCountInCurrentDetections) {
                 continue;
             }
 
@@ -245,33 +245,33 @@ public class OnnxRunner {
     }
 
     private void handleUpdate(DetectionWithCount detectionWithCount) {
-        int originalValue = activeDetections.getOrDefault(detectionWithCount.label, 0);
-        int newValue = detectionWithCount.count;
+        int originalValue = activeDetections.getOrDefault(detectionWithCount.label(), 0);
+        int newValue = detectionWithCount.count();
         int difference = newValue - originalValue;
 
         //  Green log - New object detected or class count increased
         if (difference > 0) {
             if(originalValue == 0){
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label, "New Object Detected: " + newValue);
+                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "New Object Detected: " + newValue);
                 logQueue.addGreenLog(logMessage);
                 System.out.println("🟢 DEBUG: Added to Log - " + logMessage);
             }else{
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label, "Class count increased: " + newValue);
+                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Class count increased: " + newValue);
                 logQueue.addGreenLog(logMessage);
                 System.out.println("🟢 DEBUG: Count Increased - " + logMessage);
             }
 
-            int totalAdded = totalInstancesAdded.getOrDefault(detectionWithCount.label, 0);
-            totalInstancesAdded.put(detectionWithCount.label, totalAdded + difference);
+            int totalAdded = totalInstancesAdded.getOrDefault(detectionWithCount.label(), 0);
+            totalInstancesAdded.put(detectionWithCount.label(), totalAdded + difference);
 
         //  Red log - Object removed or class count decreased
         } else if (difference < 0) {
             if(newValue == 0) {
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label, "Object Removed");
+                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Object Removed");
                 logQueue.addRedLog(logMessage);
                 System.out.println("🔴 DEBUG: Removed from Log - " + logMessage);
             } else{
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label, "Class count decreased: " + newValue);
+                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Class count decreased: " + newValue);
                 logQueue.addRedLog(logMessage);
                 System.out.println("🔴 DEBUG: Count Decreased - " + logMessage);
             }
@@ -279,17 +279,11 @@ public class OnnxRunner {
 
         // Update active detections
         if(difference != 0 && newValue != 0){
-            activeDetections.put(detectionWithCount.label, newValue);
+            activeDetections.put(detectionWithCount.label(), newValue);
         }else if(newValue == 0){
-            activeDetections.remove(detectionWithCount.label);
+            activeDetections.remove(detectionWithCount.label());
         }
     }
 }
 
-@AllArgsConstructor
-@EqualsAndHashCode
-@ToString
-class DetectionWithCount {
-    public final String label;
-    public final int count;
-}
+record DetectionWithCount(String label, int count) {}

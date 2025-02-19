@@ -118,7 +118,6 @@ public class CameraFetcher implements Runnable {
                         opencv_core.rotate(frame, frame, ROTA);
                         // Show frame in label
                         BufferedImage biFrame = cvt2bi(frame);
-                        ImageIcon icon = new ImageIcon(biFrame);
 
                         cameraFeed.setIcon(new ImageIcon(biFrame));
                     } catch (Exception e ){
