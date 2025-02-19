@@ -290,7 +290,7 @@ public class FileSession {
             }
             writer.write("------------------------\n\n");
 
-            writer.write("New Tools Introduced During Session:\n");
+            writer.write("New Objects Introduced During Session:\n");
             writer.write("-----------------------------------------------------\n");
             if (newToolsIntroduced.isEmpty()) {
                 writer.write("None\n");
@@ -301,7 +301,7 @@ public class FileSession {
             }
             writer.write("-----------------------------------------------------\n\n");
 
-            writer.write("Tools Removed During Session:\n");
+            writer.write("Objects Removed During Session:\n");
             writer.write("-----------------------------------------------------\n");
             if (toolsRemoved.isEmpty()) {
                 writer.write("None\n");
