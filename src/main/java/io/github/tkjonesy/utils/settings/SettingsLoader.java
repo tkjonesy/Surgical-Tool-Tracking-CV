@@ -1,7 +1,6 @@
 package io.github.tkjonesy.utils.settings;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Getter;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,8 +32,8 @@ public class SettingsLoader {
 
     // Method to load the settings
     public static ProgramSettings loadSettings(){
-        // Initialize the AIMs directory
-        initializeParentDirectory();
+        // Initialize the core AIMs directories
+        initializeAIMsDirectories();
 
         // Load settings from the Settings file
         ObjectMapper objectMapper = new ObjectMapper();
@@ -55,12 +54,23 @@ public class SettingsLoader {
         return settings;
     }
 
-    private static void initializeParentDirectory() {
+    private static void initializeAIMsDirectories() {
         try {
             Path parentDirectory = Paths.get(AIMS_DIRECTORY);
             if (!Files.exists(parentDirectory)) {
                 Files.createDirectories(parentDirectory);
             }
+
+            Path modelsDirectory = Paths.get(AIMS_MODELS_DIRECTORY);
+            if (!Files.exists(modelsDirectory)) {
+                Files.createDirectories(modelsDirectory);
+            }
+
+            Path settingsDirectory = Paths.get(AIMS_SESSIONS_DIRECTORY);
+            if (!Files.exists(settingsDirectory)) {
+                Files.createDirectories(settingsDirectory);
+            }
+
         } catch (IOException e) {
             throw new RuntimeException("Failed to create settings directory: " + AIMS_DIRECTORY, e);
         }
