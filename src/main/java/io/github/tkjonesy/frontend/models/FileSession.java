@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -61,9 +60,9 @@ public class FileSession {
      */
     public void startNewSession() throws IOException {
         System.out.println("\u001B[33m☐ Starting new FileSession...\u001B[0m");
-        onnxRunner.resetTrackingData();
 
-        onnxRunner.startTracking();
+        onnxRunner.startSession();
+
         if (logHandler != null) {
             logHandler.clearLogPane();
             System.out.println("🔄 Log panel fully reset.");
@@ -87,8 +86,7 @@ public class FileSession {
         // Initialize BufferedWriter for saving logs
         this.logBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/logfile.log", true));
 
-        //onnxRunner.startTracking();
-            // Initialize BufferedWriter for saving CSVs
+        // Initialize BufferedWriter for saving CSVs
         this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
         csvBufferedWriter.write("Timestamp,LogNumber,Object,Action,ActionType\n");
 
@@ -106,7 +104,6 @@ public class FileSession {
         final Size frameSize = new Size(frame.cols(), frame.rows());
         String videoPath = sessionDirectory + "/recording.mp4";
         int codec = VideoWriter.fourcc((byte) 'a', (byte) 'v', (byte) 'c', (byte) '1');
-
         videoWriter = new VideoWriter(videoPath, codec, 30.0, frameSize, true);
 
         if (!videoWriter.isOpened()) {
@@ -181,25 +178,15 @@ public class FileSession {
         closeLogWriter();
         closeCsvWriter();
 
-        onnxRunner.captureFinalTools();
-
         Duration recordDuration = Duration.between(startTime, Instant.now());
-        HashSet<String> initialTools = onnxRunner.getInitialToolSet();
-        HashSet<String> finalTools = onnxRunner.getFinalToolSet();
 
-
-        generateAAR(initialTools, finalTools, Duration.between(startTime, Instant.now()));
-
+        generateAAR(recordDuration);
 
         if(logBufferedWriter == null) {
             System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + sessionDirectory + "/logfile.log\u001B[0m");
         }
 
-        if (logHandler != null) {
-            logHandler.clearLogPane();
-            System.out.println("🔄 Log panel cleared after session end.");
-        }
-        onnxRunner.resetTrackingData();
+        onnxRunner.endSession();
     }
 
     private String formatDuration(Duration duration) {
@@ -218,14 +205,12 @@ public class FileSession {
         return formattedDuration.toString().trim();
     }
 
-    private void generateAAR(HashSet<String> initialTools, HashSet<String> finalTools, Duration recordDuration) {
+    private void generateAAR(Duration recordDuration) {
         int peakObjects = onnxRunner.getPeakObjectsSeen();
 
         // Get correct start and end counts
-        HashMap<String, Integer> initialToolCounts = new HashMap<>();
-        for (String tool : onnxRunner.getInitialToolSet()) {
-            initialToolCounts.put(tool, 1);  // Assume at least 1 instance of each tool was detected
-        }
+        HashMap<String, Integer> initialToolCounts = onnxRunner.getStartCountPerClass();
+
         HashMap<String, Integer> finalToolCounts = new HashMap<>(onnxRunner.getActiveDetections());
         HashMap<String, Integer> totalToolsAdded = new HashMap<>(onnxRunner.getTotalInstancesAdded());
 
