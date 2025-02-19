@@ -114,23 +114,12 @@ public class App extends JFrame {
         }
 
         // Camera Panel
-        JPanel cameraPanel = new JPanel();
+        JPanel cameraPanel = new JPanel(new BorderLayout());
         cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
-
         cameraFeed = new JLabel("");
         cameraFeed.setMinimumSize(new Dimension(320, 240));
+        cameraPanel.add(cameraFeed, BorderLayout.CENTER);
 
-        GroupLayout cameraPanelLayout = new GroupLayout(cameraPanel);
-
-        cameraPanelLayout.setHorizontalGroup(
-                cameraPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(cameraFeed)
-        );
-        cameraPanelLayout.setVerticalGroup(
-                cameraPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                        .addComponent(cameraFeed)
-        );
-        cameraPanel.setLayout(cameraPanelLayout);
 
         // Log tracker Panel
         JPanel trackerPanel = new JPanel();

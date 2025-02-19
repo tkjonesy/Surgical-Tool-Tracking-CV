@@ -49,32 +49,33 @@ public class CameraFetcher implements Runnable {
         this.onnxRunner = onnxRunner;
         this.sessionHandler = sessionHandler;
 
-        this.cameraFeed.getParent().addComponentListener(
-                new ComponentAdapter() {
-                    @Override
-                    public void componentResized(ComponentEvent e) {
-                        // Get the current width and height of the feed
-                        // Get the new width and height of the panel containing the feed
-                        // Determine which value is smaller, and that will be the new dimension to scale with
-                        // If width is smaller, the height will now become (width / 16 * 9)
-                        // If height is smaller, the width will now become (height / 9 * 16)
-                        // The video resizer later will pull these values each frame to compensate
-                        int curW = cameraFeed.getWidth(),
-                                curH = cameraFeed.getHeight(),
-                                newW = cameraFeed.getParent().getWidth(),
-                                newH = cameraFeed.getParent().getHeight() - 50;
-                        // New container width is larger than the new container height
-                        if (newW - newH > 0) {
-                            System.out.println("Height is smaller");
-                            newW = newH * 16 / 9;
-                        } else {
-                            System.out.println("Width is smaller");
-                            newH = newW * 9 / 16;
-                        }
-                        cameraFeed.setSize(new Dimension(newW, newH)); // TODO change this to (newW, newH) when done coding size calculation
-                    }
-                }
-        );
+//        this.cameraFeed.getParent().addComponentListener(
+//                new ComponentAdapter() {
+//                    @Override
+//                    public void componentResized(ComponentEvent e) {
+//                        // Get the current width and height of the feed
+//                        // Get the new width and height of the panel containing the feed
+//                        // Determine which value is smaller, and that will be the new dimension to scale with
+//                        // If width is smaller, the height will now become (width / 16 * 9)
+//                        // If height is smaller, the width will now become (height / 9 * 16)
+//                        // The video resizer later will pull these values each frame to compensate
+//                        int curW = cameraFeed.getWidth(),
+//                                curH = cameraFeed.getHeight(),
+//                                newW = cameraFeed.getParent().getWidth(),
+//                                newH = cameraFeed.getParent().getHeight() - 50;
+//                        // New container width is larger than the new container height
+//                        if (newW - newH > 0) {
+//                            System.out.println("Height is smaller");
+//                            newW = newH * 16 / 9;
+//                        } else {
+//                            System.out.println("Width is smaller");
+//                            newH = newW * 9 / 16;
+//                        }
+//                        cameraFeed.setPreferredSize(new Dimension(newW, newH));
+//                        cameraFeed.revalidate(); // Notify the layout manager of the change
+//                    }
+//                }
+//        );
     }
 
     /**
