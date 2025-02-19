@@ -4,6 +4,8 @@ import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -65,6 +67,7 @@ public class App extends JFrame {
     @Getter
     @Setter
     private JTextPane logTextPane;
+    private JPanel trackerPanel;
 
     private static final Color SUNSET = new Color(255, 40, 79);
     private static final Color OCEAN = new Color(55, 90, 129);
@@ -122,7 +125,7 @@ public class App extends JFrame {
 
 
         // Log tracker Panel
-        JPanel trackerPanel = new JPanel();
+        trackerPanel = new JPanel();
         trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracking Log"));
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);
@@ -270,6 +273,15 @@ public class App extends JFrame {
                 }
             }
         });
+
+        this.addComponentListener(
+                new ComponentAdapter() {
+                    @Override
+                    public void componentResized(ComponentEvent e) {
+                        trackerPanel.setPreferredSize(new Dimension(App.this.getWidth() / 3, trackerPanel.getHeight()));
+                    }
+                }
+        );
     }
 
     public static void main(String[] args) {
