@@ -5,6 +5,7 @@ import io.github.tkjonesy.ONNX.ImageUtil;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 
+import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.javacpp.BytePointer;
 
@@ -32,7 +33,7 @@ import java.util.TimerTask;
 public class CameraFetcher implements Runnable {
 
     private final JLabel cameraFeed;
-    private final VideoCapture camera;
+    private VideoCapture camera;
     private final Timer timer;
     private final SessionHandler sessionHandler;
     private final OnnxRunner onnxRunner;
@@ -87,6 +88,10 @@ public class CameraFetcher implements Runnable {
 
             @Override
             public void run() {
+                if(camera != App.getCamera()) {
+                    System.out.println("Camera has been updated, changing to new camera");
+                    camera = App.getCamera();
+                }
                 if (!Thread.currentThread().isInterrupted()) {
                     camera.read(frame);
                     Mat inferenceFrame = frame.clone();

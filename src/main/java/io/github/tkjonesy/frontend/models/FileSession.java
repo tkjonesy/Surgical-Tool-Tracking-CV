@@ -7,6 +7,7 @@ import lombok.Getter;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_videoio.VideoWriter;
+import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -28,6 +29,9 @@ public class FileSession {
     private final LogHandler logHandler;
     private final String title;
     private String sessionDirectory;
+
+    // Field to store the intended frame size for the video
+    private Size videoFrameSize;
 
     public FileSession(OnnxRunner onnxRunner, String title, LogHandler logHandler)  {
         this.onnxRunner = onnxRunner;
@@ -93,10 +97,12 @@ public class FileSession {
      * @throws IllegalStateException if the session is not active.
      */
     protected void initVideoWriter(Mat frame) throws IllegalStateException {
-        final Size frameSize = new Size(frame.cols(), frame.rows());
+        // Set the intended video frame size based on the first frame
+        videoFrameSize = new Size(frame.cols(), frame.rows());
         String videoPath = sessionDirectory + "/recording.mp4";
         int codec = VideoWriter.fourcc((byte) 'a', (byte) 'v', (byte) 'c', (byte) '1');
-        videoWriter = new VideoWriter(videoPath, codec, 30.0, frameSize, true);
+
+        videoWriter = new VideoWriter(videoPath, codec, 30.0, videoFrameSize, true);
 
         if (!videoWriter.isOpened()) {
             throw new IllegalStateException("Failed to open VideoWriter with path: " + videoPath);
@@ -121,7 +127,16 @@ public class FileSession {
         if (videoWriter != null && videoWriter.isOpened()) {
             Mat formattedFrame = new Mat();
             frame.convertTo(formattedFrame, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
-            videoWriter.write(formattedFrame);
+            // Check if the frame dimensions match the expected videoFrameSize
+            if(formattedFrame.cols() != videoFrameSize.width() || formattedFrame.rows() != videoFrameSize.height()){
+                // Resize frame if dimensions do not match
+                Mat resizedFrame = new Mat();
+                resize(formattedFrame, resizedFrame, videoFrameSize);
+                videoWriter.write(resizedFrame);
+                resizedFrame.release();
+            } else {
+                videoWriter.write(formattedFrame);
+            }
         }
     }
 
@@ -149,7 +164,7 @@ public class FileSession {
         String action = "";
 
         try{
-            //Extract Log Number, Object, and Action
+            // Extract Log Number, Object, and Action
             if(message.contains("Log #") && message.contains("Object:") && message.contains("Action:")){
                 logNumber = message.split(" ")[1];
                 object = message.split("Object:")[1].split("Action:")[0];
@@ -159,7 +174,7 @@ public class FileSession {
                 logNumber = message;
             }
         } catch(Exception e){
-            System.err.println("Erorr parsing log message: " + e.getMessage());
+            System.err.println("Error parsing log message: " + e.getMessage());
         }
         return new String[]{logNumber, object, action};
     }

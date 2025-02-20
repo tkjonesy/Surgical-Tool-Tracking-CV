@@ -4,6 +4,8 @@ import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -56,7 +58,8 @@ public class App extends JFrame {
     private final ProgramSettings settings;
 
     @Getter
-    private final VideoCapture camera;
+    @Setter
+    private static VideoCapture camera;
     private final Thread cameraFetcherThread;
     @Getter
     private JLabel cameraFeed;
@@ -65,6 +68,7 @@ public class App extends JFrame {
     @Getter
     @Setter
     private JTextPane logTextPane;
+    private JPanel trackerPanel;
 
     private static final Color SUNSET = new Color(255, 40, 79);
     private static final Color OCEAN = new Color(55, 90, 129);
@@ -80,7 +84,7 @@ public class App extends JFrame {
         initComponents();
         initListeners();
         this.setVisible(true);
-        this.camera = new VideoCapture(settings.getCameraDeviceId());
+        camera = new VideoCapture(settings.getCameraDeviceId());
         if (!camera.isOpened()) {
             System.err.println("Error: Camera could not be opened. Exiting...");
             System.exit(-1);
@@ -93,7 +97,7 @@ public class App extends JFrame {
         onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, this.camera, onnxRunner, sessionHandler);
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, camera, onnxRunner, sessionHandler);
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -114,26 +118,15 @@ public class App extends JFrame {
         }
 
         // Camera Panel
-        JPanel cameraPanel = new JPanel();
+        JPanel cameraPanel = new JPanel(new BorderLayout());
         cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
-
         cameraFeed = new JLabel("");
         cameraFeed.setMinimumSize(new Dimension(320, 240));
+        cameraPanel.add(cameraFeed, BorderLayout.CENTER);
 
-        GroupLayout cameraPanelLayout = new GroupLayout(cameraPanel);
-        cameraPanelLayout.setAutoCreateContainerGaps(true);
-        cameraPanelLayout.setHorizontalGroup(
-                cameraPanelLayout.createSequentialGroup()
-                        .addComponent(cameraFeed)
-        );
-        cameraPanelLayout.setVerticalGroup(
-                cameraPanelLayout.createSequentialGroup()
-                        .addComponent(cameraFeed)
-        );
-        cameraPanel.setLayout(cameraPanelLayout);
 
         // Log tracker Panel
-        JPanel trackerPanel = new JPanel();
+        trackerPanel = new JPanel();
         trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracking Log"));
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);
@@ -236,6 +229,7 @@ public class App extends JFrame {
                             if (sessionStarted) {
                                 startSessionButton.setText("Stop Session");
                                 startSessionButton.setBackground(SUNSET);
+                                settingsButton.setEnabled(false);
                             } else {
                                 JOptionPane.showMessageDialog(App.this,
                                         "Failed to start session. Please check the console for more information.",
@@ -247,6 +241,7 @@ public class App extends JFrame {
                         startSessionButton.setText("Start Session");
                         startSessionButton.setBackground(OCEAN);
                         sessionHandler.endSession();
+                        settingsButton.setEnabled(true);
                     }
                 }
         );
@@ -281,6 +276,25 @@ public class App extends JFrame {
                 }
             }
         });
+
+        this.addComponentListener(
+                new ComponentAdapter() {
+                    @Override
+                    public void componentResized(ComponentEvent e) {
+                        trackerPanel.setPreferredSize(new Dimension(App.this.getWidth() / 3, trackerPanel.getHeight()));
+                    }
+                }
+        );
+    }
+
+    public static void updateCamera(int id) {
+        System.out.println("Swapping to camera device number " + id);
+        VideoCapture newCamera = new VideoCapture(id);
+        if(!newCamera.isOpened()){
+            System.out.println("Could not swap over to new camera device :/");
+        }
+
+        App.setCamera(newCamera);
     }
 
     public static void main(String[] args) {
