@@ -13,7 +13,7 @@ public class SessionHandler {
     private String sessionDescription;
     private final LogHandler logHandler;
 
-    private AtomicBoolean activeState = new AtomicBoolean(false);
+    private AtomicBoolean isActive = new AtomicBoolean(false);
 
     public SessionHandler(LogHandler logHandler) {
         this.logHandler = logHandler;
@@ -32,20 +32,20 @@ public class SessionHandler {
             return false;
         }
 
-        this.activeState = new AtomicBoolean(true);
+        this.isActive = new AtomicBoolean(true);
         return true;
     }
 
     public void endSession() {
+        isActive.set(false);
         fileSession.endSession();
         fileSession.destroyVideoWriter();
         fileSession = null;
-        activeState.set(false);
         this.logHandler.setFileSession(null);
     }
 
     public boolean isSessionActive() {
-        return activeState.get();
+        return isActive.get();
     }
 
 }

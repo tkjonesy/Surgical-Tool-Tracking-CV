@@ -23,15 +23,20 @@ import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
 import lombok.Setter;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
 import org.opencv.core.CvException;
 
+import static io.github.tkjonesy.utils.settings.SettingsLoader.initializeAIMsDirectories;
+
 public class App extends JFrame {
 
     @Getter
     private static App instance;
+    private static final Logger logger = LogManager.getLogger(App.class);
 
     public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
     private static final SplashScreen splashScreen;
@@ -90,8 +95,24 @@ public class App extends JFrame {
     public App() {
         instance = this;
 
+        // Initialize the directories for AIMs
+        try{
+            initializeAIMsDirectories();
+        }catch (RuntimeException e){
+            JOptionPane.showMessageDialog(this, "Failed to initialize AIMs directories. Exiting application", "Error", JOptionPane.ERROR_MESSAGE);
+            logger.error("Failed to initialize AIMs directories. Exiting application.");
+            System.exit(1);
+        }
+
         // Load settings from file
         this.settings = SettingsLoader.loadSettings();
+
+        if(settings == null) {
+            JOptionPane.showMessageDialog(this, "An error occurred when trying to load program settings. Existing Application", "Error", JOptionPane.ERROR_MESSAGE);
+            logger.error("Failed to load settings from file. Exiting application.");
+            System.exit(1);
+        }
+
         ProgramSettings.setCurrentSettings(settings);
 
         System.out.println(settings);
@@ -315,6 +336,7 @@ public class App extends JFrame {
 
         }catch (CvException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            logger.error("Failed to open camera with ID: {}", cameraId);
         }
     }
 

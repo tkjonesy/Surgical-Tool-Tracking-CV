@@ -32,9 +32,6 @@ public class SettingsLoader {
 
     // Method to load the settings
     public static ProgramSettings loadSettings(){
-        // Initialize the core AIMs directories
-        initializeAIMsDirectories();
-
         // Load settings from the Settings file
         ObjectMapper objectMapper = new ObjectMapper();
         ProgramSettings settings = loadSettingsFromFile(objectMapper);
@@ -54,7 +51,7 @@ public class SettingsLoader {
         return settings;
     }
 
-    private static void initializeAIMsDirectories() {
+    public static void initializeAIMsDirectories() {
         try {
             Path parentDirectory = Paths.get(AIMS_DIRECTORY);
             if (!Files.exists(parentDirectory)) {
@@ -72,7 +69,7 @@ public class SettingsLoader {
             }
 
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create settings directory: " + AIMS_DIRECTORY, e);
+            throw new RuntimeException("Failed to create required directories: " + AIMS_DIRECTORY, e);
         }
     }
 
@@ -82,7 +79,7 @@ public class SettingsLoader {
             try {
                 return objectMapper.readValue(settingsFile, ProgramSettings.class);
             } catch (IOException e) {
-                throw new RuntimeException("Failed to load settings from file: " + AIMS_DIRECTORY, e);
+                System.err.println("Failed to load settings from file: " + e.getMessage());
             }
         }
         return null;
