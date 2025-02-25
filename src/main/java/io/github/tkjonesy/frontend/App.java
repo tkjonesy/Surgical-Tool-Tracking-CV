@@ -18,7 +18,6 @@ import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
-import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
@@ -27,21 +26,26 @@ import lombok.Setter;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
+import org.opencv.core.CvException;
 
 public class App extends JFrame {
-    private final SessionHandler sessionHandler;
+
+    @Getter
+    private static App instance;
 
     public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
-    private static SplashScreen splashScreen;
+    private static final SplashScreen splashScreen;
     static {
 
+        // Display the splash screen
         splashScreen = new SplashScreen();
         splashScreen.showSplash();
+
         // Load OpenCV
         Loader.load(opencv_core.class);
 
+        // Load the camera devices from the user's system
         CameraGrabber grabber;
-
         if(System.getProperty("os.name").toLowerCase().contains("mac")) {
             grabber = new MacOSCameraGrabber();
         } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
@@ -59,14 +63,17 @@ public class App extends JFrame {
         }
     }
 
+    private final SessionHandler sessionHandler;
+
     @Getter
     private static OnnxRunner onnxRunner = null;
     private final ProgramSettings settings;
 
+    private CameraFetcher cameraFetcher;
     @Getter
     @Setter
     private static VideoCapture camera;
-    private final Thread cameraFetcherThread;
+    private Thread cameraFetcherThread;
     @Getter
     private JLabel cameraFeed;
     private JToggleButton startSessionButton;
@@ -81,33 +88,28 @@ public class App extends JFrame {
     private static final Color CHARCOAL = new Color(30, 31, 34);
 
     public App() {
+        instance = this;
 
+        // Load settings from file
         this.settings = SettingsLoader.loadSettings();
         ProgramSettings.setCurrentSettings(settings);
 
         System.out.println(settings);
 
+        // Initialize the GUI components and listeners
         initComponents();
         initListeners();
 
-        splashScreen.closeSplash();
-        this.setVisible(true);
-        camera = new VideoCapture(settings.getCameraDeviceId());
-        if (!camera.isOpened()) {
-            System.err.println("Error: Camera could not be opened. Exiting...");
-            System.exit(-1);
-        }
-
-
+        // Initialize the session handler, log handler, and ONNX runner
         LogHandler logHandler = new LogHandler(logTextPane);
         this.sessionHandler = new SessionHandler(logHandler);
-
         onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
-        // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, camera, onnxRunner, sessionHandler);
-        cameraFetcherThread = new Thread(cameraFetcher);
-        cameraFetcherThread.start();
+        updateCamera(settings.getCameraDeviceId());
+
+        // Close the splash screen and display the application
+        splashScreen.closeSplash();
+        this.setVisible(true);
     }
 
     private void initComponents() {
@@ -295,14 +297,25 @@ public class App extends JFrame {
         );
     }
 
-    public static void updateCamera(int id) {
-        System.out.println("Swapping to camera device number " + id);
-        VideoCapture newCamera = new VideoCapture(id);
-        if(!newCamera.isOpened()){
-            System.out.println("Could not swap over to new camera device :/");
-        }
+    public void updateCamera(int cameraId) {
+        try{
+            camera = new VideoCapture(cameraId);
+            if (!camera.isOpened()) {
+                cameraId = 0;
+                camera = new VideoCapture(cameraId);
+                if (!camera.isOpened()) {
+                    throw new CvException("Unable to open camera with ID: " + cameraId);
+                }
+            }
 
-        App.setCamera(newCamera);
+            // Camera fetcher thread task
+            cameraFetcher = new CameraFetcher(this.cameraFeed, camera, onnxRunner, sessionHandler);
+            cameraFetcherThread = new Thread(cameraFetcher);
+            cameraFetcherThread.start();
+
+        }catch (CvException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {
