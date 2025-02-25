@@ -30,11 +30,13 @@ public class FileSession {
     private Instant startTime;
     private final OnnxRunner onnxRunner;
     private final String title;
+    private final String sessionDescription;
     private String sessionDirectory;
 
-    public FileSession(OnnxRunner onnxRunner, String title)  {
+    public FileSession(OnnxRunner onnxRunner, String title, String description)  {
         this.onnxRunner = onnxRunner;
         this.title = title;
+        this.sessionDescription = description;
         try{
             startNewSession(); // Throws IOException if fails
         }catch (IOException e) {
@@ -219,17 +221,10 @@ public class FileSession {
             writer.write("After Action Report (AAR)\n");
             writer.write("==========================\n");
             writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
+            writer.write("Session Description: " + (sessionDescription != null ? sessionDescription : "No description provided") + "\n\n");
             writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
             writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
-
-
-            writer.write("Total Instances of Each Tool Ever Added:\n");
-            writer.write("-----------------------------------------------------\n");
-            for (var entry : totalToolsAdded.entrySet()) {
-                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-            }
-            writer.write("-----------------------------------------------------\n\n");
 
             // Displays Tools Present at Start of Recording
             writer.write("Objects Present at Start:\n");
@@ -238,14 +233,6 @@ public class FileSession {
                 writer.write(tool + ": " + detectedTools.getOrDefault(tool, 1)+ "\n");
             }
             writer.write("-----------------------------------------------------\n\n");
-
-            // Displays Tools Present at End of Recording
-            writer.write("Objects Present at End:\n");
-            writer.write("------------------------\n");
-            for (var entry : finalToolCounts.entrySet()) {
-                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-            }
-            writer.write("------------------------\n\n");
 
             // Displays New Tools Introduced During Session
             writer.write("New Objects Introduced During Session:\n");
@@ -259,8 +246,23 @@ public class FileSession {
             }
             writer.write("-----------------------------------------------------\n\n");
 
+            writer.write("Total Instances of Each Object Ever Added:\n");
+            writer.write("-----------------------------------------------------\n");
+            for (var entry : totalToolsAdded.entrySet()) {
+                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            // Displays Tools Present at End of Recording
+            writer.write("Objects Present at End:\n");
+            writer.write("------------------------\n");
+            for (var entry : finalToolCounts.entrySet()) {
+                writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+            }
+            writer.write("------------------------\n\n");
+
             // Displays Tools That Have Been Removed in the Session
-            writer.write("Objects remove during session\n");
+            writer.write("Objects Removed During Session\n");
             writer.write("-----------------------------------------------------\n");
             if (toolsRemoved.isEmpty()) {
                 writer.write("None\n");
