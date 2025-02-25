@@ -4,10 +4,7 @@ import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 
 import java.util.HashMap;
 
@@ -77,6 +74,15 @@ public class App extends JFrame {
     private final ProgramSettings settings;
 
     private CameraFetcher cameraFetcher;
+    // Selection Mode Variables
+    private boolean isSelectionMode = false;
+    @Getter
+    private static float[] selectedRegion = new float[4];
+    @Getter
+    private static Point currentMousePosition = null;
+    @Getter
+    private static Point firstClick = null;
+
     @Getter
     @Setter
     private static VideoCapture camera;
@@ -85,6 +91,8 @@ public class App extends JFrame {
     private JLabel cameraFeed;
     private JToggleButton startSessionButton;
     private JButton settingsButton;
+    private JButton selectionModeButton;
+    private JButton resetSelectionButton;
     @Getter
     @Setter
     private JTextPane logTextPane;
@@ -155,8 +163,9 @@ public class App extends JFrame {
         cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
         cameraFeed = new JLabel("");
         cameraFeed.setMinimumSize(new Dimension(320, 240));
+        cameraFeed.setOpaque(true);
+        cameraFeed.setFocusable(true);
         cameraPanel.add(cameraFeed, BorderLayout.CENTER);
-
 
         // Log tracker Panel
         trackerPanel = new JPanel();
@@ -190,6 +199,9 @@ public class App extends JFrame {
         startSessionButton = new JToggleButton("Start Session");
         startSessionButton.setBackground(OCEAN);
         settingsButton = new JButton("Settings");
+        selectionModeButton = new JButton("Selection Mode");
+        resetSelectionButton = new JButton("Reset Selection");
+        resetSelectionButton.setEnabled(false);
 
         GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
         bottomPanelLayout.setAutoCreateContainerGaps(true);
@@ -198,6 +210,10 @@ public class App extends JFrame {
                         .addComponent(startSessionButton)
                         .addPreferredGap(ComponentPlacement.UNRELATED)
                         .addComponent(settingsButton)
+                        .addPreferredGap(ComponentPlacement.UNRELATED)
+                        .addComponent(selectionModeButton)
+                        .addPreferredGap(ComponentPlacement.UNRELATED)
+                        .addComponent(resetSelectionButton)
         );
         bottomPanelLayout.setVerticalGroup(
                 bottomPanelLayout.createSequentialGroup()
@@ -205,6 +221,8 @@ public class App extends JFrame {
                                 bottomPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
                                         .addComponent(startSessionButton)
                                         .addComponent(settingsButton)
+                                        .addComponent(selectionModeButton)
+                                        .addComponent(resetSelectionButton)
                         )
         );
         bottomPanel.setLayout(bottomPanelLayout);
@@ -263,6 +281,8 @@ public class App extends JFrame {
                                 startSessionButton.setText("Stop Session");
                                 startSessionButton.setBackground(SUNSET);
                                 settingsButton.setEnabled(false);
+                                selectionModeButton.setEnabled(false);
+                                resetSelectionButton.setEnabled(false);
                             } else {
                                 JOptionPane.showMessageDialog(App.this,
                                         "Failed to start session. Please check the console for more information.",
@@ -275,12 +295,88 @@ public class App extends JFrame {
                         startSessionButton.setBackground(OCEAN);
                         sessionHandler.endSession();
                         settingsButton.setEnabled(true);
+                        selectionModeButton.setEnabled(true);
+                        resetSelectionButton.setEnabled(true);
                     }
                 }
         );
 
         // Settings Listener
         settingsButton.addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
+
+        selectionModeButton.addActionListener(e -> {
+            isSelectionMode = !isSelectionMode;
+            selectionModeButton.setText(isSelectionMode ? "Exit Selection Mode" : "Selection Mode");
+
+            cameraFeed.setCursor(isSelectionMode ? Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR) : Cursor.getDefaultCursor());
+        });
+
+        cameraFeed.addMouseListener(new MouseAdapter() {
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (!isSelectionMode) return;
+
+                int x = e.getX();
+                int y = e.getY();
+                int width = cameraFeed.getWidth();
+                int height = cameraFeed.getHeight();
+
+                if (firstClick == null) {
+                    firstClick = new Point(x, y);
+                    currentMousePosition = null;
+                } else {
+                    // Convert to percentages
+                    float x1 = (float) firstClick.x / width;
+                    float y1 = (float) firstClick.y / height;
+                    float x2 = (float) x / width;
+                    float y2 = (float) y / height;
+
+                    selectedRegion[0] = Math.min(x1, x2);
+                    selectedRegion[1] = Math.min(y1, y2);
+                    selectedRegion[2] = Math.max(x1, x2);
+                    selectedRegion[3] = Math.max(y1, y2);
+
+                    isSelectionMode = false;
+                    selectionModeButton.setText("Selection Mode");
+                    firstClick = null;
+                    currentMousePosition = null;
+                    resetSelectionButton.setEnabled(true);
+                    onnxRunner.setSelectedRegion(selectedRegion);
+                }
+            }
+        });
+
+        cameraFeed.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                if (firstClick != null) {
+                    int width = cameraFeed.getWidth();
+                    int height = cameraFeed.getHeight();
+
+                    // Store cursor position as percentages
+                    float cursorX = (float) e.getX() / width;
+                    float cursorY = (float) e.getY() / height;
+
+                    // Store temporary selection region
+                    selectedRegion[0] = Math.min((float) firstClick.x / width, cursorX);
+                    selectedRegion[1] = Math.min((float) firstClick.y / height, cursorY);
+                    selectedRegion[2] = Math.max((float) firstClick.x / width, cursorX);
+                    selectedRegion[3] = Math.max((float) firstClick.y / height, cursorY);
+
+                    // Update and repaint the camera feed
+                    cameraFeed.repaint();
+                }
+            }
+        });
+
+        resetSelectionButton.addActionListener(e -> {
+            selectedRegion = new float[4];
+            firstClick = null;
+            currentMousePosition = null;
+            resetSelectionButton.setEnabled(false);
+            onnxRunner.setSelectedRegion(null);
+        });
 
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {

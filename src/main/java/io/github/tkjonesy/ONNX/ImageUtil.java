@@ -5,14 +5,9 @@ import org.bytedeco.opencv.opencv_core.Point;
 import org.bytedeco.opencv.opencv_core.Scalar;
 import org.bytedeco.opencv.opencv_core.Size;
 
-import static org.bytedeco.opencv.global.opencv_imgproc.resize;
-import static org.bytedeco.opencv.global.opencv_imgproc.rectangle;
-import static org.bytedeco.opencv.global.opencv_imgproc.putText;
-import static org.bytedeco.opencv.global.opencv_imgproc.FONT_HERSHEY_SIMPLEX;
-import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
-
 import static org.bytedeco.opencv.global.opencv_core.copyMakeBorder;
 import static org.bytedeco.opencv.global.opencv_core.BORDER_CONSTANT;
+import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 import java.util.List;
 
@@ -120,4 +115,59 @@ public class ImageUtil {
             );
         }
     }
+
+    /**
+     * Draws a selection box on the image based on the specified region.
+     *
+     * @param img The image on which to draw the selection box.
+     * @param region The region to draw, represented as an array of four floats [x1, y1, x2, y2].
+     */
+    public static void drawSelectionBox(Mat img, float[] region) {
+        if (region == null || region.length != 4) return;
+
+        int imgWidth = img.cols();
+        int imgHeight = img.rows();
+
+        int x1 = (int) (region[0] * imgWidth);
+        int y1 = (int) (region[1] * imgHeight);
+        int x2 = (int) (region[2] * imgWidth);
+        int y2 = (int) (region[3] * imgHeight);
+
+        Scalar color = new Scalar(50, 50, 255, 0);
+
+        int dotLength = 10;
+        int gapLength = 5;
+
+        // Draw dotted lines
+        drawDottedLine(img, new Point(x1, y1), new Point(x2, y1), color, dotLength, gapLength); // Top
+        drawDottedLine(img, new Point(x2, y1), new Point(x2, y2), color, dotLength, gapLength); // Right
+        drawDottedLine(img, new Point(x2, y2), new Point(x1, y2), color, dotLength, gapLength); // Bottom
+        drawDottedLine(img, new Point(x1, y2), new Point(x1, y1), color, dotLength, gapLength); // Left
+    }
+
+    /**
+     * Draws a dotted line between two points on the image.
+     *
+     * @param img The image on which to draw the line.
+     * @param start The starting point of the line.
+     * @param end The ending point of the line.
+     * @param color The color of the line.
+     * @param dotLength The length of each dot in the line.
+     * @param gapLength The length of the gap between dots.
+     */
+    private static void drawDottedLine(Mat img, Point start, Point end, Scalar color, int dotLength, int gapLength) {
+        double totalDistance = Math.hypot(end.x() - start.x(), end.y() - start.y());
+        double dx = (end.x() - start.x()) / totalDistance;
+        double dy = (end.y() - start.y()) / totalDistance;
+
+        for (double i = 0; i < totalDistance; i += dotLength + gapLength) {
+            int x1 = (int) (start.x() + i * dx);
+            int y1 = (int) (start.y() + i * dy);
+            int x2 = (int) (start.x() + Math.min(i + dotLength, totalDistance) * dx);
+            int y2 = (int) (start.y() + Math.min(i + dotLength, totalDistance) * dy);
+
+            line(img, new Point(x1, y1), new Point(x2, y2), color, 2, LINE_8, 0);
+        }
+    }
+
 }

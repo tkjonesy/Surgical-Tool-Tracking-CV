@@ -16,6 +16,7 @@ import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.opencv_videoio.VideoWriter;
 
+import static io.github.tkjonesy.frontend.App.*;
 import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 import static org.bytedeco.opencv.global.opencv_videoio.CAP_PROP_FRAME_WIDTH;
 import static org.bytedeco.opencv.global.opencv_videoio.CAP_PROP_FRAME_HEIGHT;
@@ -24,6 +25,7 @@ import org.bytedeco.opencv.global.opencv_core;
 
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.util.ArrayList;
@@ -108,9 +110,26 @@ public class CameraFetcher implements Runnable {
                         currentFrame = 0;
                     }
 
+                    // Draw the temporary selection box
+                    Point firstClick = getFirstClick();
+                    Point currentMousePosition = getCurrentMousePosition();
+                    if (firstClick != null && currentMousePosition != null) {
+                        float[] tempRegion = new float[]{
+                                Math.min((float) firstClick.x / frame.cols(), (float) currentMousePosition.x / frame.cols()),
+                                Math.min((float) firstClick.y / frame.rows(), (float) currentMousePosition.y / frame.rows()),
+                                Math.max((float) firstClick.x / frame.cols(), (float) currentMousePosition.x / frame.cols()),
+                                Math.max((float) firstClick.y / frame.rows(), (float) currentMousePosition.y / frame.rows())
+                        };
+                        ImageUtil.drawSelectionBox(frame, tempRegion);
+                    }
+
+                    // Draw the final selection box.
+                    ImageUtil.drawSelectionBox(frame, App.getSelectedRegion());
+
                     // Overlay predictions & resize
                     if(settings.isShowBoundingBoxes())
                         ImageUtil.drawPredictions(frame, detections);
+
                     try {
                         resize(frame, frame, new Size(cameraFeed.getWidth(), cameraFeed.getHeight()));
 

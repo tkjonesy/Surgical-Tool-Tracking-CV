@@ -15,6 +15,7 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import javax.swing.*;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The {@code OnnxRunner} class provides a wrapper for running YOLO-based inference
@@ -68,6 +69,9 @@ public class OnnxRunner {
 
     private boolean sessionActive = false;
 
+    @Setter
+    private float[] selectedRegion;
+
     public OnnxRunner(LogQueue logQueue) {
 
         this.logQueue = logQueue;
@@ -114,6 +118,7 @@ public class OnnxRunner {
 
         try {
             detectionList = inferenceSession.run(frame);
+            detectionList = filterDetections(detectionList, frame);
 
         } catch (OrtException ortException) {
 
@@ -135,6 +140,26 @@ public class OnnxRunner {
         return currentDetections;
     }
 
+    private List<Detection> filterDetections(List<Detection> detections, Mat frame) {
+        if (selectedRegion == null) return detections;
+
+        int imgWidth = frame.cols();
+        int imgHeight = frame.rows();
+
+        return detections.stream().filter(d -> {
+            float[] bbox = d.bbox();
+            float x1 = bbox[0] / imgWidth;
+            float y1 = bbox[1] / imgHeight;
+            float x2 = bbox[2] / imgWidth;
+            float y2 = bbox[3] / imgHeight;
+
+            float centerX = (x1 + x2) / 2;
+            float centerY = (y1 + y2) / 2;
+
+            return (centerX >= selectedRegion[0] && centerX <= selectedRegion[2]) &&
+                    (centerY >= selectedRegion[1] && centerY <= selectedRegion[3]);
+        }).collect(Collectors.toList());
+    }
 
     // Method to print the header row
     private void printHeader() {
