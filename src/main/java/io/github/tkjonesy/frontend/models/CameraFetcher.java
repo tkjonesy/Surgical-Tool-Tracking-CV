@@ -6,6 +6,8 @@ import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 
 import io.github.tkjonesy.frontend.App;
+import io.github.tkjonesy.utils.models.FileSession;
+import io.github.tkjonesy.utils.models.SessionHandler;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.javacpp.BytePointer;
 
@@ -136,7 +138,7 @@ public class CameraFetcher implements Runnable {
                         // Initializes the video writer
                         if ((writer == null || !writer.isOpened())) {
                             fileSession.initVideoWriter(frame);
-                            onnxRunner.getLogQueue().addGreenLog("---Video recording started.---");
+                            onnxRunner.getLogQueue().addGreenLog("---Session started.---");
                         }
                         fileSession.writeVideoFrame(frame);
                         if (currentFrame % settings.getProcessEveryNthFrame() == 0)

@@ -1,4 +1,4 @@
-package io.github.tkjonesy.frontend.models;
+package io.github.tkjonesy.utils.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
@@ -96,7 +96,7 @@ public class FileSession {
      * @param frame The first frame, used to determine video properties such as size and format.
      * @throws IllegalStateException if the session is not active.
      */
-    protected void initVideoWriter(Mat frame) throws IllegalStateException {
+    public void initVideoWriter(Mat frame) throws IllegalStateException {
         // Set the intended video frame size based on the first frame
         videoFrameSize = new Size(frame.cols(), frame.rows());
         String videoPath = sessionDirectory + "/recording.mp4";
@@ -123,10 +123,10 @@ public class FileSession {
      *
      * @param frame The video frame to write.
      */
-    protected void writeVideoFrame(Mat frame) {
+    public void writeVideoFrame(Mat frame) {
         if (videoWriter != null && videoWriter.isOpened()) {
-            Mat formattedFrame = new Mat();
-            frame.convertTo(formattedFrame, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
+            Mat formattedFrame = frame.clone();
+            //frame.convertTo(formattedFrame, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
             // Check if the frame dimensions match the expected videoFrameSize
             if(formattedFrame.cols() != videoFrameSize.width() || formattedFrame.rows() != videoFrameSize.height()){
                 // Resize frame if dimensions do not match

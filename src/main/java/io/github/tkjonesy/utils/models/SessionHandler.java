@@ -1,4 +1,4 @@
-package io.github.tkjonesy.frontend.models;
+package io.github.tkjonesy.utils.models;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import lombok.Getter;

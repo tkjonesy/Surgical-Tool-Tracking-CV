@@ -1,4 +1,4 @@
-package io.github.tkjonesy.frontend.models;
+package io.github.tkjonesy.utils.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.LogQueue;
@@ -83,12 +83,6 @@ public class LogHandler {
             }
         });
         timer.start();
-    }
-
-    public void endLogProcessing() {
-        if(timer != null){
-            timer.stop();
-        }
     }
 
 

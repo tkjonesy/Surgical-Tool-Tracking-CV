@@ -18,6 +18,8 @@ import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
+import io.github.tkjonesy.utils.models.LogHandler;
+import io.github.tkjonesy.utils.models.SessionHandler;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
