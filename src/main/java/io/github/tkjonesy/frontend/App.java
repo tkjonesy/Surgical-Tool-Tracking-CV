@@ -13,10 +13,12 @@ import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.models.*;
+import io.github.tkjonesy.frontend.models.SplashScreen;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
+import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
@@ -30,7 +32,11 @@ public class App extends JFrame {
     private final SessionHandler sessionHandler;
 
     public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
+    private static SplashScreen splashScreen;
     static {
+
+        splashScreen = new SplashScreen();
+        splashScreen.showSplash();
         // Load OpenCV
         Loader.load(opencv_core.class);
 
@@ -83,6 +89,8 @@ public class App extends JFrame {
 
         initComponents();
         initListeners();
+
+        splashScreen.closeSplash();
         this.setVisible(true);
         camera = new VideoCapture(settings.getCameraDeviceId());
         if (!camera.isOpened()) {
