@@ -1,5 +1,6 @@
 package io.github.tkjonesy.frontend;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
 
@@ -9,6 +10,8 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
@@ -18,6 +21,7 @@ import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
+import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.models.LogHandler;
 import io.github.tkjonesy.utils.models.SessionHandler;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
@@ -143,12 +147,14 @@ public class App extends JFrame {
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
         // Icon
-        try {
-            ImageIcon appIcon = new ImageIcon("src/main/resources/logo32.png");
+        try(InputStream stream = getClass().getResourceAsStream(Paths.LOGO32_PATH)) {
+            if(stream == null) {
+                throw new IOException("Resource not found: " + Paths.LOGO32_PATH);
+            }
+
+            ImageIcon appIcon = new ImageIcon(ImageIO.read(stream));
             this.setIconImage(appIcon.getImage());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        } catch (Exception ignored) {}
 
         // Camera Panel
         JPanel cameraPanel = new JPanel(new BorderLayout());

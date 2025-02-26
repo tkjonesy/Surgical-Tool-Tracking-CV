@@ -12,9 +12,9 @@ public class Paths {
     public static final String RESOURCE_DEFAULT_LABELS_PATH = "/ai_models/yolo11m.names";
 
     public static final String LOGO_PATH = "/images/logo.png";
-    private static final String LOGO16_PATH = "/images/logo16.png";
-    private static final String LOGO32_PATH = "/images/logo32.png";
-    private static final String LOGO64_PATH = "/images/logo64.png";
+    public static final String LOGO16_PATH = "/images/logo16.png";
+    public static final String LOGO32_PATH = "/images/logo32.png";
+    public static final String LOGO64_PATH = "/images/logo64.png";
 
 
 }
