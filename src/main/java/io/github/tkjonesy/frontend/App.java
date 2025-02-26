@@ -12,6 +12,7 @@ import java.awt.event.WindowEvent;
 import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
 import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
@@ -69,6 +70,7 @@ public class App extends JFrame {
     @Setter
     private JTextPane logTextPane;
     private JPanel trackerPanel;
+    private ButtonPanel buttonPanel;
 
     private static final Color SUNSET = new Color(255, 40, 79);
     private static final Color OCEAN = new Color(55, 90, 129);
@@ -152,29 +154,7 @@ public class App extends JFrame {
         trackerPanel.setLayout(trackingPanelLayout);
 
         // Bottom Button Panel
-        JPanel bottomPanel = new JPanel();
-
-        startSessionButton = new JToggleButton("Start Session");
-        startSessionButton.setBackground(OCEAN);
-        settingsButton = new JButton("Settings");
-
-        GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
-        bottomPanelLayout.setAutoCreateContainerGaps(true);
-        bottomPanelLayout.setHorizontalGroup(
-                bottomPanelLayout.createSequentialGroup()
-                        .addComponent(startSessionButton)
-                        .addPreferredGap(ComponentPlacement.UNRELATED)
-                        .addComponent(settingsButton)
-        );
-        bottomPanelLayout.setVerticalGroup(
-                bottomPanelLayout.createSequentialGroup()
-                        .addGroup(
-                                bottomPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                                        .addComponent(startSessionButton)
-                                        .addComponent(settingsButton)
-                        )
-        );
-        bottomPanel.setLayout(bottomPanelLayout);
+        buttonPanel = new ButtonPanel();
 
         // Window Layout
         this.setLayout(new GridBagLayout());
@@ -183,7 +163,7 @@ public class App extends JFrame {
         GridBagConstraints bottomPanelConstraints = createConstraints(0, 1, 1, 0.05);
         bottomPanelConstraints.gridwidth = 2;
         bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
-        this.add(bottomPanel, bottomPanelConstraints);
+        this.add(buttonPanel, bottomPanelConstraints);
         this.pack();
         this.setLocationRelativeTo(null); // Center application
     }
@@ -201,9 +181,9 @@ public class App extends JFrame {
     private void initListeners() {
 
         // Session Button Action Listener
-        startSessionButton.addActionListener(
+        buttonPanel.getStartSessionButton().addActionListener(
                 e -> {
-                    if (startSessionButton.getText().equals("Start Session")) {
+                    if (buttonPanel.getStartSessionButton().getText().equals("Start Session")) {
 
                         // Open session input dialog
                         SessionInputDialog dialog = new SessionInputDialog(this);
@@ -227,9 +207,9 @@ public class App extends JFrame {
 
                             // If session started successfully, update UI and begin logging
                             if (sessionStarted) {
-                                startSessionButton.setText("Stop Session");
-                                startSessionButton.setBackground(SUNSET);
-                                settingsButton.setEnabled(false);
+                                buttonPanel.getStartSessionButton().setText("Stop Session");
+                                buttonPanel.getStartSessionButton().setBackground(SUNSET);
+                                buttonPanel.getSettingsButton().setEnabled(false);
                             } else {
                                 JOptionPane.showMessageDialog(App.this,
                                         "Failed to start session. Please check the console for more information.",
@@ -237,17 +217,17 @@ public class App extends JFrame {
                             }
                         }
 
-                    } else if (startSessionButton.getText().equals("Stop Session")) {
-                        startSessionButton.setText("Start Session");
-                        startSessionButton.setBackground(OCEAN);
+                    } else if (buttonPanel.getStartSessionButton().getText().equals("Stop Session")) {
+                        buttonPanel.getStartSessionButton().setText("Start Session");
+                        buttonPanel.getStartSessionButton().setBackground(OCEAN);
                         sessionHandler.endSession();
-                        settingsButton.setEnabled(true);
+                        buttonPanel.getSettingsButton().setEnabled(true);
                     }
                 }
         );
 
         // Settings Listener
-        settingsButton.addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
+        buttonPanel.getSettingsButton().addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
 
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {
