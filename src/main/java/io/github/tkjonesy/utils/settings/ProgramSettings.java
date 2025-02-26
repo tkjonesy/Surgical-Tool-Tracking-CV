@@ -12,14 +12,13 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
+@SuppressWarnings("unused")
 @Getter
 public class ProgramSettings {
 
     @Setter
     @Getter
     private static ProgramSettings currentSettings;
-
-    private static final String FILE_DIRECTORY = System.getProperty("user.home") + "/AIMs";
 
     // Camera variables
     @SettingsLabel(value = "cameraDeviceId", type = Integer.class)
@@ -84,8 +83,7 @@ public class ProgramSettings {
         }
 
         if(updateCamera){
-            App.updateCamera((int)newSettings.get("cameraDeviceId"));
-
+            App.getInstance().updateCamera((int)newSettings.get("cameraDeviceId"));
         }
 
         SettingsLoader.saveSettings(this);
