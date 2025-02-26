@@ -338,6 +338,7 @@ public class App extends JFrame {
                     selectedRegion[3] = Math.max(y1, y2);
 
                     isSelectionMode = false;
+                    cameraFeed.setCursor(Cursor.getDefaultCursor());
                     selectionModeButton.setText("Selection Mode");
                     firstClick = null;
                     currentMousePosition = null;
