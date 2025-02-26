@@ -1,7 +1,6 @@
 package io.github.tkjonesy.frontend;
 
 import javax.swing.*;
-import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
@@ -13,6 +12,7 @@ import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
+import io.github.tkjonesy.frontend.mainGUI.CameraPanel;
 import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
@@ -63,14 +63,11 @@ public class App extends JFrame {
     private static VideoCapture camera;
     private final Thread cameraFetcherThread;
     @Getter
-    private JLabel cameraFeed;
-    private JToggleButton startSessionButton;
-    private JButton settingsButton;
-    @Getter
     @Setter
     private JTextPane logTextPane;
     private JPanel trackerPanel;
     private ButtonPanel buttonPanel;
+    private CameraPanel cameraPanel;
 
     private static final Color SUNSET = new Color(255, 40, 79);
     private static final Color OCEAN = new Color(55, 90, 129);
@@ -99,7 +96,7 @@ public class App extends JFrame {
         onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
         // Camera fetcher thread task
-        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraFeed, camera, onnxRunner, sessionHandler);
+        CameraFetcher cameraFetcher = new CameraFetcher(this.cameraPanel.getCameraFeed(), camera, onnxRunner, sessionHandler);
         cameraFetcherThread = new Thread(cameraFetcher);
         cameraFetcherThread.start();
     }
@@ -120,12 +117,7 @@ public class App extends JFrame {
         }
 
         // Camera Panel
-        JPanel cameraPanel = new JPanel(new BorderLayout());
-        cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
-        cameraFeed = new JLabel("");
-        cameraFeed.setMinimumSize(new Dimension(320, 240));
-        cameraPanel.add(cameraFeed, BorderLayout.CENTER);
-
+        cameraPanel = new CameraPanel(new BorderLayout(), this);
 
         // Log tracker Panel
         trackerPanel = new JPanel();
@@ -154,7 +146,7 @@ public class App extends JFrame {
         trackerPanel.setLayout(trackingPanelLayout);
 
         // Bottom Button Panel
-        buttonPanel = new ButtonPanel();
+        buttonPanel = new ButtonPanel(this);
 
         // Window Layout
         this.setLayout(new GridBagLayout());
