@@ -28,16 +28,14 @@ public class FileSession {
     private final OnnxRunner onnxRunner;
     private final LogHandler logHandler;
     private final String title;
-    private final String sessionDescription;
     private String sessionDirectory;
 
     // Field to store the intended frame size for the video
     private Size videoFrameSize;
 
-    public FileSession(OnnxRunner onnxRunner, String title, String description, LogHandler logHandler)  {
+    public FileSession(OnnxRunner onnxRunner, String title, LogHandler logHandler)  {
         this.onnxRunner = onnxRunner;
         this.title = title;
-        this.sessionDescription = description;
         this.logHandler = logHandler;
         try{
             startNewSession(); // Throws IOException if fails
@@ -265,10 +263,20 @@ public class FileSession {
             writer.write("After Action Report (AAR)\n");
             writer.write("==========================\n");
             writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
-            writer.write("Session Description: " + (sessionDescription != null ? sessionDescription : "No description provided") + "\n\n");
             writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
             writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
+
+            writer.write("Total Instances of Each Tool Ever Added:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (totalToolsAdded.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : totalToolsAdded.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
 
             // Objects Present at Start
             writer.write("Objects Present at Start:\n");
@@ -277,28 +285,6 @@ public class FileSession {
                 writer.write("None\n");
             } else {
                 for (var entry : initialToolCounts.entrySet()) {
-                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-                }
-            }
-            writer.write("-----------------------------------------------------\n\n");
-
-            writer.write("New Objects Introduced During Session:\n");
-            writer.write("-----------------------------------------------------\n");
-            if (newToolsIntroduced.isEmpty()) {
-                writer.write("None\n");
-            } else {
-                for (var entry : newToolsIntroduced.entrySet()) {
-                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-                }
-            }
-            writer.write("-----------------------------------------------------\n\n");
-
-            writer.write("Total Instances of Each Tool Ever Added:\n");
-            writer.write("-----------------------------------------------------\n");
-            if (totalToolsAdded.isEmpty()) {
-                writer.write("None\n");
-            } else {
-                for (var entry : totalToolsAdded.entrySet()) {
                     writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
                 }
             }
@@ -315,6 +301,17 @@ public class FileSession {
                 }
             }
             writer.write("------------------------\n\n");
+
+            writer.write("New Objects Introduced During Session:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (newToolsIntroduced.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : newToolsIntroduced.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
 
             writer.write("Objects Removed During Session:\n");
             writer.write("-----------------------------------------------------\n");
