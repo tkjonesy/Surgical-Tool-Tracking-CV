@@ -55,6 +55,10 @@ public class App extends JFrame {
         // Load OpenCV
         Loader.load(opencv_core.class);
 
+        System.getProperty("org.bytedeco.javacpp.maxphysicalbytes", "0");
+        System.getProperty("org.bytedeco.javacpp.maxbytes", "0");
+        opencv_core.setNumThreads(1);
+
         // Load the camera devices from the user's system
         CameraGrabber grabber;
         if(System.getProperty("os.name").toLowerCase().contains("mac")) {
@@ -66,12 +70,6 @@ public class App extends JFrame {
         }
 
         AVAILABLE_CAMERAS = grabber.getCameraNames();
-
-        //print cameras
-        System.out.println("Available Cameras:");
-        for (String cameraName : AVAILABLE_CAMERAS.keySet()) {
-            System.out.println(cameraName);
-        }
     }
 
     private final SessionHandler sessionHandler;

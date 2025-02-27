@@ -127,17 +127,16 @@ public class FileSession {
      */
     public void writeVideoFrame(Mat frame) {
         if (videoWriter != null && videoWriter.isOpened()) {
-            Mat formattedFrame = frame.clone();
-            //frame.convertTo(formattedFrame, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
+            // TODO: Experiment on other computers. It seems to inconsistent
             // Check if the frame dimensions match the expected videoFrameSize
-            if(formattedFrame.cols() != videoFrameSize.width() || formattedFrame.rows() != videoFrameSize.height()){
+            if(frame.cols() != videoFrameSize.width() || frame.rows() != videoFrameSize.height()){
                 // Resize frame if dimensions do not match
                 Mat resizedFrame = new Mat();
-                resize(formattedFrame, resizedFrame, videoFrameSize);
+                resize(frame, resizedFrame, videoFrameSize);
                 videoWriter.write(resizedFrame);
                 resizedFrame.release();
             } else {
-                videoWriter.write(formattedFrame);
+                videoWriter.write(frame);
             }
         }
     }
@@ -251,11 +250,6 @@ public class FileSession {
                 toolsRemoved.put(tool, totalAdded - finalCount);
             }
         }
-
-
-        // 🔍 Debugging output
-        System.out.println("🔍 DEBUG: Start Count Per Class: " + initialToolCounts);
-        System.out.println("🔍 DEBUG: Final Tool Counts: " + finalToolCounts);
 
         String formattedSessionTime = java.time.LocalDateTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));

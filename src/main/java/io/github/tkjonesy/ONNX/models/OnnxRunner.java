@@ -83,9 +83,7 @@ public class OnnxRunner {
         } catch (OrtException | IOException exception) {
             JOptionPane.showMessageDialog(App.getInstance(), "An error occurred while loading the ONNX model: " + exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             logger.error("Error loading ONNX model: {}", exception.getMessage(), exception);
-            System.exit(1);
         }
-        printHeader();
     }
 
     public void startSession(){
@@ -100,7 +98,6 @@ public class OnnxRunner {
         peakObjectsSeen = 0;      // Resets peak object count
         totalInstancesAdded.clear();
         logCounter = 1;
-        System.out.println("🔄 Tracking data reset for new session.");
     }
 
     /**
@@ -135,15 +132,6 @@ public class OnnxRunner {
         return currentDetections;
     }
 
-
-    // Method to print the header row
-    private void printHeader() {
-        String header = String.format("%-10s %-20s %-20s",
-                "Index", "Object", "Log Action");
-        System.out.println(header);
-        System.out.println("=".repeat(header.length()));  // Underline the header with equals signs
-    }
-
     // Utility method to format log messages
     private String formatLogMessage(int logIndex, String label, String action) {
         return String.format(
@@ -175,10 +163,12 @@ public class OnnxRunner {
             System.out.println("✅ Initial tools captured: " + startCountPerClass);
         }
 
-        // <String, Integer> activeDetections
-        // key = label
-        // value = count
-        // For labels that are in activeDetections but not in the current frame, add the label with count 0 to currentDetections
+        /*
+         * <String, Integer> activeDetections
+         * key = label
+         * value = count
+         * For labels that are in activeDetections but not in the current frame, add the label with count 0 to currentDetections
+         */
         for (var detection : activeDetections.entrySet()) {
             // If the label is in the current frame, skip
             if (currentDetections.containsKey(detection.getKey())) {
@@ -227,10 +217,12 @@ public class OnnxRunner {
         // Since you can't remove items from a hashmap while iterating through it, we need to store the items to be removed in a queue
         Queue<DetectionWithCount> queueForBufferRemoval = new LinkedList<>();
 
-        // <DetectionWithCount, Integer> detectionBuffer
-        // key = label + count
-        // value = number of consecutive frames the detection has been in the buffer
-        // For labels that are in the buffer but not in the current frame, decrement. Aka decrement detection outliers/flickers
+        /*
+         * <DetectionWithCount, Integer> detectionBuffer
+         * key = label + count
+         * value = number of consecutive frames the detection has been in the buffer
+         * For labels that are in the buffer but not in the current frame, decrement. Aka decrement detection outliers/flickers
+         */
         for (var detection : detectionBuffer.entrySet()) {
 
             // Grab the count of the detection in the buffer and the current count of the detection
@@ -259,30 +251,26 @@ public class OnnxRunner {
 
         //  Green log - New object detected or class count increased
         if (difference > 0) {
+            String logMessage;
             if(originalValue == 0){
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "New Object Detected: " + newValue);
-                logQueue.addGreenLog(logMessage);
-                System.out.println("🟢 DEBUG: Added to Log - " + logMessage);
+                logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "New Object Detected: " + newValue);
             }else{
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Class count increased: " + newValue);
-                logQueue.addGreenLog(logMessage);
-                System.out.println("🟢 DEBUG: Count Increased - " + logMessage);
+                logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Class count increased: " + newValue);
             }
+            logQueue.addGreenLog(logMessage);
 
             int totalAdded = totalInstancesAdded.getOrDefault(detectionWithCount.label(), 0);
             totalInstancesAdded.put(detectionWithCount.label(), totalAdded + difference);
 
         //  Red log - Object removed or class count decreased
         } else if (difference < 0) {
+            String logMessage;
             if(newValue == 0) {
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Object Removed");
-                logQueue.addRedLog(logMessage);
-                System.out.println("🔴 DEBUG: Removed from Log - " + logMessage);
+                logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Object Removed");
             } else{
-                String logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Class count decreased: " + newValue);
-                logQueue.addRedLog(logMessage);
-                System.out.println("🔴 DEBUG: Count Decreased - " + logMessage);
+                logMessage = formatLogMessage(logCounter++, detectionWithCount.label(), "Class count decreased: " + newValue);
             }
+            logQueue.addRedLog(logMessage);
         }
 
         // Update active detections

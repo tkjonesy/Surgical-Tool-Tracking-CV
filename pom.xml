@@ -77,9 +77,10 @@
     <dependencies>
         <dependency>
             <groupId>com.microsoft.onnxruntime</groupId>
-            <artifactId>onnxruntime</artifactId>
+            <artifactId>onnxruntime_gpu</artifactId>
             <version>1.20.0</version>
         </dependency>
+
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>opencv</artifactId>
