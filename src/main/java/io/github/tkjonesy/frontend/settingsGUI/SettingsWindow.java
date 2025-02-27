@@ -2,6 +2,7 @@ package io.github.tkjonesy.frontend.settingsGUI;
 
 
 import ai.onnxruntime.OrtSession;
+import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 
@@ -63,7 +64,7 @@ public class SettingsWindow extends JDialog {
 
         // Icon
         try {
-            ImageIcon appIcon = new ImageIcon("src/main/resources/logo32.png");
+            ImageIcon appIcon = new ImageIcon(Paths.LOGO16_PATH);
             this.setIconImage(appIcon.getImage());
         } catch (Exception e) {
             throw new RuntimeException(e);

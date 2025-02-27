@@ -93,7 +93,7 @@
             </dependencies>
         </profile>
 
-        <!-- MacOS and Linux Profile: Use CPU version -->
+        <!-- MacOS Profile: Use CPU version -->
         <profile>
             <id>unix</id>
             <activation>
@@ -113,7 +113,6 @@
 
 
     <dependencies>
-
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>opencv</artifactId>
@@ -129,7 +128,6 @@
             <artifactId>json</artifactId>
             <version>20231013</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -161,9 +159,6 @@
             <artifactId>log4j-api</artifactId>
             <version>2.24.3</version>
         </dependency>
-
-
-
     </dependencies>
 
 </project>
