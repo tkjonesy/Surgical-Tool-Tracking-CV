@@ -30,15 +30,19 @@ public abstract class Yolo {
 
         EnumSet<OrtProvider> availableProviders = OrtEnvironment.getAvailableProviders();
 
+        System.out.println("Available providers: " + availableProviders);
+
         var sessionOptions = new OrtSession.SessionOptions();
 
         if(availableProviders.contains(OrtProvider.CUDA)) {
             try{
+                System.out.println("Found CUDA provider, attempting to use GPU");
                 sessionOptions = getSessionOptions(true);
                 this.env.createSession(modelPath, sessionOptions);
                 this.env.close();
 
             }catch (OrtException e){
+                e.printStackTrace();
                 System.err.println("Failed to create session with GPU, falling back to CPU");
                 sessionOptions = getSessionOptions(false);
             }

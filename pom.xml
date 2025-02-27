@@ -72,14 +72,47 @@
         <maven.compiler.source>18</maven.compiler.source>
         <maven.compiler.target>18</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
     </properties>
 
+    <profiles>
+        <!-- Windows Profile: Use GPU version -->
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.microsoft.onnxruntime</groupId>
+                    <artifactId>onnxruntime_gpu</artifactId>
+                    <version>1.20.0</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <!-- MacOS and Linux Profile: Use CPU version -->
+        <profile>
+            <id>unix</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.microsoft.onnxruntime</groupId>
+                    <artifactId>onnxruntime</artifactId>
+                    <version>1.20.0</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+
     <dependencies>
-        <dependency>
-            <groupId>com.microsoft.onnxruntime</groupId>
-            <artifactId>onnxruntime_gpu</artifactId>
-            <version>1.20.0</version>
-        </dependency>
 
         <dependency>
             <groupId>org.bytedeco</groupId>
@@ -132,4 +165,5 @@
 
 
     </dependencies>
+
 </project>
