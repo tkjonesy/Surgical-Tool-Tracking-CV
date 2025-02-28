@@ -2,9 +2,12 @@ package io.github.tkjonesy.ONNX;
 
 import ai.onnxruntime.*;
 
+import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
+import lombok.Getter;
 import org.bytedeco.opencv.opencv_core.Mat;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -12,6 +15,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class Yolo {
+
+    @Getter
+    private static boolean isCudaAvailable = false;
 
     public OnnxJavaType inputType;
     protected final OrtEnvironment env;
@@ -34,25 +40,26 @@ public abstract class Yolo {
 
         var sessionOptions = new OrtSession.SessionOptions();
 
-        if(availableProviders.contains(OrtProvider.CUDA)) {
-            try{
-                System.out.println("Found CUDA provider, attempting to use GPU");
-                sessionOptions = getSessionOptions(true);
-                this.env.createSession(modelPath, sessionOptions);
-                this.env.close();
-
-            }catch (OrtException e){
-                e.printStackTrace();
-                System.err.println("Failed to create session with GPU, falling back to CPU");
-                sessionOptions = getSessionOptions(false);
-            }
-
+        boolean useGPU = availableProviders.contains(OrtProvider.CUDA) && ProgramSettings.getCurrentSettings().isUseGPU();
+        if (useGPU) {
+            System.out.println("CUDA is available and useGPU is true, attempting to use GPU for inference");
+            sessionOptions = createSessionOptions(true);
         } else {
-            sessionOptions = getSessionOptions(false);
+            System.out.println("Using CPU for inference");
+            sessionOptions = createSessionOptions(false);
         }
 
-        // Set the session
-        this.session = this.env.createSession(modelPath, sessionOptions);
+        try {
+            // Set the session (this is where failure will occur if CUDA is not working)
+            this.session = this.env.createSession(modelPath, sessionOptions);
+            isCudaAvailable = true;
+        } catch (OrtException e) {
+            JOptionPane.showMessageDialog(App.getInstance(), "Failed to create session with GPU, falling back to CPU: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            sessionOptions = createSessionOptions(false);
+            this.session = this.env.createSession(modelPath, sessionOptions);
+            isCudaAvailable = false;
+        }
+
         // Get the input information
         Map<String, NodeInfo> inputMetaMap = this.session.getInputInfo();
         this.inputName = this.session.getInputNames().iterator().next();
@@ -69,13 +76,13 @@ public abstract class Yolo {
         }
     }
 
-    private OrtSession.SessionOptions getSessionOptions(boolean useGPU) throws OrtException {
+    private OrtSession.SessionOptions createSessionOptions(boolean useGPU) throws OrtException {
         OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
         sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
         if (useGPU) {
             sessionOptions.addCUDA(ProgramSettings.getCurrentSettings().getGpuDeviceId());
         } else {
-            sessionOptions.addCPU(false);
+            sessionOptions.addCPU(true);
             sessionOptions.setInterOpNumThreads(1);
             sessionOptions.setIntraOpNumThreads(1);
         }

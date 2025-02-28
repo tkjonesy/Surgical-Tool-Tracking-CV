@@ -39,7 +39,7 @@ public class YoloV8 extends Yolo {
 
         float INPUT_SIZE = settings.getInputSize();
 
-        float gain = Math.min((float) INPUT_SIZE / orgW, (float) INPUT_SIZE / orgH);
+        float gain = Math.min(INPUT_SIZE / orgW, INPUT_SIZE / orgH);
         float padW = (INPUT_SIZE - orgW * gain) * 0.5f;
         float padH = (INPUT_SIZE - orgH * gain) * 0.5f;
 

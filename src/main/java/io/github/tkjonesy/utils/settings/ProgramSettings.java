@@ -1,20 +1,21 @@
 package io.github.tkjonesy.utils.settings;
 
-import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.annotations.SettingsLabel;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
 @SuppressWarnings("unused")
 @Getter
 public class ProgramSettings {
+    private static final Logger logger = LogManager.getLogger(ProgramSettings.class);
+
 
     @Setter
     @Getter
@@ -27,10 +28,20 @@ public class ProgramSettings {
     private int cameraFps;
     @SettingsLabel(value = "cameraRotation", type = Integer.class)
     private int cameraRotation;
+    @SettingsLabel(value = "mirrorCamera", type = Boolean.class)
+    private boolean mirrorCamera;
+    @SettingsLabel(value = "preserveAspectRatio", type = Boolean.class)
+    private boolean preserveAspectRatio;
 
     // Storage variables
     @SettingsLabel(value = "fileDirectory", type = String.class)
     private String fileDirectory;
+    @SettingsLabel(value = "saveVideo", type = Boolean.class)
+    private boolean saveVideo;
+    @SettingsLabel(value = "saveLogsTEXT", type = Boolean.class)
+    private boolean saveLogsTEXT;
+    @SettingsLabel(value = "saveLogsCSV", type = Boolean.class)
+    private boolean saveLogsCSV;
 
     // AI settings
     @Setter
@@ -39,14 +50,18 @@ public class ProgramSettings {
     @Setter
     @SettingsLabel(value = "labelPath", type = String.class)
     private String labelPath;
-    @SettingsLabel(value = "processEveryNthFrame", type = Integer.class)
-    private int processEveryNthFrame;
     @SettingsLabel(value = "showBoundingBoxes", type = Boolean.class)
     private boolean showBoundingBoxes;
+    @SettingsLabel(value = "processEveryNthFrame", type = Integer.class)
+    private int processEveryNthFrame;
+    @SettingsLabel(value = "bufferThreshold", type = Integer.class)
+    private int bufferThreshold;
     @SettingsLabel(value = "confThreshold", type = Float.class)
     private float confThreshold;
 
     // Advanced AI settings
+    @SettingsLabel(value = "useGPU", type = Boolean.class)
+    private boolean useGPU;
     @SettingsLabel(value = "gpuDeviceId", type = Integer.class)
     private int gpuDeviceId;
     @SettingsLabel(value = "nmsThreshold", type = Float.class)
@@ -74,12 +89,7 @@ public class ProgramSettings {
             }
         }
         if(updateONNX){
-            try {
-                System.out.println("Updating ONNX model and label paths to: " + this.modelPath + ", " + this.labelPath);
-                App.getOnnxRunner().setInferenceSession(new YoloV8(this.modelPath, this.labelPath));
-            }catch (IOException | OrtException e) {
-                throw new RuntimeException(e);
-            }
+            App.getOnnxRunner().updateInferenceSession(modelPath, labelPath);
         }
 
         if(updateCamera){
@@ -112,7 +122,6 @@ public class ProgramSettings {
                 }
             }
         }
-        System.err.println("No setting found with label: " + label);
     }
 
     @Override
@@ -120,17 +129,23 @@ public class ProgramSettings {
         return "ProgramSettings{" +
                 "cameraDeviceId=" + cameraDeviceId +
                 ", cameraFps=" + cameraFps +
+                ", cameraRotation=" + cameraRotation +
+                ", mirrorCamera=" + mirrorCamera +
+                ", preserveAspectRatio=" + preserveAspectRatio +
                 ", fileDirectory='" + fileDirectory + '\'' +
+                ", saveVideo=" + saveVideo +
+                ", saveLogsTEXT=" + saveLogsTEXT +
+                ", saveLogsCSV=" + saveLogsCSV +
                 ", modelPath='" + modelPath + '\'' +
                 ", labelPath='" + labelPath + '\'' +
-                ", processEveryNthFrame=" + processEveryNthFrame +
                 ", showBoundingBoxes=" + showBoundingBoxes +
+                ", processEveryNthFrame=" + processEveryNthFrame +
+                ", bufferThreshold=" + bufferThreshold +
                 ", confThreshold=" + confThreshold +
+                ", useGPU=" + useGPU +
                 ", gpuDeviceId=" + gpuDeviceId +
                 ", nmsThreshold=" + nmsThreshold +
                 ", optimizationLevel=" + optimizationLevel +
-                ", numInputElements=" + numInputElements +
-                ", inputSize=" + inputSize +
                 '}';
     }
 

@@ -25,6 +25,9 @@ public class OnnxRunner {
 
     private static final Logger logger = LogManager.getLogger(OnnxRunner.class);
 
+    private final ProgramSettings settings = ProgramSettings.getCurrentSettings();
+
+
     private int logCounter = 1;
     @Getter
     private int peakObjectsSeen = 0; // Tracks the highest number of objects seen at once
@@ -32,7 +35,6 @@ public class OnnxRunner {
     /**
      * The YOLO inference session used to run the YOLO model.
      */
-    @Setter
     private Yolo inferenceSession;
 
     /**
@@ -63,8 +65,7 @@ public class OnnxRunner {
     @Getter
     private final HashMap<String, Integer> totalInstancesAdded = new HashMap<>();
 
-    @Setter
-    private int bufferThreshold = 3;
+    private int bufferThreshold;
 
     private boolean sessionActive = false;
 
@@ -76,18 +77,22 @@ public class OnnxRunner {
 
         this.startCountPerClass = new HashMap<>();
 
-        try {
-            ProgramSettings settings = ProgramSettings.getCurrentSettings();
-            this.inferenceSession = new YoloV8(settings.getModelPath(), settings.getLabelPath());
+        updateInferenceSession(settings.getModelPath(), settings.getLabelPath());
 
-        } catch (OrtException | IOException exception) {
-            JOptionPane.showMessageDialog(App.getInstance(), "An error occurred while loading the ONNX model: " + exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            logger.error("Error loading ONNX model: {}", exception.getMessage(), exception);
+    }
+
+    public void updateInferenceSession(String modelPath, String labelPath) {
+        try {
+            this.inferenceSession = new YoloV8(modelPath, labelPath);
+        }catch (IOException | OrtException e) {
+            JOptionPane.showMessageDialog(App.getInstance(), "An error occurred while loading the ONNX model: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            logger.error("Error loading ONNX model: {}", e.getMessage(), e);
         }
     }
 
     public void startSession(){
        System.out.println("🔄 Starting new tracking session.");
+       bufferThreshold = settings.getBufferThreshold();
     }
 
     public void endSession() {
