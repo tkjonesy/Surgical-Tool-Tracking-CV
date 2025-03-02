@@ -2,6 +2,7 @@ package io.github.tkjonesy.frontend.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.utils.EndSessionPopUp;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -198,6 +199,8 @@ public class FileSession {
             System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + sessionDirectory + "/logfile.log\u001B[0m");
         }
 
+        System.out.println("🔍 Debug: Calling EndSessionPopUp with: " + sessionDirectory);
+        EndSessionPopUp.showSessionEndDialog(sessionDirectory);
         onnxRunner.endSession();
     }
 
