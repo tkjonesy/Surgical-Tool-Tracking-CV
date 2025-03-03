@@ -60,6 +60,10 @@ public abstract class Yolo {
             isCudaAvailable = false;
         }
 
+        if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+            isCudaAvailable = false;
+        }
+
         // Get the input information
         Map<String, NodeInfo> inputMetaMap = this.session.getInputInfo();
         this.inputName = this.session.getInputNames().iterator().next();

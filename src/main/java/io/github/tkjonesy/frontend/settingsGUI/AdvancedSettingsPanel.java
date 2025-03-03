@@ -1,5 +1,7 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
+import io.github.tkjonesy.ONNX.Yolo;
+import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 
@@ -18,7 +20,7 @@ import java.util.stream.Collectors;
 public class AdvancedSettingsPanel extends JPanel {
 
     private final HashMap<String, Integer> gpuDevices = new HashMap<>();
-
+    private final JCheckBox useGPUCheckBox;
     private final JComboBox<String> gpuDeviceSelector;
     private final JSlider nmsThresholdSlider;
     private final JTextField nmsThresholdTextField;
@@ -34,12 +36,29 @@ public class AdvancedSettingsPanel extends JPanel {
         JLabel noticeLabel = new JLabel("<html><b>Only modify these settings if you truly understand their impact.</b></html>");
         noticeLabel.setForeground(Color.RED);
 
+        // Use GPU (Checkbox)
+        JLabel useGPULabel = new JLabel("Use GPU:");
+        useGPUCheckBox = new JCheckBox("");
+        useGPUCheckBox.setSelected(settings.isUseGPU() && YoloV8.isCudaAvailable());
+        useGPUCheckBox.setToolTipText("Enable GPU for inferencing.");
+        if (!YoloV8.isCudaAvailable()) {
+            useGPUCheckBox.setEnabled(false);
+            useGPUCheckBox.setSelected(false);
+            useGPUCheckBox.setToolTipText("GPU is not available.");
+        }
+
         // GPU Device Selector (Dropdown)
-        JLabel gpuDeviceLabel = new JLabel("GPU Device:");
         List<String> availableGPUs = detectAvailableGPUs();
         gpuDeviceSelector = new JComboBox<>(availableGPUs.toArray(new String[0]));
         gpuDeviceSelector.setSelectedIndex(settings.getGpuDeviceId());
         gpuDeviceSelector.setToolTipText("Select the GPU device to use (0 for default).");
+        gpuDeviceSelector.setVisible(useGPUCheckBox.isSelected());
+
+        useGPUCheckBox.addItemListener(e -> {
+            gpuDeviceSelector.setVisible(useGPUCheckBox.isSelected());
+            revalidate();
+            repaint();
+        });
 
         // NMS Threshold (Slider + TextField)
         JLabel nmsThresholdLabel = new JLabel("NMS Threshold:");
@@ -101,7 +120,9 @@ public class AdvancedSettingsPanel extends JPanel {
                 layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(noticeLabel)
                         .addGroup(layout.createSequentialGroup()
-                                .addComponent(gpuDeviceLabel)
+                                .addComponent(useGPULabel)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(useGPUCheckBox)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(gpuDeviceSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                         .addGroup(layout.createSequentialGroup()
@@ -133,7 +154,8 @@ public class AdvancedSettingsPanel extends JPanel {
                         .addComponent(noticeLabel)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                .addComponent(gpuDeviceLabel)
+                                .addComponent(useGPULabel)
+                                .addComponent(useGPUCheckBox)
                                 .addComponent(gpuDeviceSelector))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)

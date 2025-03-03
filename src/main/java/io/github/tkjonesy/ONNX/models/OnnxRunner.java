@@ -65,6 +65,7 @@ public class OnnxRunner {
     @Getter
     private final HashMap<String, Integer> totalInstancesAdded = new HashMap<>();
 
+    @Setter
     private int bufferThreshold;
 
     private boolean sessionActive = false;

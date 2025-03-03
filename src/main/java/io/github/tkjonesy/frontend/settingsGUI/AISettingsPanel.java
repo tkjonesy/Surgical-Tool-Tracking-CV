@@ -22,7 +22,11 @@ public class AISettingsPanel extends JPanel {
     private final JComboBox<String> labelSelector;
 
     @Getter
+    private final JCheckBox boundingBoxCheckbox;
+    @Getter
     private final JSpinner processEveryNthFrameSpinner;
+    @Getter
+    private final JSpinner bufferThresholdSpinner;
     @Getter
     private final JSlider confThresholdSlider;
     private final JTextField confThresholdTextField;
@@ -48,14 +52,23 @@ public class AISettingsPanel extends JPanel {
         labelSelector = new JComboBox<>(getFilesWithExtension(".names"));
         labelSelector.setSelectedItem(new File(settings.getLabelPath()).getName());
 
+        // Bounding box details
+        this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes:", settings.isShowBoundingBoxes());
+        boundingBoxCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
+        boundingBoxCheckbox.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
+
         // Process Every Nth Frame (Spinner)
         JLabel processNthLabel = new JLabel("Process Every Nth Frame:");
         processEveryNthFrameSpinner = new JSpinner(new SpinnerNumberModel(settings.getProcessEveryNthFrame(), 15, 1000, 1));
         processEveryNthFrameSpinner.setToolTipText("Controls how often the AI processes frames. Higher values improve performance.");
 
+        // Buffer threshold (Spinner)
+        JLabel bufferThresholdLabel = new JLabel("Buffer Threshold:");
+        this.bufferThresholdSpinner = new JSpinner(new SpinnerNumberModel(settings.getBufferThreshold(), 0, 100, 1));
+        bufferThresholdSpinner.setToolTipText("Controls the number of inferences in a row before a label is considered valid.");
+
         // Confidence Threshold (Slider + Editable TextField)
         JLabel confThresholdLabel = new JLabel("Confidence Threshold:");
-
         this.confThresholdSlider = new JSlider(0, 100, (int) (settings.getConfThreshold() * 100));
         confThresholdSlider.setMajorTickSpacing(10);
         confThresholdSlider.setMinorTickSpacing(5);
@@ -115,9 +128,20 @@ public class AISettingsPanel extends JPanel {
                         )
                         .addGroup(
                                 modelLayout.createSequentialGroup()
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(boundingBoxCheckbox)
+                        )
+                        .addGroup(
+                                modelLayout.createSequentialGroup()
                                         .addComponent(processNthLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(processEveryNthFrameSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
+                        .addGroup(
+                                modelLayout.createSequentialGroup()
+                                        .addComponent(bufferThresholdLabel)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(bufferThresholdSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addGroup(
                                 modelLayout.createSequentialGroup()
@@ -125,7 +149,7 @@ public class AISettingsPanel extends JPanel {
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(confThresholdSlider, GroupLayout.PREFERRED_SIZE, 150, GroupLayout.PREFERRED_SIZE)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(confThresholdTextField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE) // Updated to use TextField instead of Label
+                                        .addComponent(confThresholdTextField, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
         );
 
@@ -149,16 +173,28 @@ public class AISettingsPanel extends JPanel {
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
                                 modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(boundingBoxCheckbox)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(processNthLabel)
                                         .addComponent(processEveryNthFrameSpinner)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
                                 modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(bufferThresholdLabel)
+                                        .addComponent(bufferThresholdSpinner)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(confThresholdLabel)
                                         .addComponent(confThresholdSlider)
-                                        .addComponent(confThresholdTextField) // Updated for proper alignment
+                                        .addComponent(confThresholdTextField)
                         )
+
         );
         this.setLayout(modelLayout);
 

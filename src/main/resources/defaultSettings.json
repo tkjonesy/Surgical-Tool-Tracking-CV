@@ -6,6 +6,7 @@
   "labelPath": "/ai_models/yolo11m.names",
   "processEveryNthFrame": 30,
   "showBoundingBoxes": true,
+  "bufferThreshold": 3,
   "confThreshold": 0.6,
   "gpuDeviceId": 0,
   "nmsThreshold": 0.45,

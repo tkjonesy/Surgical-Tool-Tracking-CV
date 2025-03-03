@@ -78,20 +78,25 @@ public class ProgramSettings {
     // -------------------------------------------------------------------------
 
     public void updateSettings(HashMap<String, Object> newSettings) {
-        boolean updateONNX = false, updateCamera = false;
+        boolean updateONNX = false, updateCamera = false, updateBuffer = false;
         for (String key : newSettings.keySet()) {
             setSettings(key, newSettings.get(key));
-            if(key.equals("modelPath") || key.equals("labelPath")){
+            if(key.equals("modelPath") || key.equals("labelPath") || key.equals("useGPU")){
                 updateONNX = true;
             }
             if(key.equals("cameraDeviceId")){
                 updateCamera = true;
             }
+            if(key.equals("bufferThreshold")){
+                updateBuffer = true;
+            }
         }
         if(updateONNX){
             App.getOnnxRunner().updateInferenceSession(modelPath, labelPath);
         }
-
+        if(updateBuffer){
+            App.getOnnxRunner().setBufferThreshold(bufferThreshold);
+        }
         if(updateCamera){
             App.getInstance().updateCamera((int)newSettings.get("cameraDeviceId"));
         }

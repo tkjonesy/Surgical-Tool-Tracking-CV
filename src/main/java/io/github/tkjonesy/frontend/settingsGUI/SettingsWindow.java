@@ -35,11 +35,13 @@ public class SettingsWindow extends JDialog {
     private JSlider cameraRotationSlider;
 
     private JSpinner processEveryNthFrameSpinner;
+    private JSpinner bufferThresholdSpinner;
     private JSlider confThresholdSlider;
     private JCheckBox boundingBoxCheckbox;
 
     private JComboBox<String> modelSelector, labelSelector;
 
+    private JCheckBox useGPUCheckbox;
     private JComboBox<String> gpuDeviceSelector;
     private JSlider nmsThresholdSlider;
     private JComboBox<String> optimizationLevelComboBox;
@@ -85,7 +87,6 @@ public class SettingsWindow extends JDialog {
         JPanel cameraPanel = new JPanel();
         JLabel cameraSelectorLabel = new JLabel("Camera Selection");
         this.cameraSelector = new JComboBox<>();
-        this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes", settings.isShowBoundingBoxes());
         JLabel cameraFpsLabel = new JLabel("Camera Frames Per Second");
         this.cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraFps(), 0, 60, 1));
         JLabel cameraFpsWarningLabel = new JLabel("");
@@ -100,10 +101,6 @@ public class SettingsWindow extends JDialog {
                 cameraSelector.setSelectedIndex(itemIndex);
             itemIndex++;
         }
-
-        // Bounding box details
-        boundingBoxCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
-        boundingBoxCheckbox.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
 
         // Camera FPS details
         cameraFpsSpinner.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
@@ -148,7 +145,6 @@ public class SettingsWindow extends JDialog {
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
-                        .addComponent(boundingBoxCheckbox)
                         .addGroup(
                                 cameraSettingsLayout.createSequentialGroup()
                                         .addComponent(cameraFpsLabel)
@@ -172,8 +168,6 @@ public class SettingsWindow extends JDialog {
                                         .addComponent(cameraSelectorLabel)
                                         .addComponent(cameraSelector)
                         )
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(boundingBoxCheckbox)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
@@ -277,6 +271,8 @@ public class SettingsWindow extends JDialog {
         AISettingsPanel modelPanel = new AISettingsPanel();
         this.modelSelector = modelPanel.getModelSelector();
         this.labelSelector = modelPanel.getLabelSelector();
+        this.boundingBoxCheckbox = modelPanel.getBoundingBoxCheckbox();
+        this.bufferThresholdSpinner = modelPanel.getBufferThresholdSpinner();
         this.processEveryNthFrameSpinner = modelPanel.getProcessEveryNthFrameSpinner();
         this.confThresholdSlider = modelPanel.getConfThresholdSlider();
 
@@ -286,6 +282,7 @@ public class SettingsWindow extends JDialog {
         +------------------*/
 
         AdvancedSettingsPanel advancedPanel = new AdvancedSettingsPanel();
+        this.useGPUCheckbox = advancedPanel.getUseGPUCheckBox();
         this.gpuDeviceSelector = advancedPanel.getGpuDeviceSelector();
         this.nmsThresholdSlider = advancedPanel.getNmsThresholdSlider();
         this.optimizationLevelComboBox = advancedPanel.getOptimizationLevelComboBox();
@@ -364,6 +361,7 @@ public class SettingsWindow extends JDialog {
 
     private void initListeners() {
 
+        // CAMERA LISTENERS -----------------------------------------------
         addSettingChangeListener(cameraSelector, (ActionListener)
                 e -> {
                     String value = (String) cameraSelector.getSelectedItem();
@@ -394,16 +392,7 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
-        addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
-                e -> {
-                    boolean value = boundingBoxCheckbox.isSelected();
-                    System.out.println("Bounding boxes: " + boundingBoxCheckbox.isSelected());
-                    settingsUpdates.put("showBoundingBoxes", value);
-                    if(settings.isShowBoundingBoxes() == value)
-                        settingsUpdates.remove("showBoundingBoxes");
-                }
-        );
-
+        // MODEL LISTENERS -----------------------------------------------
         addSettingChangeListener(modelSelector, (ActionListener)
                 e -> {
                     String value = (String) modelSelector.getSelectedItem();
@@ -426,6 +415,16 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
+        addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
+                e -> {
+                    boolean value = boundingBoxCheckbox.isSelected();
+                    System.out.println("Bounding boxes: " + boundingBoxCheckbox.isSelected());
+                    settingsUpdates.put("showBoundingBoxes", value);
+                    if(settings.isShowBoundingBoxes() == value)
+                        settingsUpdates.remove("showBoundingBoxes");
+                }
+        );
+
         addSettingChangeListener(processEveryNthFrameSpinner, (ChangeListener)
                 e -> {
                     int value = (int) processEveryNthFrameSpinner.getValue();
@@ -433,6 +432,16 @@ public class SettingsWindow extends JDialog {
                     settingsUpdates.put("processEveryNthFrame", value);
                     if(settings.getProcessEveryNthFrame() == value)
                         settingsUpdates.remove("processEveryNthFrame");
+                }
+        );
+
+        addSettingChangeListener(bufferThresholdSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) bufferThresholdSpinner.getValue();
+                    System.out.println("Buffer threshold: " + bufferThresholdSpinner.getValue());
+                    settingsUpdates.put("bufferThreshold", value);
+                    if(settings.getBufferThreshold() == value)
+                        settingsUpdates.remove("bufferThreshold");
                 }
         );
 
@@ -445,6 +454,18 @@ public class SettingsWindow extends JDialog {
                         settingsUpdates.remove("confThreshold");
                 }
         );
+
+        // ADVANCED LISTENERS -----------------------------------------------
+        addSettingChangeListener(useGPUCheckbox, (ActionListener)
+                e -> {
+                    boolean value = useGPUCheckbox.isSelected();
+                    System.out.println("Use GPU: " + useGPUCheckbox.isSelected());
+                    settingsUpdates.put("useGPU", value);
+                    if(settings.isUseGPU() == value)
+                        settingsUpdates.remove("useGPU");
+                }
+        );
+
 
         addSettingChangeListener(gpuDeviceSelector, (ActionListener)
                 e -> {
