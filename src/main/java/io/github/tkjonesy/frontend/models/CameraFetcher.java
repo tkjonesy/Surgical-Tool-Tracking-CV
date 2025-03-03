@@ -168,11 +168,13 @@ public class CameraFetcher implements Runnable {
                         FileSession fileSession = sessionHandler.getFileSession();
                         VideoWriter writer = fileSession.getVideoWriter();
                         // Initializes the video writer
-                        if ((writer == null || !writer.isOpened())) {
+                        if ((writer == null || !writer.isOpened()) && settings.isSaveVideo()) {
                             fileSession.initVideoWriter(frame);
-                            onnxRunner.getLogQueue().addGreenLog("---Session started.---");
                         }
-                        fileSession.writeVideoFrame(frame);
+
+                        if(settings.isSaveVideo())
+                            fileSession.writeVideoFrame(frame);
+
                         if (currentFrame % settings.getProcessEveryNthFrame() == 0)
                             onnxRunner.processDetections(detections);
 

@@ -36,6 +36,10 @@ public class SettingsWindow extends JDialog {
     private JCheckBox mirrorCameraCheckbox;
     private JCheckBox preserveAspectRatioCheckbox;
 
+    private JCheckBox saveVideoCheckbox;
+    private JCheckBox saveLogsTextCheckbox;
+    private JCheckBox saveLogsCSVCheckbox;
+
     private JSpinner processEveryNthFrameSpinner;
     private JSpinner bufferThresholdSpinner;
     private JSlider confThresholdSlider;
@@ -268,6 +272,21 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
+        // Record video checkbox
+        JLabel saveVideoLabel = new JLabel("Record video");
+        this.saveVideoCheckbox = new JCheckBox();
+        this.saveVideoCheckbox.setSelected(settings.isSaveVideo());
+
+        // Save logs to text checkbox
+        JLabel saveLogsTextLabel = new JLabel("Save logs to text");
+        this.saveLogsTextCheckbox = new JCheckBox();
+        this.saveLogsTextCheckbox.setSelected(settings.isSaveLogsTEXT());
+
+        // Save logs to csv checkbox
+        JLabel saveLogsCSVLabel = new JLabel("Save logs to csv");
+        this.saveLogsCSVCheckbox = new JCheckBox();
+        this.saveLogsCSVCheckbox.setSelected(settings.isSaveLogsCSV());
+
         GroupLayout storageLayout = new GroupLayout(storagePanel);
         storageLayout.setAutoCreateContainerGaps(true);
         storageLayout.setHorizontalGroup(
@@ -444,6 +463,35 @@ public class SettingsWindow extends JDialog {
                     settingsUpdates.put("preserveAspectRatio", value);
                     if(settings.isPreserveAspectRatio() == value)
                         settingsUpdates.remove("preserveAspectRatio");
+                }
+        );
+
+        // STORAGE LISTENERS -----------------------------------------------
+        addSettingChangeListener(saveVideoCheckbox, (ActionListener)
+                e -> {
+                    boolean value = saveVideoCheckbox.isSelected();
+                    System.out.println("Save video: " + saveVideoCheckbox.isSelected());
+                    settingsUpdates.put("saveVideo", value);
+                    if(settings.isSaveVideo() == value)
+                        settingsUpdates.remove("saveVideo");
+                }
+        );
+        addSettingChangeListener(saveLogsTextCheckbox, (ActionListener)
+                e -> {
+                    boolean value = saveLogsTextCheckbox.isSelected();
+                    System.out.println("Save logs to text: " + saveLogsTextCheckbox.isSelected());
+                    settingsUpdates.put("saveLogsTEXT", value);
+                    if(settings.isSaveLogsTEXT() == value)
+                        settingsUpdates.remove("saveLogsTEXT");
+                }
+        );
+        addSettingChangeListener(saveLogsCSVCheckbox, (ActionListener)
+                e -> {
+                    boolean value = saveLogsCSVCheckbox.isSelected();
+                    System.out.println("Save logs to csv: " + saveLogsCSVCheckbox.isSelected());
+                    settingsUpdates.put("saveLogsCSV", value);
+                    if(settings.isSaveLogsCSV() == value)
+                        settingsUpdates.remove("saveLogsCSV");
                 }
         );
 

@@ -36,6 +36,7 @@ public class SessionHandler {
             return false;
         }
 
+        onnxRunner.getLogQueue().addGreenLog("---Session started.---");
         this.isActive = new AtomicBoolean(true);
         return true;
     }

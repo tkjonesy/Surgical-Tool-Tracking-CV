@@ -2,12 +2,21 @@
   "cameraDeviceId": 0,
   "cameraFps": 30,
   "cameraRotation": 0,
+  "mirrorCamera": true,
+  "preserveAspectRatio": true,
+
+  "saveVideo": true,
+  "saveLogsTEXT": true,
+  "saveLogsCSV": true,
+
   "modelPath": "/ai_models/yolo11m.onnx",
   "labelPath": "/ai_models/yolo11m.names",
   "processEveryNthFrame": 30,
   "showBoundingBoxes": true,
   "bufferThreshold": 3,
   "confThreshold": 0.6,
+
+  "useGPU": true,
   "gpuDeviceId": 0,
   "nmsThreshold": 0.45,
   "optimizationLevel": "ALL_OPT",

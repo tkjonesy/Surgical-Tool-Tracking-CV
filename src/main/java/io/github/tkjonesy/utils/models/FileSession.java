@@ -2,9 +2,11 @@ package io.github.tkjonesy.utils.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Program;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_videoio.VideoWriter;
 import static org.bytedeco.opencv.global.opencv_imgproc.resize;
@@ -23,6 +25,8 @@ import static io.github.tkjonesy.utils.Paths.AIMS_SESSIONS_DIRECTORY;
  * initialization, writing to files, and cleanup of resources.
  */
 public class FileSession {
+
+    private final ProgramSettings settings = ProgramSettings.getCurrentSettings();
 
     private Instant startTime;
     private final OnnxRunner onnxRunner;
@@ -82,11 +86,15 @@ public class FileSession {
         }
 
         // Initialize BufferedWriter for saving logs
-        this.logBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/logfile.log", true));
+        if(settings.isSaveLogsTEXT()) {
+            this.logBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/logfile.log", true));
+        }
 
         // Initialize BufferedWriter for saving CSVs
-        this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
-        csvBufferedWriter.write("Timestamp,LogNumber,Object,Action\n");
+        if(settings.isSaveLogsCSV()) {
+            this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
+            csvBufferedWriter.write("Timestamp,LogNumber,Object,Action\n");
+        }
 
         System.out.println("\u001B[32m☑ FileSession started successfully. Files will be saved to: " + sessionDirectory + "\u001B[0m");
     }
@@ -104,9 +112,10 @@ public class FileSession {
         String videoPath = sessionDirectory + "/recording.mp4";
         int codec = VideoWriter.fourcc((byte) 'a', (byte) 'v', (byte) 'c', (byte) '1');
 
-        videoWriter = new VideoWriter(videoPath, codec, 30.0, videoFrameSize, true);
+        if(settings.isSaveVideo())
+            videoWriter = new VideoWriter(videoPath, codec, 30.0, videoFrameSize, true);
 
-        if (!videoWriter.isOpened()) {
+        if (settings.isSaveVideo() && !videoWriter.isOpened()) {
             throw new IllegalStateException("Failed to open VideoWriter with path: " + videoPath);
         }
     }
@@ -150,9 +159,13 @@ public class FileSession {
         if (logBufferedWriter != null) {
             try {
                 String fullMessage = log.getTimeStamp() + " - " + log.getMessage();
-                this.logBufferedWriter.write(fullMessage + "\n");
+                if(settings.isSaveLogsTEXT())
+                    this.logBufferedWriter.write(fullMessage + "\n");
+
                 String[]parsedMessage = parseLogMessage(log.getMessage());
-                this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "\n");
+                if(settings.isSaveLogsCSV())
+                    this.csvBufferedWriter.write(log.getTimeStamp() + "," + parsedMessage[0] + "," + parsedMessage[1] + "," + parsedMessage[2] + "\n");
+
             } catch (IOException e) {
                 System.err.println("IO Exception writing log to file: " + e.getMessage());
             }
