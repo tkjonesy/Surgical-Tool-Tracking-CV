@@ -6,7 +6,6 @@ import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
-import org.bytedeco.opencv.opencv_core.Program;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_videoio.VideoWriter;
 import static org.bytedeco.opencv.global.opencv_imgproc.resize;
@@ -35,6 +34,14 @@ public class FileSession {
     private final String sessionDescription;
     private String sessionDirectory;
 
+    /** VideoWriter for saving video frames to a file. */
+    @Getter
+    private VideoWriter videoWriter = null;
+
+    /** BufferedWriter for saving log messages to a .log file. */
+    private BufferedWriter logBufferedWriter = null;
+    private BufferedWriter csvBufferedWriter = null;
+
     // Field to store the intended frame size for the video
     private Size videoFrameSize;
 
@@ -50,35 +57,20 @@ public class FileSession {
         }
     }
 
-
-    /** VideoWriter for saving video frames to a file. */
-    @Getter
-    private VideoWriter videoWriter = null;
-
-    /** BufferedWriter for saving log messages to a .log file. */
-    private BufferedWriter logBufferedWriter = null;
-    private BufferedWriter csvBufferedWriter = null;
-
-
-
-
     /**
      * Starts a new session by creating a directory and initializing resources for saving video and log files.
      */
     public void startNewSession() throws IOException {
-        System.out.println("\u001B[33m☐ Starting new FileSession...\u001B[0m");
-
         onnxRunner.startSession();
 
         if (logHandler != null) {
             logHandler.clearLogPane();
-            System.out.println("🔄 Log panel fully reset.");
         }
 
         startTime = Instant.now();
 
         String dateTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmm"));
-        this.sessionDirectory = AIMS_SESSIONS_DIRECTORY + "/" + this.title + "_" + dateTime;
+        this.sessionDirectory = settings.getFileDirectory() + "/" + this.title + "_" + dateTime;
 
         // Create the session directory
         if (!new java.io.File(sessionDirectory).mkdir()) {
@@ -95,8 +87,6 @@ public class FileSession {
             this.csvBufferedWriter = new BufferedWriter(new FileWriter(sessionDirectory + "/log.csv", true));
             csvBufferedWriter.write("Timestamp,LogNumber,Object,Action\n");
         }
-
-        System.out.println("\u001B[32m☑ FileSession started successfully. Files will be saved to: " + sessionDirectory + "\u001B[0m");
     }
 
 
@@ -112,10 +102,9 @@ public class FileSession {
         String videoPath = sessionDirectory + "/recording.mp4";
         int codec = VideoWriter.fourcc((byte) 'a', (byte) 'v', (byte) 'c', (byte) '1');
 
-        if(settings.isSaveVideo())
-            videoWriter = new VideoWriter(videoPath, codec, 30.0, videoFrameSize, true);
+        videoWriter = new VideoWriter(videoPath, codec, 30.0, videoFrameSize, true);
 
-        if (settings.isSaveVideo() && !videoWriter.isOpened()) {
+        if (!videoWriter.isOpened()) {
             throw new IllegalStateException("Failed to open VideoWriter with path: " + videoPath);
         }
     }
@@ -199,18 +188,18 @@ public class FileSession {
     public void endSession() {
         System.out.println("\u001B[33m☐ Ending current FileSession...\u001B[0m");
 
-        destroyVideoWriter();
+        if(settings.isSaveVideo())
+            destroyVideoWriter();
 
-        closeLogWriter();
-        closeCsvWriter();
+        if(settings.isSaveLogsTEXT())
+            closeLogWriter();
+
+        if(settings.isSaveLogsCSV())
+            closeCsvWriter();
 
         Duration recordDuration = Duration.between(startTime, Instant.now());
 
         generateAAR(recordDuration);
-
-        if(logBufferedWriter == null) {
-            System.out.println("\u001B[32m☑ FileSession ended successfully. Log file saved to: " + sessionDirectory + "/logfile.log\u001B[0m");
-        }
 
         onnxRunner.endSession();
     }

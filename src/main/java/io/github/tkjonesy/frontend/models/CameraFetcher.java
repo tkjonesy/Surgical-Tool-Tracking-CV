@@ -177,8 +177,6 @@ public class CameraFetcher implements Runnable {
 
                         if (currentFrame % settings.getProcessEveryNthFrame() == 0)
                             onnxRunner.processDetections(detections);
-
-
                     }
                 }
                 frame.release();

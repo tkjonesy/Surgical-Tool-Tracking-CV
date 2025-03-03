@@ -36,6 +36,11 @@ public class SettingsWindow extends JDialog {
     private JCheckBox mirrorCameraCheckbox;
     private JCheckBox preserveAspectRatioCheckbox;
 
+    private JButton folderSelectorButton;
+    private JLabel selectedFolderLabel;
+    private File[] selectedFolder;
+    private JRadioButtonMenuItem defaultSaveOption;
+    private JRadioButtonMenuItem customSaveOption;
     private JCheckBox saveVideoCheckbox;
     private JCheckBox saveLogsTextCheckbox;
     private JCheckBox saveLogsCSVCheckbox;
@@ -230,47 +235,27 @@ public class SettingsWindow extends JDialog {
         JPanel storagePanel = new JPanel();
         JLabel storageSelectorLabel = new JLabel("File Save Location");
         ButtonGroup storageSelectorGroup = new ButtonGroup();
-        JRadioButtonMenuItem defaultSaveOption = new JRadioButtonMenuItem("Default");
-        JRadioButtonMenuItem customSaveOption = new JRadioButtonMenuItem("Custom");
+        this.defaultSaveOption = new JRadioButtonMenuItem("Default");
+        this.customSaveOption = new JRadioButtonMenuItem("Custom");
         storageSelectorGroup.add(defaultSaveOption);
         storageSelectorGroup.add(customSaveOption);
-        defaultSaveOption.setSelected(true); // TODO this needs to pull from a custom setting later such that it sets the correct selection
+        String settingsFileDirectory = settings.getFileDirectory();
+        if(settingsFileDirectory!=null && settingsFileDirectory.equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
+            defaultSaveOption.setSelected(true);
+        else
+            customSaveOption.setSelected(true);
 
-        // TODO This needs to integrate and save the selected custom directory in the settings file. If custom storage is saved as the selection in settings, this needs to retain the last picked folder
+        // TODO: Do not let the directory enter the ROOT directory
         // Logic for folder selector
-        final File[] selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
-        JButton folderSelectorButton = new JButton("Choose Folder...");
-        JLabel selectedFolderLabel = new JLabel(""); // TODO this needs to pull the custom directory from settings
+        selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
+        this.folderSelectorButton = new JButton("Choose Folder...");
+        if(settings.getFileDirectory().equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
+            selectedFolderLabel = new JLabel(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
+        else
+            selectedFolderLabel = new JLabel(settings.getFileDirectory());
+
         folderSelectorButton.setEnabled(!defaultSaveOption.isSelected());
-        folderSelectorButton.addActionListener(e -> {
-            JFileChooser folderChooser = new JFileChooser();
-            folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            folderChooser.setAcceptAllFileFilterUsed(false);
 
-            int returnVal = folderChooser.showOpenDialog(SettingsWindow.this);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                selectedFolder[0] = folderChooser.getSelectedFile();
-                selectedFolderLabel.setText(selectedFolder[0].getAbsolutePath());
-                System.out.println("Selected Folder: " + selectedFolder[0].getAbsolutePath());
-            }
-        });
-
-        // TODO consider moving this to the initListeners() function instead of keeping it in block
-        // ! Keeping it in block would keep code cleaner, but removal makes it more consistent.
-        //Event Listeners for buttons
-        defaultSaveOption.addActionListener(
-                e -> {
-                    folderSelectorButton.setEnabled(false);
-                    System.out.println("default saving selected");
-                }
-        );
-
-        customSaveOption.addActionListener(
-                e -> {
-                    folderSelectorButton.setEnabled(true);
-                    System.out.println("custom saving selected");
-                }
-        );
 
         // Record video checkbox
         JLabel saveVideoLabel = new JLabel("Record video");
@@ -467,6 +452,43 @@ public class SettingsWindow extends JDialog {
         );
 
         // STORAGE LISTENERS -----------------------------------------------
+
+        addSettingChangeListener(customSaveOption, (ActionListener)
+                e -> {
+                    folderSelectorButton.setEnabled(true);
+                    settingsUpdates.put("fileDirectory", selectedFolderLabel.getText());
+                    System.out.println("File directory: " + selectedFolderLabel.getText());
+                    if(settings.getFileDirectory().equals(selectedFolderLabel.getText()))
+                        settingsUpdates.remove("fileDirectory");
+                }
+        );
+
+        addSettingChangeListener(defaultSaveOption, (ActionListener)
+                e -> {
+                    folderSelectorButton.setEnabled(false);
+                    selectedFolderLabel.setText(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
+                    settingsUpdates.put("fileDirectory", Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
+                    if(settings.getFileDirectory().equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
+                        settingsUpdates.remove("fileDirectory");
+                }
+        );
+
+        addSettingChangeListener(folderSelectorButton, (ActionListener)
+                e -> {
+                    JFileChooser folderChooser = new JFileChooser();
+                    folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    folderChooser.setAcceptAllFileFilterUsed(false);
+
+                    int returnVal = folderChooser.showOpenDialog(SettingsWindow.this);
+                    if (returnVal == JFileChooser.APPROVE_OPTION) {
+                        selectedFolder[0] = folderChooser.getSelectedFile();
+                        selectedFolderLabel.setText(selectedFolder[0].getAbsolutePath());
+                        System.out.println("Selected Folder: " + selectedFolder[0].getAbsolutePath());
+                        settingsUpdates.put("fileDirectory", selectedFolder[0].getAbsolutePath());
+                    }
+                }
+        );
+
         addSettingChangeListener(saveVideoCheckbox, (ActionListener)
                 e -> {
                     boolean value = saveVideoCheckbox.isSelected();
