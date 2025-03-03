@@ -33,6 +33,8 @@ public class SettingsWindow extends JDialog {
     private JComboBox<String> cameraSelector;
     private JSpinner cameraFpsSpinner;
     private JSlider cameraRotationSlider;
+    private JCheckBox mirrorCameraCheckbox;
+    private JCheckBox preserveAspectRatioCheckbox;
 
     private JSpinner processEveryNthFrameSpinner;
     private JSpinner bufferThresholdSpinner;
@@ -118,7 +120,6 @@ public class SettingsWindow extends JDialog {
 
         // Camera Rotation (Slider)
         JLabel cameraRotationLabel = new JLabel("Camera Rotation:");
-
         this.cameraRotationSlider = new JSlider(0, 270, settings.getCameraRotation());
         cameraRotationSlider.setMajorTickSpacing(90);  // Only allow 0, 90, 180, 270
         cameraRotationSlider.setSnapToTicks(true);
@@ -132,6 +133,16 @@ public class SettingsWindow extends JDialog {
         labelTable.put(180, new JLabel("180"));
         labelTable.put(270, new JLabel("270"));
         cameraRotationSlider.setLabelTable(labelTable);
+
+        // Mirror camera checkbox
+        JLabel mirrorCameraLabel = new JLabel("Mirror Camera");
+        this.mirrorCameraCheckbox = new JCheckBox();
+        this.mirrorCameraCheckbox.setSelected(settings.isMirrorCamera());
+
+        // Preserve aspect ratio checkbox
+        JLabel preserveAspectRatioLabel = new JLabel("Preserve Aspect Ratio");
+        this.preserveAspectRatioCheckbox = new JCheckBox();
+        this.preserveAspectRatioCheckbox.setSelected(settings.isPreserveAspectRatio());
 
         // Layout
         GroupLayout cameraSettingsLayout = new GroupLayout(cameraPanel);
@@ -159,6 +170,18 @@ public class SettingsWindow extends JDialog {
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(cameraRotationSlider, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE) // Slider
                         )
+                        .addGroup(
+                                cameraSettingsLayout.createSequentialGroup()
+                                        .addComponent(mirrorCameraLabel)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(mirrorCameraCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
+                        .addGroup(
+                                cameraSettingsLayout.createSequentialGroup()
+                                        .addComponent(preserveAspectRatioLabel)
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(preserveAspectRatioCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
         );
 
         cameraSettingsLayout.setVerticalGroup(
@@ -180,6 +203,18 @@ public class SettingsWindow extends JDialog {
                                 cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(cameraRotationLabel)
                                         .addComponent(cameraRotationSlider)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(mirrorCameraLabel)
+                                        .addComponent(mirrorCameraCheckbox)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(preserveAspectRatioLabel)
+                                        .addComponent(preserveAspectRatioCheckbox)
                         )
         );
         cameraPanel.setLayout(cameraSettingsLayout);
@@ -384,11 +419,31 @@ public class SettingsWindow extends JDialog {
 
         addSettingChangeListener(cameraRotationSlider, (ChangeListener)
                 e -> {
-                    int value = (int) cameraRotationSlider.getValue();
+                    int value = cameraRotationSlider.getValue();
                     System.out.println("Camera rotation: " + cameraRotationSlider.getValue());
                     settingsUpdates.put("cameraRotation", value);
                     if(settings.getCameraRotation() == value)
                         settingsUpdates.remove("cameraRotation");
+                }
+        );
+
+        addSettingChangeListener(mirrorCameraCheckbox, (ActionListener)
+                e -> {
+                    boolean value = mirrorCameraCheckbox.isSelected();
+                    System.out.println("Mirror camera: " + mirrorCameraCheckbox.isSelected());
+                    settingsUpdates.put("mirrorCamera", value);
+                    if(settings.isMirrorCamera() == value)
+                        settingsUpdates.remove("mirrorCamera");
+                }
+        );
+
+        addSettingChangeListener(preserveAspectRatioCheckbox, (ActionListener)
+                e -> {
+                    boolean value = preserveAspectRatioCheckbox.isSelected();
+                    System.out.println("Preserve aspect ratio: " + preserveAspectRatioCheckbox.isSelected());
+                    settingsUpdates.put("preserveAspectRatio", value);
+                    if(settings.isPreserveAspectRatio() == value)
+                        settingsUpdates.remove("preserveAspectRatio");
                 }
         );
 

@@ -135,6 +135,10 @@ public class CameraFetcher implements Runnable {
                             case 270 -> ROTA = opencv_core.ROTATE_90_COUNTERCLOCKWISE;
                         }
 
+                        if(settings.isMirrorCamera()){
+                            opencv_core.flip(frame, frame, 1);
+                        }
+
                         opencv_core.rotate(frame, frame, ROTA);
 
                         // TODO: This is temporary way to show the session time. It should be moved to a more appropriate place.
