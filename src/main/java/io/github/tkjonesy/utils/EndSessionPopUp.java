@@ -16,15 +16,19 @@ public class EndSessionPopUp {
      */
     public static void showSessionEndDialog(String sessionTitle) {
         SwingUtilities.invokeLater(() -> {
-            int choice = JOptionPane.showConfirmDialog(
-                    null,
-                    "Would you like to open the session folder for: " + sessionTitle + "?",
+            Object[] options = {"Cancel",
+                    "Open session folder"};;
+            int choice = JOptionPane.showOptionDialog(null,
+                    "Would you like to open the session folder?",
                     "Session Ended",
                     JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[1]
             );
 
-            if (choice == JOptionPane.YES_OPTION) {
+            if (choice == JOptionPane.NO_OPTION) {
                 openSessionDirectory(sessionTitle);
             }
         });
