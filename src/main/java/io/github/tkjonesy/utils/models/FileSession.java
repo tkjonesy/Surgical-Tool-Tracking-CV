@@ -4,6 +4,7 @@ import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
+import io.github.tkjonesy.utils.EndSessionPopUp;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -205,7 +206,7 @@ public class FileSession {
         Duration recordDuration = Duration.between(startTime, Instant.now());
 
         generateAAR(recordDuration);
-
+        EndSessionPopUp.showSessionEndDialog(sessionDirectory);
         onnxRunner.endSession();
     }
 
@@ -223,6 +224,13 @@ public class FileSession {
         }
         formattedDuration.append(seconds).append(" seconds");
         return formattedDuration.toString().trim();
+    }
+
+    private String displayDescription(String description){
+        if (description == null || description.trim().isEmpty()) {
+            description = "No description provided";
+        }
+        return description;
     }
 
     private void generateAAR(Duration recordDuration) {
@@ -262,11 +270,12 @@ public class FileSession {
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String aarPath = sessionDirectory + "/AAR.txt";
 
+
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(aarPath))) {
             writer.write("After Action Report (AAR)\n");
             writer.write("==========================\n");
             writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
-            writer.write("Session Description: " + (sessionDescription != null ? sessionDescription : "No description provided") + "\n\n");
+            writer.write("Description: " + displayDescription(sessionDescription) + "\n\n");
             writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
             writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
@@ -294,7 +303,7 @@ public class FileSession {
             }
             writer.write("-----------------------------------------------------\n\n");
 
-            writer.write("Total Instances of Each Tool Ever Added:\n");
+            writer.write("Total Instances of Each Object Ever Added:\n");
             writer.write("-----------------------------------------------------\n");
             if (totalToolsAdded.isEmpty()) {
                 writer.write("None\n");
