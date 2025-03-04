@@ -1,5 +1,7 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
+import io.github.tkjonesy.frontend.settingsGUI.listenersANDevents.AISettingsListener;
+import io.github.tkjonesy.frontend.settingsGUI.listenersANDevents.BoundingBoxColorChangeEvent;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 
@@ -14,26 +16,27 @@ import java.util.Objects;
 import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
 
 
+@Getter
 public class AISettingsPanel extends JPanel {
 
-    @Getter
     private final JComboBox<String> modelSelector;
-    @Getter
     private final JComboBox<String> labelSelector;
 
-    @Getter
+    private int[] boundingBoxColor = new int[3];
+    private final JTextField rInputTextField;
+    private final JTextField gInputTextField;
+    private final JTextField bInputTextField;
+    private final JButton colorPreviewButton;
+
     private final JCheckBox boundingBoxCheckbox;
-    @Getter
     private final JCheckBox showLabelsCheckbox;
-    @Getter
     private final JCheckBox showConfidencesCheckbox;
-    @Getter
     private final JSpinner processEveryNthFrameSpinner;
-    @Getter
     private final JSpinner bufferThresholdSpinner;
-    @Getter
     private final JSlider confThresholdSlider;
     private final JTextField confThresholdTextField;
+
+    private final List<AISettingsListener> listeners = new ArrayList<>();
 
     public AISettingsPanel() {
         final ProgramSettings settings = ProgramSettings.getCurrentSettings();
@@ -55,6 +58,39 @@ public class AISettingsPanel extends JPanel {
         JLabel labelLabel = new JLabel("Label File:");
         labelSelector = new JComboBox<>(getFilesWithExtension(".names"));
         labelSelector.setSelectedItem(new File(settings.getLabelPath()).getName());
+
+        // Color Chooser
+        JLabel colorLabel = new JLabel("Bounding box color (RGB):");
+
+        int r = settings.getBoundingBoxColor()[0];
+        int g = settings.getBoundingBoxColor()[1];
+        int b = settings.getBoundingBoxColor()[2];
+
+        this.rInputTextField = new JTextField(String.valueOf(r), 3);
+        this.gInputTextField = new JTextField(String.valueOf(g), 3);
+        this.bInputTextField = new JTextField(String.valueOf(b), 3);
+
+        rInputTextField.addActionListener(e -> updateBoundingBoxColor());
+        gInputTextField.addActionListener(e -> updateBoundingBoxColor());
+        bInputTextField.addActionListener(e -> updateBoundingBoxColor());
+
+
+        // Small color preview button
+        // Small color preview button
+        this.colorPreviewButton = new JButton() {
+            @Override
+            public Dimension getPreferredSize() {
+                return new Dimension(30, 30); // Ensure a square size
+            }
+        };
+        colorPreviewButton.setBackground(new Color(r, g, b));
+        colorPreviewButton.setMinimumSize(new Dimension(30, 30));
+        colorPreviewButton.setMaximumSize(new Dimension(30, 30));
+        colorPreviewButton.setBorder(BorderFactory.createLineBorder(Color.BLACK)); // Optional for visibility
+
+
+        // Open Color Picker Popup
+        colorPreviewButton.addActionListener(e -> openColorChooser());
 
         // Bounding box details
         this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes:", settings.isShowBoundingBoxes());
@@ -140,6 +176,13 @@ public class AISettingsPanel extends JPanel {
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(labelSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
+                        .addGroup(modelLayout.createSequentialGroup()
+                                .addComponent(colorLabel)
+                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(rInputTextField)
+                                .addComponent(gInputTextField)
+                                .addComponent(bInputTextField)
+                                .addComponent(colorPreviewButton))
                         .addGroup(
                                 modelLayout.createSequentialGroup()
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
@@ -195,6 +238,13 @@ public class AISettingsPanel extends JPanel {
                                         .addComponent(labelSelector)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                .addComponent(colorLabel)
+                                .addComponent(rInputTextField)
+                                .addComponent(gInputTextField)
+                                .addComponent(bInputTextField)
+                                .addComponent(colorPreviewButton))
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
                                 modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(boundingBoxCheckbox)
@@ -248,6 +298,80 @@ public class AISettingsPanel extends JPanel {
         return files.toArray(new String[0]);
     }
 
+    private void openColorChooser() {
+        JColorChooser colorChooser = new JColorChooser(colorPreviewButton.getBackground());
+
+        removeUnwantedTabs(colorChooser);
+
+        // Create and show a custom color chooser dialog
+        JDialog colorDialog = JColorChooser.createDialog(
+                this,
+                "Choose Bounding Box Color",
+                true,
+                colorChooser,
+                e -> {
+                    Color selectedColor = colorChooser.getColor();
+                    if (selectedColor != null) {
+                        colorPreviewButton.setBackground(selectedColor);
+                        rInputTextField.setText(String.valueOf(selectedColor.getRed()));
+                        gInputTextField.setText(String.valueOf(selectedColor.getGreen()));
+                        bInputTextField.setText(String.valueOf(selectedColor.getBlue()));
+
+                        this.boundingBoxColor = new int[]{selectedColor.getRed(), selectedColor.getGreen(), selectedColor.getBlue()};
+                        fireBoundingBoxColorChangedEvent(boundingBoxColor);
+                    }
+                },
+                null
+        );
+
+        colorDialog.setVisible(true);
+    }
+
+    private void removeUnwantedTabs(JColorChooser colorChooser) {
+        for (Component comp : colorChooser.getComponents()) {
+            if (comp instanceof JTabbedPane tabbedPane) {
+                for (int i = tabbedPane.getTabCount() - 1; i >= 0; i--) {
+                    String title = tabbedPane.getTitleAt(i);
+                    if (!title.equals("Swatches") && !title.equals("RGB")) {
+                        tabbedPane.remove(i);
+                    }
+                }
+            }
+        }
+    }
+
+    private void updateBoundingBoxColor() {
+        try {
+            int r = Integer.parseInt(rInputTextField.getText());
+            int g = Integer.parseInt(gInputTextField.getText());
+            int b = Integer.parseInt(bInputTextField.getText());
+
+            // Ensure values are within valid RGB range (0-255)
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+
+            // Update text fields
+            rInputTextField.setText(String.valueOf(r));
+            gInputTextField.setText(String.valueOf(g));
+            bInputTextField.setText(String.valueOf(b));
+
+            // Update boundingBoxColor array
+            this.boundingBoxColor = new int[]{r, g, b};
+
+            // Update color preview
+            colorPreviewButton.setBackground(new Color(r, g, b));
+
+            // Fire the event
+            fireBoundingBoxColorChangedEvent(this.boundingBoxColor);
+
+        } catch (NumberFormatException ex) {
+            // Handle invalid input (non-numeric)
+            System.err.println("Invalid RGB input. Must be a number between 0-255.");
+        }
+    }
+
+
     // Open AI Models Directory in File Explorer
     private void openAIDirectory() {
         File dir = new File(AIMS_MODELS_DIRECTORY);
@@ -260,6 +384,23 @@ public class AISettingsPanel extends JPanel {
             Desktop.getDesktop().open(dir);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Failed to open AI Models directory!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Registers a listener for AI settings changes.
+     */
+    public void addAISettingsListener(AISettingsListener listener) {
+        listeners.add(listener);
+    }
+
+    /**
+     * Fires an event to all registered listeners when the bounding box color changes.
+     */
+    private void fireBoundingBoxColorChangedEvent(int[] newColor) {
+        BoundingBoxColorChangeEvent event = new BoundingBoxColorChangeEvent(newColor);
+        for (AISettingsListener listener : listeners) {
+            listener.onBoundingBoxColorChanged(event.newColor());
         }
     }
 }

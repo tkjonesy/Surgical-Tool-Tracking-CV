@@ -50,6 +50,8 @@ public class ProgramSettings {
     @Setter
     @SettingsLabel(value = "labelPath", type = String.class)
     private String labelPath;
+    @SettingsLabel(value = "boundingBoxColor", type = int[].class)
+    private int[] boundingBoxColor;
     @SettingsLabel(value = "showBoundingBoxes", type = Boolean.class)
     private boolean showBoundingBoxes;
     @SettingsLabel(value = "showLabels", type = Boolean.class)

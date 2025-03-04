@@ -48,6 +48,10 @@ public class SettingsWindow extends JDialog {
     private JSpinner processEveryNthFrameSpinner;
     private JSpinner bufferThresholdSpinner;
     private JSlider confThresholdSlider;
+    private JTextField rInputTextField;
+    private JTextField gInputTextField;
+    private JTextField bInputTextField;
+    private int[] boundingBoxColor;
     private JCheckBox boundingBoxCheckbox;
     private JCheckBox showLabelsCheckbox;
     private JCheckBox showConfidencesCheckbox;
@@ -242,7 +246,11 @@ public class SettingsWindow extends JDialog {
         storageSelectorGroup.add(defaultSaveOption);
         storageSelectorGroup.add(customSaveOption);
         String settingsFileDirectory = settings.getFileDirectory();
-        if(settingsFileDirectory!=null && settingsFileDirectory.equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
+
+        if(settingsFileDirectory==null)
+            settingsFileDirectory = Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY;
+
+        if(settingsFileDirectory.equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
             defaultSaveOption.setSelected(true);
         else
             customSaveOption.setSelected(true);
@@ -251,10 +259,7 @@ public class SettingsWindow extends JDialog {
         // Logic for folder selector
         selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
         this.folderSelectorButton = new JButton("Choose Folder...");
-        if(settings.getFileDirectory().equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
-            selectedFolderLabel = new JLabel(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
-        else
-            selectedFolderLabel = new JLabel(settings.getFileDirectory());
+        this.selectedFolderLabel = new JLabel(settingsFileDirectory);
 
         folderSelectorButton.setEnabled(!defaultSaveOption.isSelected());
 
@@ -312,12 +317,26 @@ public class SettingsWindow extends JDialog {
         AISettingsPanel modelPanel = new AISettingsPanel();
         this.modelSelector = modelPanel.getModelSelector();
         this.labelSelector = modelPanel.getLabelSelector();
+        this.rInputTextField = modelPanel.getRInputTextField();
+        this.gInputTextField = modelPanel.getGInputTextField();
+        this.bInputTextField = modelPanel.getBInputTextField();
+        this.boundingBoxColor = settings.getBoundingBoxColor();
         this.boundingBoxCheckbox = modelPanel.getBoundingBoxCheckbox();
         this.showLabelsCheckbox = modelPanel.getShowLabelsCheckbox();
         this.showConfidencesCheckbox = modelPanel.getShowConfidencesCheckbox();
         this.bufferThresholdSpinner = modelPanel.getBufferThresholdSpinner();
         this.processEveryNthFrameSpinner = modelPanel.getProcessEveryNthFrameSpinner();
         this.confThresholdSlider = modelPanel.getConfThresholdSlider();
+
+        modelPanel.addAISettingsListener(
+                newColor -> {
+                    System.out.println("Bounding box color changed: " + Arrays.toString(newColor));
+                    settingsUpdates.put("boundingBoxColor", newColor);
+                    if(Arrays.equals(settings.getBoundingBoxColor(), newColor))
+                        settingsUpdates.remove("boundingBoxColor");
+                    updateApplyButtonState();
+                }
+        );
 
 
         /*------------------+
@@ -543,6 +562,8 @@ public class SettingsWindow extends JDialog {
                         settingsUpdates.remove("labelPath");
                 }
         );
+
+
 
         addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
                 e -> {

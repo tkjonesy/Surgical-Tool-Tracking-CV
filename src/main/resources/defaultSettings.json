@@ -12,6 +12,7 @@
   "modelPath": "/ai_models/yolo11m.onnx",
   "labelPath": "/ai_models/yolo11m.names",
   "processEveryNthFrame": 30,
+  "boundingBoxColor": [255, 0, 0],
   "showBoundingBoxes": true,
   "showLabels": true,
   "showConfidences": true,

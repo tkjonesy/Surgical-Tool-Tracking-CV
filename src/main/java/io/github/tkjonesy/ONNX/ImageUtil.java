@@ -15,6 +15,7 @@ import static org.bytedeco.opencv.global.opencv_imgproc.LINE_8;
 import static org.bytedeco.opencv.global.opencv_core.copyMakeBorder;
 import static org.bytedeco.opencv.global.opencv_core.BORDER_CONSTANT;
 
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -104,7 +105,8 @@ public class ImageUtil {
 
         for (Detection detection : detectionList) {
             float[] bbox = detection.bbox();
-            Scalar color = new Scalar(249.0, 218.0, 60.0, 0.0);
+            int[] boundingBoxColor = settings.getBoundingBoxColor();
+            Scalar color = new Scalar(boundingBoxColor[2], boundingBoxColor[1], boundingBoxColor[0], 0);
             rectangle(img,                    // Matrix object of the image
                     new Point((int) bbox[0], (int) bbox[1]),      // Top-left point
                     new Point((int) bbox[2], (int) bbox[3]),      // Bottom-right point

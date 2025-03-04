@@ -108,6 +108,10 @@ public class CameraFetcher implements Runnable {
                     camera.read(frame);
                     Mat inferenceFrame = frame.clone();
 
+                    if(settings.isMirrorCamera()){
+                        opencv_core.flip(frame, frame, 1);
+                    }
+
                     // Every Nth frame, run object detection
                     if (++currentFrame % settings.getProcessEveryNthFrame() == 0) {
                         inferenceExecutor.submit(() -> {
@@ -133,10 +137,6 @@ public class CameraFetcher implements Runnable {
                             case 90 -> ROTA = opencv_core.ROTATE_90_CLOCKWISE;
                             case 180 -> ROTA = opencv_core.ROTATE_180;
                             case 270 -> ROTA = opencv_core.ROTATE_90_COUNTERCLOCKWISE;
-                        }
-
-                        if(settings.isMirrorCamera()){
-                            opencv_core.flip(frame, frame, 1);
                         }
 
                         opencv_core.rotate(frame, frame, ROTA);
