@@ -4,6 +4,7 @@ import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
+import io.github.tkjonesy.utils.EndSessionPopUp;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -205,7 +206,7 @@ public class FileSession {
         Duration recordDuration = Duration.between(startTime, Instant.now());
 
         generateAAR(recordDuration);
-
+        EndSessionPopUp.showSessionEndDialog(sessionDirectory);
         onnxRunner.endSession();
     }
 
