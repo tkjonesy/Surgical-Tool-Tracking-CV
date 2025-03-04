@@ -54,7 +54,7 @@ public abstract class Yolo {
             this.session = this.env.createSession(modelPath, sessionOptions);
             isCudaAvailable = true;
         } catch (OrtException e) {
-            JOptionPane.showMessageDialog(App.getInstance(), "Failed to create session with GPU, falling back to CPU: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "Failed to create session with GPU, falling back to CPU: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             sessionOptions = createSessionOptions(false);
             this.session = this.env.createSession(modelPath, sessionOptions);
             isCudaAvailable = false;

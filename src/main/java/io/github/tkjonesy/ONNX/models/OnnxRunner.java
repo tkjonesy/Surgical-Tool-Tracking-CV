@@ -21,6 +21,7 @@ import java.util.*;
  * using ONNX models. It manages model inference sessions, logging, and tracking of
  * detected classes.
  */
+@NoArgsConstructor(force = true)
 public class OnnxRunner {
 
     private static final Logger logger = LogManager.getLogger(OnnxRunner.class);
@@ -86,7 +87,7 @@ public class OnnxRunner {
         try {
             this.inferenceSession = new YoloV8(modelPath, labelPath);
         }catch (IOException | OrtException e) {
-            JOptionPane.showMessageDialog(App.getInstance(), "An error occurred while loading the ONNX model: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, "An error occurred while loading the ONNX model: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             logger.error("Error loading ONNX model: {}", e.getMessage(), e);
         }
     }
