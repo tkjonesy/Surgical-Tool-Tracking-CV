@@ -19,11 +19,11 @@ public class EndSessionPopUp {
      */
     public static void showSessionEndDialog(String sessionTitle) {
         SwingUtilities.invokeLater(() -> {
-            Object[] options = {"Cancel",
-                    "Open session folder"};
+            Object[] options = {"Open session folder",
+                    "Cancel"};
             String miniAAR = generateMiniAAR(sessionTitle);
             int choice = JOptionPane.showOptionDialog(null,
-                    miniAAR + "Would you like to open the session folder?",
+                    miniAAR + "\n\nWould you like to open the session folder?",
                     "Session Ended",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE,
@@ -32,7 +32,7 @@ public class EndSessionPopUp {
                     options[1]
             );
 
-            if (choice == JOptionPane.NO_OPTION) {
+            if (choice == JOptionPane.YES_OPTION) {
                 openSessionDirectory(sessionTitle);
             }
         });
@@ -77,7 +77,7 @@ public class EndSessionPopUp {
             boolean captureSection = false;
 
             for (String line : lines) {
-                if (line.contains("Recording Duration") || line.contains("Peak Objects Seen at Once")) {
+                if (line.contains("Session Name") || line.contains("Recording Duration") || line.contains("Peak Objects Seen at Once")) {
                     miniAAR.append(line).append("\n");
                 }
 
