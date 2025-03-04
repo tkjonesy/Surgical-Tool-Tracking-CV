@@ -83,7 +83,7 @@ public class EndSessionPopUp {
 
                 // Capture sections dynamically and include their content
                 if (line.contains("Objects Present at End") ||
-                        line.contains("Total Instances of Each Tool Ever Added") ||
+                        line.contains("Total Instances of Each Object Ever Added") ||
                         line.contains("Objects Removed During Session")) {
                     captureSection = true;
                     miniAAR.append("\n").append(line).append("\n");
