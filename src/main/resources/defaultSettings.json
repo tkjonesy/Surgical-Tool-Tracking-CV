@@ -5,6 +5,7 @@
   "mirrorCamera": true,
   "preserveAspectRatio": true,
 
+  "fileDirectory": null,
   "saveVideo": true,
   "saveLogsTEXT": true,
   "saveLogsCSV": true,

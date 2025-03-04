@@ -25,7 +25,6 @@ public class SessionHandler {
     public boolean startNewSession(String title, String description, OnnxRunner onnxRunner) {
         this.sessionTitle = title;
         this.sessionDescription = description;
-        this.startTime = Instant.now();
 
         try{
             this.fileSession = new FileSession(onnxRunner, title, description, logHandler); // Throws RunTimeException if fails
@@ -36,6 +35,7 @@ public class SessionHandler {
             return false;
         }
 
+        this.startTime = Instant.now();
         onnxRunner.getLogQueue().addGreenLog("---Session started.---");
         this.isActive = new AtomicBoolean(true);
         return true;

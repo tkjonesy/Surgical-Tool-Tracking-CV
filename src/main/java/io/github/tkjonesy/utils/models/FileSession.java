@@ -2,12 +2,16 @@ package io.github.tkjonesy.utils.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import org.bytedeco.opencv.opencv_videoio.VideoWriter;
+
+import javax.swing.*;
+
 import static org.bytedeco.opencv.global.opencv_imgproc.resize;
 
 import java.io.BufferedWriter;
@@ -16,8 +20,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.time.Duration;
 import java.time.Instant;
-
-import static io.github.tkjonesy.utils.Paths.AIMS_SESSIONS_DIRECTORY;
 
 /**
  * Represents a session for saving video and log files. Handles session lifecycle, including
@@ -53,7 +55,10 @@ public class FileSession {
         try{
             startNewSession(); // Throws IOException if fails
         }catch (IOException e) {
-            throw new RuntimeException("Failed to start new FileSession", e);
+            JOptionPane.showMessageDialog(App.getInstance(),
+                    "Failed to start session. "+e.getMessage(),
+                    "Session Start Failed", JOptionPane.ERROR_MESSAGE);
+            throw new RuntimeException("Failed to start new FileSession: "+e.getMessage(), e);
         }
     }
 

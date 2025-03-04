@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
 
 import static io.github.tkjonesy.utils.Paths.*;
 
@@ -44,6 +45,11 @@ public class SettingsLoader {
 
         // Save the settings to the file, then verify that the specified model and label files exist
         if(settings != null){
+
+            if(settings.getFileDirectory() == null){
+                settings.setFileDirectory(DEFAULT_AIMS_SESSIONS_DIRECTORY);
+            }
+
             saveSettings(settings);
             verifyModelAndLabels(settings);
         }

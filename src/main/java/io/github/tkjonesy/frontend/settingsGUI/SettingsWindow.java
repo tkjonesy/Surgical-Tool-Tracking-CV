@@ -242,7 +242,9 @@ public class SettingsWindow extends JDialog {
         JLabel storageSelectorLabel = new JLabel("File Save Location");
         ButtonGroup storageSelectorGroup = new ButtonGroup();
         this.defaultSaveOption = new JRadioButtonMenuItem("Default");
+        defaultSaveOption.setToolTipText("Save to default location: " + Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
         this.customSaveOption = new JRadioButtonMenuItem("Custom");
+        customSaveOption.setToolTipText("Save to custom location");
         storageSelectorGroup.add(defaultSaveOption);
         storageSelectorGroup.add(customSaveOption);
         String settingsFileDirectory = settings.getFileDirectory();
@@ -259,10 +261,10 @@ public class SettingsWindow extends JDialog {
         // Logic for folder selector
         selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
         this.folderSelectorButton = new JButton("Choose Folder...");
+        this.folderSelectorButton.setToolTipText("Select a folder to save files to");
         this.selectedFolderLabel = new JLabel(settingsFileDirectory);
 
         folderSelectorButton.setEnabled(!defaultSaveOption.isSelected());
-
 
         // Record video checkbox
         JLabel saveVideoLabel = new JLabel("Record video");
@@ -475,7 +477,6 @@ public class SettingsWindow extends JDialog {
         );
 
         // STORAGE LISTENERS -----------------------------------------------
-
         addSettingChangeListener(customSaveOption, (ActionListener)
                 e -> {
                     folderSelectorButton.setEnabled(true);
@@ -562,8 +563,6 @@ public class SettingsWindow extends JDialog {
                         settingsUpdates.remove("labelPath");
                 }
         );
-
-
 
         addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
                 e -> {

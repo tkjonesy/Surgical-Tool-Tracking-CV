@@ -74,19 +74,17 @@ public class AISettingsPanel extends JPanel {
         gInputTextField.addActionListener(e -> updateBoundingBoxColor());
         bInputTextField.addActionListener(e -> updateBoundingBoxColor());
 
-
-        // Small color preview button
         // Small color preview button
         this.colorPreviewButton = new JButton() {
             @Override
             public Dimension getPreferredSize() {
-                return new Dimension(30, 30); // Ensure a square size
+                return new Dimension(30, 30);
             }
         };
         colorPreviewButton.setBackground(new Color(r, g, b));
         colorPreviewButton.setMinimumSize(new Dimension(30, 30));
         colorPreviewButton.setMaximumSize(new Dimension(30, 30));
-        colorPreviewButton.setBorder(BorderFactory.createLineBorder(Color.BLACK)); // Optional for visibility
+        colorPreviewButton.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
 
         // Open Color Picker Popup
@@ -298,6 +296,7 @@ public class AISettingsPanel extends JPanel {
         return files.toArray(new String[0]);
     }
 
+    // Open Color Chooser Dialog
     private void openColorChooser() {
         JColorChooser colorChooser = new JColorChooser(colorPreviewButton.getBackground());
 
@@ -327,6 +326,7 @@ public class AISettingsPanel extends JPanel {
         colorDialog.setVisible(true);
     }
 
+    // Ensure only the "Swatches" and "RGB" tabs are visible
     private void removeUnwantedTabs(JColorChooser colorChooser) {
         for (Component comp : colorChooser.getComponents()) {
             if (comp instanceof JTabbedPane tabbedPane) {

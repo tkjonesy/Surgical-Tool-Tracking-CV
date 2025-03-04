@@ -34,6 +34,7 @@ public class ProgramSettings {
     private boolean preserveAspectRatio;
 
     // Storage variables
+    @Setter
     @SettingsLabel(value = "fileDirectory", type = String.class)
     private String fileDirectory;
     @SettingsLabel(value = "saveVideo", type = Boolean.class)
