@@ -13,24 +13,26 @@ import java.util.List;
  * prompting the user to open the sessions directory.
  */
 public class EndSessionPopUp {
-
     /**
-     * Displays a confirmation popup asking the user if they want to open the specific session directory
-     * and showing a mini AAR summary.
-     * @param sessionTitle The full path of the session directory.
+     * Displays a confirmation popup asking the user if they want to open the specific session directory.
+     * @param sessionTitle The title of the session, used to locate the session folder.
      */
     public static void showSessionEndDialog(String sessionTitle) {
         SwingUtilities.invokeLater(() -> {
+            Object[] options = {"Cancel",
+                    "Open session folder"};
             String miniAAR = generateMiniAAR(sessionTitle);
-            int choice = JOptionPane.showConfirmDialog(
-                    null,
-                    "Session Ended: " + sessionTitle + "\n" + miniAAR + "\n\nWould you like to open the session folder?",
+            int choice = JOptionPane.showOptionDialog(null,
+                    miniAAR + "Would you like to open the session folder?",
                     "Session Ended",
                     JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[1]
             );
 
-            if (choice == JOptionPane.YES_OPTION) {
+            if (choice == JOptionPane.NO_OPTION) {
                 openSessionDirectory(sessionTitle);
             }
         });

@@ -1,12 +1,6 @@
 package io.github.tkjonesy.ONNX;
 
-import ai.onnxruntime.NodeInfo;
-import ai.onnxruntime.OnnxJavaType;
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
-import ai.onnxruntime.TensorInfo;
+import ai.onnxruntime.*;
 
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -14,17 +8,14 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class Yolo {
 
     public OnnxJavaType inputType;
     protected final OrtEnvironment env;
-    protected final OrtSession session;
+    protected OrtSession session;
     protected final String inputName;
     public ArrayList<String> labelNames;
 
@@ -36,13 +27,32 @@ public abstract class Yolo {
 
         // Create the Onnx Runtime Environment and Session
         this.env = OrtEnvironment.getEnvironment();
+
+        EnumSet<OrtProvider> availableProviders = OrtEnvironment.getAvailableProviders();
+
+        System.out.println("Available providers: " + availableProviders);
+
         var sessionOptions = new OrtSession.SessionOptions();
-        sessionOptions.addCPU(false);
-        sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
+
+        if(availableProviders.contains(OrtProvider.CUDA)) {
+            try{
+                System.out.println("Found CUDA provider, attempting to use GPU");
+                sessionOptions = getSessionOptions(true);
+                this.env.createSession(modelPath, sessionOptions);
+                this.env.close();
+
+            }catch (OrtException e){
+                e.printStackTrace();
+                System.err.println("Failed to create session with GPU, falling back to CPU");
+                sessionOptions = getSessionOptions(false);
+            }
+
+        } else {
+            sessionOptions = getSessionOptions(false);
+        }
 
         // Set the session
         this.session = this.env.createSession(modelPath, sessionOptions);
-
         // Get the input information
         Map<String, NodeInfo> inputMetaMap = this.session.getInputInfo();
         this.inputName = this.session.getInputNames().iterator().next();
@@ -58,6 +68,20 @@ public abstract class Yolo {
             this.labelNames.add(line);
         }
     }
+
+    private OrtSession.SessionOptions getSessionOptions(boolean useGPU) throws OrtException {
+        OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
+        sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
+        if (useGPU) {
+            sessionOptions.addCUDA(ProgramSettings.getCurrentSettings().getGpuDeviceId());
+        } else {
+            sessionOptions.addCPU(false);
+            sessionOptions.setInterOpNumThreads(1);
+            sessionOptions.setIntraOpNumThreads(1);
+        }
+        return sessionOptions;
+    }
+
     public abstract List<Detection> run(Mat img) throws OrtException;
 
     // Compute the Intersection over Union (IoU) of two bounding boxes

@@ -1,4 +1,4 @@
-package io.github.tkjonesy.frontend.models;
+package io.github.tkjonesy.utils.models;
 
 import io.github.tkjonesy.ONNX.models.Log;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
@@ -29,14 +29,16 @@ public class FileSession {
     private final OnnxRunner onnxRunner;
     private final LogHandler logHandler;
     private final String title;
+    private final String sessionDescription;
     private String sessionDirectory;
 
     // Field to store the intended frame size for the video
     private Size videoFrameSize;
 
-    public FileSession(OnnxRunner onnxRunner, String title, LogHandler logHandler)  {
+    public FileSession(OnnxRunner onnxRunner, String title, String description, LogHandler logHandler)  {
         this.onnxRunner = onnxRunner;
         this.title = title;
+        this.sessionDescription = description;
         this.logHandler = logHandler;
         try{
             startNewSession(); // Throws IOException if fails
@@ -97,7 +99,7 @@ public class FileSession {
      * @param frame The first frame, used to determine video properties such as size and format.
      * @throws IllegalStateException if the session is not active.
      */
-    protected void initVideoWriter(Mat frame) throws IllegalStateException {
+    public void initVideoWriter(Mat frame) throws IllegalStateException {
         // Set the intended video frame size based on the first frame
         videoFrameSize = new Size(frame.cols(), frame.rows());
         String videoPath = sessionDirectory + "/recording.mp4";
@@ -124,19 +126,18 @@ public class FileSession {
      *
      * @param frame The video frame to write.
      */
-    protected void writeVideoFrame(Mat frame) {
+    public void writeVideoFrame(Mat frame) {
         if (videoWriter != null && videoWriter.isOpened()) {
-            Mat formattedFrame = new Mat();
-            frame.convertTo(formattedFrame, org.bytedeco.opencv.global.opencv_core.CV_8UC3);
+            // TODO: Experiment on other computers. It seems to inconsistent
             // Check if the frame dimensions match the expected videoFrameSize
-            if(formattedFrame.cols() != videoFrameSize.width() || formattedFrame.rows() != videoFrameSize.height()){
+            if(frame.cols() != videoFrameSize.width() || frame.rows() != videoFrameSize.height()){
                 // Resize frame if dimensions do not match
                 Mat resizedFrame = new Mat();
-                resize(formattedFrame, resizedFrame, videoFrameSize);
+                resize(frame, resizedFrame, videoFrameSize);
                 videoWriter.write(resizedFrame);
                 resizedFrame.release();
             } else {
-                videoWriter.write(formattedFrame);
+                videoWriter.write(frame);
             }
         }
     }
@@ -253,11 +254,6 @@ public class FileSession {
             }
         }
 
-
-        // 🔍 Debugging output
-        System.out.println("🔍 DEBUG: Start Count Per Class: " + initialToolCounts);
-        System.out.println("🔍 DEBUG: Final Tool Counts: " + finalToolCounts);
-
         String formattedSessionTime = java.time.LocalDateTime.now()
                 .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String aarPath = sessionDirectory + "/AAR.txt";
@@ -266,20 +262,10 @@ public class FileSession {
             writer.write("After Action Report (AAR)\n");
             writer.write("==========================\n");
             writer.write("Session Name: " + (title != null ? title : "Unknown") + "\n\n");
+            writer.write("Session Description: " + (sessionDescription != null ? sessionDescription : "No description provided") + "\n\n");
             writer.write("Recording Duration: " + formatDuration(recordDuration) + "\n\n");
             writer.write("Session Time: " + formattedSessionTime + "\n\n");
             writer.write("Peak Objects Seen at Once: " + peakObjects + "\n\n");
-
-            writer.write("Total Instances of Each Tool Ever Added:\n");
-            writer.write("-----------------------------------------------------\n");
-            if (totalToolsAdded.isEmpty()) {
-                writer.write("None\n");
-            } else {
-                for (var entry : totalToolsAdded.entrySet()) {
-                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-                }
-            }
-            writer.write("-----------------------------------------------------\n\n");
 
             // Objects Present at Start
             writer.write("Objects Present at Start:\n");
@@ -288,6 +274,28 @@ public class FileSession {
                 writer.write("None\n");
             } else {
                 for (var entry : initialToolCounts.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            writer.write("New Objects Introduced During Session:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (newToolsIntroduced.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : newToolsIntroduced.entrySet()) {
+                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
+                }
+            }
+            writer.write("-----------------------------------------------------\n\n");
+
+            writer.write("Total Instances of Each Tool Ever Added:\n");
+            writer.write("-----------------------------------------------------\n");
+            if (totalToolsAdded.isEmpty()) {
+                writer.write("None\n");
+            } else {
+                for (var entry : totalToolsAdded.entrySet()) {
                     writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
                 }
             }
@@ -304,17 +312,6 @@ public class FileSession {
                 }
             }
             writer.write("------------------------\n\n");
-
-            writer.write("New Objects Introduced During Session:\n");
-            writer.write("-----------------------------------------------------\n");
-            if (newToolsIntroduced.isEmpty()) {
-                writer.write("None\n");
-            } else {
-                for (var entry : newToolsIntroduced.entrySet()) {
-                    writer.write(entry.getKey() + ": " + entry.getValue() + "\n");
-                }
-            }
-            writer.write("-----------------------------------------------------\n\n");
 
             writer.write("Objects Removed During Session:\n");
             writer.write("-----------------------------------------------------\n");
