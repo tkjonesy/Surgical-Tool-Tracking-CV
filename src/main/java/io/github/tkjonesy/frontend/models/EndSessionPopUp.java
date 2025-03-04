@@ -1,4 +1,4 @@
-package io.github.tkjonesy.utils;
+package io.github.tkjonesy.frontend.models;
 
 import javax.swing.*;
 import java.awt.*;
