@@ -23,7 +23,7 @@ public class EndSessionPopUp {
                     "Cancel"};
             String miniAAR = generateMiniAAR(sessionTitle);
             int choice = JOptionPane.showOptionDialog(null,
-                    miniAAR + "\n\nWould you like to open the session folder?",
+                    miniAAR,
                     "Session Ended",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE,
@@ -82,7 +82,7 @@ public class EndSessionPopUp {
                 }
 
                 // Capture sections dynamically and include their content
-                if (line.contains("New Objects Introduced During Session") ||
+                if (line.contains("Objects Present at End") ||
                         line.contains("Total Instances of Each Tool Ever Added") ||
                         line.contains("Objects Removed During Session")) {
                     captureSection = true;
