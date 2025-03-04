@@ -24,6 +24,10 @@ public class AISettingsPanel extends JPanel {
     @Getter
     private final JCheckBox boundingBoxCheckbox;
     @Getter
+    private final JCheckBox showLabelsCheckbox;
+    @Getter
+    private final JCheckBox showConfidencesCheckbox;
+    @Getter
     private final JSpinner processEveryNthFrameSpinner;
     @Getter
     private final JSpinner bufferThresholdSpinner;
@@ -56,6 +60,16 @@ public class AISettingsPanel extends JPanel {
         this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes:", settings.isShowBoundingBoxes());
         boundingBoxCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
         boundingBoxCheckbox.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
+
+        // Show labels
+        this.showLabelsCheckbox = new JCheckBox("Show Labels:", settings.isShowLabels());
+        showLabelsCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
+        showLabelsCheckbox.setToolTipText("When this is on, the labels will be drawn in the viewing window");
+
+        // Show confidences
+        this.showConfidencesCheckbox = new JCheckBox("Show Confidences:", settings.isShowConfidences());
+        showConfidencesCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
+        showConfidencesCheckbox.setToolTipText("When this is on, the confidences will be drawn in the viewing window");
 
         // Process Every Nth Frame (Spinner)
         JLabel processNthLabel = new JLabel("Process Every Nth Frame:");
@@ -133,6 +147,16 @@ public class AISettingsPanel extends JPanel {
                         )
                         .addGroup(
                                 modelLayout.createSequentialGroup()
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(showLabelsCheckbox)
+                        )
+                        .addGroup(
+                                modelLayout.createSequentialGroup()
+                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(showConfidencesCheckbox)
+                        )
+                        .addGroup(
+                                modelLayout.createSequentialGroup()
                                         .addComponent(processNthLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(processEveryNthFrameSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
@@ -174,6 +198,16 @@ public class AISettingsPanel extends JPanel {
                         .addGroup(
                                 modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(boundingBoxCheckbox)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(showLabelsCheckbox)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(
+                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(showConfidencesCheckbox)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(

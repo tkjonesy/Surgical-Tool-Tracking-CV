@@ -49,6 +49,8 @@ public class SettingsWindow extends JDialog {
     private JSpinner bufferThresholdSpinner;
     private JSlider confThresholdSlider;
     private JCheckBox boundingBoxCheckbox;
+    private JCheckBox showLabelsCheckbox;
+    private JCheckBox showConfidencesCheckbox;
 
     private JComboBox<String> modelSelector, labelSelector;
 
@@ -311,6 +313,8 @@ public class SettingsWindow extends JDialog {
         this.modelSelector = modelPanel.getModelSelector();
         this.labelSelector = modelPanel.getLabelSelector();
         this.boundingBoxCheckbox = modelPanel.getBoundingBoxCheckbox();
+        this.showLabelsCheckbox = modelPanel.getShowLabelsCheckbox();
+        this.showConfidencesCheckbox = modelPanel.getShowConfidencesCheckbox();
         this.bufferThresholdSpinner = modelPanel.getBufferThresholdSpinner();
         this.processEveryNthFrameSpinner = modelPanel.getProcessEveryNthFrameSpinner();
         this.confThresholdSlider = modelPanel.getConfThresholdSlider();
@@ -547,6 +551,26 @@ public class SettingsWindow extends JDialog {
                     settingsUpdates.put("showBoundingBoxes", value);
                     if(settings.isShowBoundingBoxes() == value)
                         settingsUpdates.remove("showBoundingBoxes");
+                }
+        );
+
+        addSettingChangeListener(showLabelsCheckbox, (ActionListener)
+                e -> {
+                    boolean value = showLabelsCheckbox.isSelected();
+                    System.out.println("Show labels: " + showLabelsCheckbox.isSelected());
+                    settingsUpdates.put("showLabels", value);
+                    if(settings.isShowLabels() == value)
+                        settingsUpdates.remove("showLabels");
+                }
+        );
+
+        addSettingChangeListener(showConfidencesCheckbox, (ActionListener)
+                e -> {
+                    boolean value = showConfidencesCheckbox.isSelected();
+                    System.out.println("Show confidences: " + showConfidencesCheckbox.isSelected());
+                    settingsUpdates.put("showConfidences", value);
+                    if(settings.isShowConfidences() == value)
+                        settingsUpdates.remove("showConfidences");
                 }
         );
 

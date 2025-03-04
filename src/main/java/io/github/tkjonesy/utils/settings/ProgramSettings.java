@@ -52,6 +52,10 @@ public class ProgramSettings {
     private String labelPath;
     @SettingsLabel(value = "showBoundingBoxes", type = Boolean.class)
     private boolean showBoundingBoxes;
+    @SettingsLabel(value = "showLabels", type = Boolean.class)
+    private boolean showLabels;
+    @SettingsLabel(value = "showConfidences", type = Boolean.class)
+    private boolean showConfidences;
     @SettingsLabel(value = "processEveryNthFrame", type = Integer.class)
     private int processEveryNthFrame;
     @SettingsLabel(value = "bufferThreshold", type = Integer.class)
