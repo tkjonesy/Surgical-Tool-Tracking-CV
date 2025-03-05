@@ -21,6 +21,7 @@ import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
 import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
+import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.models.LogHandler;
 import io.github.tkjonesy.utils.models.SessionHandler;
@@ -103,18 +104,16 @@ public class App extends JFrame {
         try{
             initializeAIMsDirectories();
         }catch (RuntimeException e){
-            JOptionPane.showMessageDialog(this, "Failed to initialize AIMs directories. Exiting application", "Error", JOptionPane.ERROR_MESSAGE);
             logger.error("Failed to initialize AIMs directories. Exiting application.");
-            System.exit(1);
+            ErrorDialogManager.displayErrorDialogFatal("Failed to initialize AIMs directories. Exiting application.");
         }
 
         // Load settings from file
         this.settings = SettingsLoader.loadSettings();
 
         if(settings == null) {
-            JOptionPane.showMessageDialog(this, "An error occurred when trying to load program settings. Existing Application", "Error", JOptionPane.ERROR_MESSAGE);
             logger.error("Failed to load settings from file. Exiting application.");
-            System.exit(1);
+            ErrorDialogManager.displayErrorDialogFatal("Failed to load settings from file. Exiting application.");
         }
 
         ProgramSettings.setCurrentSettings(settings);
@@ -341,7 +340,7 @@ public class App extends JFrame {
             cameraFetcherThread.start();
 
         }catch (CvException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ErrorDialogManager.displayErrorDialog("Failed to open camera with ID: " + cameraId);
             logger.error("Failed to open camera with ID: {}", cameraId);
         }
     }
