@@ -52,9 +52,12 @@ public abstract class Yolo {
 
         try {
             // Set the session (this is where failure will occur if CUDA is not working)
+            System.out.println("Creating session with GPU");
             this.session = this.env.createSession(modelPath, sessionOptions);
+            System.out.println("Session created successfully with GPU");
             isCudaAvailable = true;
         } catch (OrtException e) {
+            System.out.println("Failed to create session with GPU, falling back to CPU" + e.getMessage());
             ErrorDialogManager.displayErrorDialog("Failed to create session with GPU, falling back to CPU. Error: " + e.getMessage());
             sessionOptions = createSessionOptions(false);
             this.session = this.env.createSession(modelPath, sessionOptions);

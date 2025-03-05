@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
 
 import java.io.File;
@@ -29,30 +27,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Each test method uses the Given-When-Then style to clearly outline the preconditions, the action under test, and the expected outcome.
  * </p>
  */
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class SettingsLoaderTest {
-
-    @TempDir
-    Path tempDir;
-
     private static Path tempSettingsFile;
-    private static Path tempModelsDirectory;
-    private static Path tempSessionsDirectory;
 
     @BeforeAll
     public static void setupPaths() throws Exception {
-        // Ensure that the production paths (based on user.home) exist.
-        // With Maven Surefire overriding user.home to /tmp/testHome, this will create:
-        // /tmp/testHome/AIMs, /tmp/testHome/AIMs/ai_models, and /tmp/testHome/AIMs/sessions.
         Path aimsDir = java.nio.file.Paths.get(System.getProperty("user.home") + "/AIMs");
         Files.createDirectories(aimsDir);
         Files.createDirectories(aimsDir.resolve("ai_models"));
         Files.createDirectories(aimsDir.resolve("sessions"));
 
-        tempModelsDirectory = aimsDir.resolve("ai_models");
-        tempSessionsDirectory = aimsDir.resolve("sessions");
         tempSettingsFile = aimsDir.resolve("settings.json");
     }
-
 
     /**
      * <b>Given</b> that no settings file exists,
@@ -112,7 +99,7 @@ public class SettingsLoaderTest {
     @Test
     public void givenCorruptSettingsFile_whenLoadSettings_thenDefaultSettingsLoadedAndSaved() throws Exception {
         // Given: Create a corrupt settings file.
-        File settingsFile = tempSettingsFile.toFile();
+        tempSettingsFile.toFile();
         Files.writeString(tempSettingsFile, "{ \"unknownField\": \"invalid\" }");
 
         // When: loadSettings() is invoked.
@@ -140,15 +127,13 @@ public class SettingsLoaderTest {
      * <br>
      * <b>Fail Condition:</b> The files are not created or the settings remain unchanged.
      * </p>
-     *
-     * @throws Exception if an unexpected error occurs during the test
      */
     @Test
-    public void givenMissingModelAndLabelFiles_whenLoadSettings_thenResourcesExtractedAndSettingsUpdated() throws Exception {
+    public void givenMissingModelAndLabelFiles_whenLoadSettings_thenResourcesExtractedAndSettingsUpdated() {
         // Given: Create a settings object with non-existent model and label file paths.
         ProgramSettings settings = new ProgramSettings();
-        settings.setModelPath(tempModelsDirectory.resolve("nonexistent.onnx").toString());
-        settings.setLabelPath(tempModelsDirectory.resolve("nonexistent.names").toString());
+        settings.setModelPath("nonexistent.onnx");
+        settings.setLabelPath("nonexistent.names");
         SettingsLoader.saveSettings(settings);
 
         // When: loadSettings() is invoked.

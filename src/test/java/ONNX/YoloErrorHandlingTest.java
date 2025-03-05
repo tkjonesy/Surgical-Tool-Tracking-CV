@@ -11,14 +11,12 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtProvider;
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
-import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -48,18 +46,11 @@ public class YoloErrorHandlingTest {
     private static final String DUMMY_MODEL_PATH = TestingPaths.DUMMY_MODEL_PATH;
     private static final String DUMMY_LABEL_PATH = TestingPaths.DUMMY_LABEL_PATH;
 
-    private Yolo testYolo;
-
-    @Mock
-    private LogQueue mockLogQueue;
-
-    @Mock
-    private ai.onnxruntime.OrtSession dummyCpuSession;
+    private static ProgramSettings dummySettings;
 
     @BeforeAll
     public static void setupProgramSettings() throws ClassNotFoundException {
-        ProgramSettings dummySettings = new ProgramSettings();
-        dummySettings.setUseGPU(true);
+        dummySettings = new ProgramSettings();
         dummySettings.setModelPath(DUMMY_MODEL_PATH);
         dummySettings.setLabelPath(DUMMY_LABEL_PATH);
         ProgramSettings.setCurrentSettings(dummySettings);
@@ -85,6 +76,7 @@ public class YoloErrorHandlingTest {
     public void givenGpuFailure_whenCreatingYolo_thenCudaFlagIsFalseAndErrorDialogDisplayed() throws Exception {
         try (MockedStatic<OrtEnvironment> envStatic = mockStatic(OrtEnvironment.class);
              MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
+            dummySettings.setUseGPU(true);
 
             // Given: A mock OrtEnvironment with CUDA available and a simulated GPU failure.
             OrtEnvironment mockEnv = mock(OrtEnvironment.class);
@@ -92,12 +84,11 @@ public class YoloErrorHandlingTest {
             envStatic.when(OrtEnvironment::getAvailableProviders)
                     .thenReturn(EnumSet.of(OrtProvider.CUDA, OrtProvider.CPU));
             when(mockEnv.createSession(eq(DUMMY_MODEL_PATH), any()))
-                    .thenThrow(new OrtException("Simulated GPU failure"))
-                    .thenReturn(dummyCpuSession);
+                    .thenThrow(new OrtException("Simulated GPU failure"));
 
             // When: Creating a Yolo instance.
             try {
-                testYolo = new Yolo(DUMMY_MODEL_PATH, DUMMY_LABEL_PATH) {
+                new Yolo(DUMMY_MODEL_PATH, DUMMY_LABEL_PATH) {
                     @Override
                     public List<Detection> run(Mat img) {
                         return List.of();
@@ -114,36 +105,29 @@ public class YoloErrorHandlingTest {
     }
 
     /**
-     * <b>Given</b> that invalid model and label paths cause the GPU branch to fail during session update,
-     * <b>when</b> updateInferenceSession is invoked,
+     * <b>Given</b> that invalid model and label paths cause the session creation to fail.
+     * <b>when</b> createSession is invoked,
      * <b>then</b> an error dialog is displayed via the ErrorDialogManager.
      *
      * <p>
      * <b>Pass Condition:</b> {@code ErrorDialogManager.displayErrorDialog(...)} is called at least once
-     * with a message containing "Simulated GPU failure".
+     * with a message containing "ORT_NO_SUCHFILE".
      * <br>
      * <b>Fail Condition:</b> No error dialog is displayed or the message does not contain the expected text.
      * </p>
-     *
-     * @throws Exception if updating the inference session fails unexpectedly
      */
     @Test
-    public void givenInvalidModelPaths_whenUpdatingInferenceSession_thenErrorDialogIsDisplayed() throws Exception {
-        try (MockedStatic<OrtEnvironment> envStatic = mockStatic(OrtEnvironment.class);
-             MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
+    public void givenInvalidModelPaths_whenUpdatingInferenceSession_thenErrorDialogIsDisplayed() {
+        try (MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
+            dummySettings.setUseGPU(false);
 
-            // Given: A mock OrtEnvironment with CUDA available and a simulated GPU failure for the first createSession call.
-            OrtEnvironment mockEnv = mock(OrtEnvironment.class);
-            envStatic.when(OrtEnvironment::getEnvironment).thenReturn(mockEnv);
-            envStatic.when(OrtEnvironment::getAvailableProviders)
-                    .thenReturn(EnumSet.of(OrtProvider.CUDA, OrtProvider.CPU));
-            when(mockEnv.createSession(eq(DUMMY_MODEL_PATH), any()))
-                    .thenThrow(new OrtException("Simulated GPU failure"))
-                    .thenReturn(dummyCpuSession);
+            // Given: Invalid model and label paths.
+            String invalidModelPath = "invalidModel.onnx";
+            String invalidLabelPath = "invalidModel.names";
 
             // When: Creating a Yolo instance (via updateInferenceSession) with invalid model paths.
             try {
-                testYolo = new Yolo(DUMMY_MODEL_PATH, DUMMY_LABEL_PATH) {
+                new Yolo(invalidModelPath, invalidLabelPath) {
                     @Override
                     public List<Detection> run(Mat img) {
                         return List.of();
@@ -151,9 +135,9 @@ public class YoloErrorHandlingTest {
                 };
             } catch (Exception ignore) { }
 
-            // Then: The error dialog should be displayed with a message indicating GPU failure.
+            // Then: The error dialog should be displayed with a message indicating ORT_NO_SUCHFILE.
             errorDialogStatic.verify(() -> ErrorDialogManager.displayErrorDialog(
-                    argThat(message -> message != null && message.contains("Simulated GPU failure"))
+                    argThat(message -> message != null && message.contains("ORT_NO_SUCHFILE"))
             ), times(1));
         }
     }
