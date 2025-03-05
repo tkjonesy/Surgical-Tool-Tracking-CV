@@ -67,6 +67,7 @@ public class ProgramSettings {
     private float confThreshold;
 
     // Advanced AI settings
+    @Setter
     @SettingsLabel(value = "useGPU", type = Boolean.class)
     private boolean useGPU;
     @SettingsLabel(value = "gpuDeviceId", type = Integer.class)

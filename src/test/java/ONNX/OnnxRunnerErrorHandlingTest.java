@@ -2,16 +2,20 @@ package ONNX;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
+import static utils.HelperMethods.setPrivateField;
 
 import ai.onnxruntime.OrtException;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.models.LogQueue;
 import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import org.bytedeco.opencv.opencv_core.Mat;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,10 +24,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.MockedStatic;
 import utils.TestingPaths;
 
-import javax.swing.JOptionPane;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 
+/**
+ * Test class for verifying error handling in the {@link OnnxRunner} class.
+ * <p>
+ * These tests ensure that the OnnxRunner:
+ * <ul>
+ *   <li>Handles inference failures (OrtException) gracefully by logging the error and returning an empty output.</li>
+ *   <li>Resets its inference session when valid model paths are provided.</li>
+ *   <li>Displays an error dialog when updating the inference session fails due to invalid model paths.</li>
+ * </ul>
+ * <p>
+ * Naming convention for tests follows the "Given-When-Then" pattern.
+ * A passing test indicates that the corresponding error handling behavior is working correctly.
+ * A failing test indicates a breakdown in the expected error handling logic.
+ */
 @ExtendWith(MockitoExtension.class)
 public class OnnxRunnerErrorHandlingTest {
 
@@ -35,84 +51,106 @@ public class OnnxRunnerErrorHandlingTest {
     @Mock
     private LogQueue logQueue;
 
-    private Mat dummyFrame;
+    private final Mat dummyFrame = new Mat(10, 10, 0);
 
-    // Helper method to inject private fields using reflection
-    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+    @BeforeAll
+    public static void setupProgramSettings() {
+        ProgramSettings dummySettings = new ProgramSettings();
+        dummySettings.setModelPath(TestingPaths.DUMMY_MODEL_PATH);
+        dummySettings.setLabelPath(TestingPaths.DUMMY_LABEL_PATH);
+        ProgramSettings.setCurrentSettings(dummySettings);
     }
 
     @BeforeEach
     public void setup() throws Exception {
-        // Setup ProgramSettings if not already set.
-        if (ProgramSettings.getCurrentSettings() == null) {
-            ProgramSettings dummySettings = new ProgramSettings();
-            Method setSettingMethod = ProgramSettings.class.getDeclaredMethod("setSettings", String.class, Object.class);
-            setSettingMethod.setAccessible(true);
-            dummySettings.setModelPath(TestingPaths.DUMMY_MODEL_PATH);
-            dummySettings.setLabelPath(TestingPaths.DUMMY_LABEL_PATH);
-            ProgramSettings.setCurrentSettings(dummySettings);
-        }
-
         logQueue = mock(LogQueue.class);
         mockInferenceSession = mock(Yolo.class);
-
-        // Construct a real instance of OnnxRunner and wrap it as a spy.
         onnxRunner = spy(new OnnxRunner(logQueue));
 
-        // Initialize a dummy frame (10x10 Mat for testing).
-        dummyFrame = new Mat(10, 10, 0);
-
-        // Inject mock dependencies using our helper method.
         setPrivateField(onnxRunner, "inferenceSession", mockInferenceSession);
         setPrivateField(onnxRunner, "logQueue", logQueue);
-        setPrivateField(onnxRunner, "bufferThreshold", 3);
+        onnxRunner.setBufferThreshold(3);
     }
 
+    /**
+     * Given that an OrtException occurs during inference,
+     * when runInference is invoked,
+     * then the error is logged and an empty OnnxOutput is returned.
+     *
+     * <p>
+     * <b>Pass Condition:</b> logQueue records an error containing "Error running inference"
+     * and the returned OnnxOutput has an empty detection list.
+     * <br>
+     * <b>Fail Condition:</b> The error is not logged or the output is not empty.
+     * </p>
+     *
+     * @throws Exception if the inference simulation fails unexpectedly
+     */
     @Test
-    public void testRunInferenceHandlesOrtExceptionGracefully() throws Exception {
-        // Stub run method to throw an OrtException.
+    public void givenOrtExceptionDuringInference_whenRunInference_thenErrorLoggedAndEmptyOutputReturned() throws Exception {
+        // Given: A mock inference session that throws an OrtException.
         when(mockInferenceSession.run(any(Mat.class)))
                 .thenThrow(new OrtException("Simulated inference failure"));
 
-        // Intercept and suppress JOptionPane calls.
-        try (MockedStatic<JOptionPane> mockedJOptionPane = mockStatic(JOptionPane.class)) {
+        try (MockedStatic<ErrorDialogManager> ignored = mockStatic(ErrorDialogManager.class)) {
+            // When: runInference is called.
             OnnxOutput output = onnxRunner.runInference(dummyFrame);
+            // Then: The error should be logged and the output should be empty.
             verify(logQueue, atLeastOnce()).addRedLog(contains("Error running inference"));
             assertThat(output.getDetectionList()).isEmpty();
         }
     }
 
+    /**
+     * Given valid model and label paths,
+     * when updateInferenceSession is invoked,
+     * then the inference session is reset (i.e., a new Yolo session is created).
+     *
+     * <p>
+     * <b>Pass Condition:</b> The new inference session is not the same as the old one.
+     * <br>
+     * <b>Fail Condition:</b> The inference session remains unchanged.
+     * </p>
+     *
+     * @throws Exception if reflection fails to access the inference session field
+     */
     @Test
-    public void testUpdateInferenceSessionResetsTheSession() throws Exception {
+    public void givenValidModelPaths_whenUpdateInferenceSession_thenInferenceSessionIsReset() throws Exception {
         Field inferenceSessionField = OnnxRunner.class.getDeclaredField("inferenceSession");
         inferenceSessionField.setAccessible(true);
         Yolo oldSession = (Yolo) inferenceSessionField.get(onnxRunner);
 
+        // Given: Valid model paths. When: Updating the inference session.
         onnxRunner.updateInferenceSession(TestingPaths.DUMMY_MODEL_PATH, TestingPaths.DUMMY_LABEL_PATH);
-
+        // Then: The inference session should be reset.
         Yolo newSession = (Yolo) inferenceSessionField.get(onnxRunner);
         assertThat(newSession).isNotSameAs(oldSession);
     }
 
+    /**
+     * Given invalid model and label paths,
+     * when updateInferenceSession is invoked,
+     * then an error dialog is displayed via the ErrorDialogManager.
+     *
+     * <p>
+     * <b>Pass Condition:</b> ErrorDialogManager.displayErrorDialog is called at least once with a message
+     * containing "Load model from invalidModel failed".
+     * <br>
+     * <b>Fail Condition:</b> No error dialog is displayed or the message does not contain the expected text.
+     * </p>
+     */
     @Test
-    public void testUpdateInferenceSessionFailureShowsDialog() {
-        // Use static mocking to intercept calls to JOptionPane.
-        try (MockedStatic<JOptionPane> mockedJOptionPane = mockStatic(JOptionPane.class)) {
-            mockedJOptionPane.when(JOptionPane::getRootFrame).thenReturn(new javax.swing.JFrame());
-            mockedJOptionPane.when(() -> JOptionPane.showMessageDialog(any(), any(), any(), anyInt()))
+    public void givenInvalidModelPaths_whenUpdateInferenceSession_thenErrorDialogIsDisplayed() {
+        try (MockedStatic<ErrorDialogManager> mockedErrorDialog = mockStatic(ErrorDialogManager.class)) {
+            mockedErrorDialog.when(() -> ErrorDialogManager.displayErrorDialog(any()))
                     .thenAnswer(invocation -> null);
 
+            // Given: Invalid model paths. When: Updating the inference session.
             onnxRunner.updateInferenceSession("invalidModel", "invalidLabels");
 
-            // Verify that the error dialog was shown at least once with an error message containing the expected text.
-            mockedJOptionPane.verify(() -> JOptionPane.showMessageDialog(
-                    any(),
-                    contains("Load model from invalidModel failed"),
-                    anyString(),
-                    eq(JOptionPane.ERROR_MESSAGE)
+            // Then: ErrorDialogManager should be called with the expected message.
+            mockedErrorDialog.verify(() -> ErrorDialogManager.displayErrorDialog(
+                    argThat(message -> message != null && message.contains("Load model from invalidModel failed"))
             ), atLeast(1));
         }
     }

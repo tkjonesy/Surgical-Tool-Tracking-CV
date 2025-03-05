@@ -3,6 +3,7 @@ package io.github.tkjonesy.ONNX;
 import ai.onnxruntime.*;
 
 import io.github.tkjonesy.frontend.App;
+import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -54,7 +55,7 @@ public abstract class Yolo {
             this.session = this.env.createSession(modelPath, sessionOptions);
             isCudaAvailable = true;
         } catch (OrtException e) {
-            JOptionPane.showMessageDialog(null, "Failed to create session with GPU, falling back to CPU: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ErrorDialogManager.displayErrorDialog("Failed to create session with GPU, falling back to CPU. Error: " + e.getMessage());
             sessionOptions = createSessionOptions(false);
             this.session = this.env.createSession(modelPath, sessionOptions);
             isCudaAvailable = false;
