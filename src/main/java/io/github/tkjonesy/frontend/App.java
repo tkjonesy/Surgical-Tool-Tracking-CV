@@ -2,7 +2,6 @@ package io.github.tkjonesy.frontend;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
@@ -15,6 +14,9 @@ import java.io.InputStream;
 import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
+import io.github.tkjonesy.frontend.mainGUI.CameraPanel;
+import io.github.tkjonesy.frontend.mainGUI.LoggingPanel;
 import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.SplashScreen;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
@@ -43,8 +45,13 @@ public class App extends JFrame {
 
     @Getter
     private static App instance;
-    private static final Logger logger = LogManager.getLogger(App.class);
+    @Getter
+    private static OnnxRunner onnxRunner = null;
+    @Getter
+    @Setter
+    private static VideoCapture camera;
 
+    private static final Logger logger = LogManager.getLogger(App.class);
     public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
     private static final SplashScreen splashScreen;
     static {
@@ -73,28 +80,22 @@ public class App extends JFrame {
         AVAILABLE_CAMERAS = grabber.getCameraNames();
     }
 
-    private final SessionHandler sessionHandler;
+    private Thread cameraFetcherThread;
+    private CameraPanel cameraPanel;
+    private LoggingPanel loggingPanel;
 
     @Getter
-    private static OnnxRunner onnxRunner = null;
+    private final SessionHandler sessionHandler;
     private final ProgramSettings settings;
 
     private CameraFetcher cameraFetcher;
     @Getter
-    @Setter
-    private static VideoCapture camera;
-    private Thread cameraFetcherThread;
-    @Getter
     private JLabel cameraFeed;
-    private JToggleButton startSessionButton;
-    private JButton settingsButton;
     @Getter
     @Setter
     private JTextPane logTextPane;
     private JPanel trackerPanel;
 
-    private static final Color SUNSET = new Color(255, 40, 79);
-    private static final Color OCEAN = new Color(55, 90, 129);
     private static final Color CHARCOAL = new Color(30, 31, 34);
 
     public App() {
@@ -125,7 +126,7 @@ public class App extends JFrame {
         initListeners();
 
         // Initialize the session handler, log handler, and ONNX runner
-        LogHandler logHandler = new LogHandler(logTextPane);
+        LogHandler logHandler = new LogHandler(loggingPanel.getLogTextPane());
         this.sessionHandler = new SessionHandler(logHandler);
         onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
@@ -153,73 +154,19 @@ public class App extends JFrame {
             this.setIconImage(appIcon.getImage());
         } catch (Exception ignored) {}
 
-        // Camera Panel
-        JPanel cameraPanel = new JPanel(new BorderLayout());
-        cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
-        cameraFeed = new JLabel("");
-        cameraFeed.setMinimumSize(new Dimension(320, 240));
-        cameraPanel.add(cameraFeed, BorderLayout.CENTER);
-
-
-        // Log tracker Panel
-        trackerPanel = new JPanel();
-        trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracking Log"));
-        this.logTextPane = new JTextPane();
-        this.logTextPane.setEditable(false);
-        this.logTextPane.setContentType("text/html");
-        this.logTextPane.setBackground(CHARCOAL);
-
-        // Log tracker scroll pane for text area
-        JScrollPane scrollPane = new JScrollPane(logTextPane);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        // Set the layout for tracking panel using GroupLayout
-        GroupLayout trackingPanelLayout = new GroupLayout(trackerPanel);
-        trackingPanelLayout.setAutoCreateContainerGaps(true);
-        trackingPanelLayout.setHorizontalGroup(
-                trackingPanelLayout.createSequentialGroup()
-                        .addComponent(scrollPane)
-        );
-        trackingPanelLayout.setVerticalGroup(
-                trackingPanelLayout.createSequentialGroup()
-                        .addComponent(scrollPane)
-        );
-        trackerPanel.setLayout(trackingPanelLayout);
-
-        // Bottom Button Panel
-        JPanel bottomPanel = new JPanel();
-
-        startSessionButton = new JToggleButton("Start Session");
-        startSessionButton.setBackground(OCEAN);
-        settingsButton = new JButton("Settings");
-
-        GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
-        bottomPanelLayout.setAutoCreateContainerGaps(true);
-        bottomPanelLayout.setHorizontalGroup(
-                bottomPanelLayout.createSequentialGroup()
-                        .addComponent(startSessionButton)
-                        .addPreferredGap(ComponentPlacement.UNRELATED)
-                        .addComponent(settingsButton)
-        );
-        bottomPanelLayout.setVerticalGroup(
-                bottomPanelLayout.createSequentialGroup()
-                        .addGroup(
-                                bottomPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                                        .addComponent(startSessionButton)
-                                        .addComponent(settingsButton)
-                        )
-        );
-        bottomPanel.setLayout(bottomPanelLayout);
+        // GUI Panels
+        cameraPanel = new CameraPanel(new BorderLayout(), instance);
+        loggingPanel = new LoggingPanel();
+        ButtonPanel buttonPanel = new ButtonPanel(instance);
 
         // Window Layout
         this.setLayout(new GridBagLayout());
         this.add(cameraPanel, createConstraints(0, 0, 0.5, 1));
-        this.add(trackerPanel, createConstraints(1, 0, 0.5, 0.5));
-        GridBagConstraints bottomPanelConstraints = createConstraints(0, 1, 1, 0.05);
-        bottomPanelConstraints.gridwidth = 2;
-        bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
-        this.add(bottomPanel, bottomPanelConstraints);
+        this.add(loggingPanel, createConstraints(1, 0, 0.5, 0.5));
+        GridBagConstraints buttonPanelConstraints = createConstraints(0, 1, 1, 0.05);
+        buttonPanelConstraints.gridwidth = 2;
+        buttonPanelConstraints.fill = GridBagConstraints.VERTICAL;
+        this.add(buttonPanel, buttonPanelConstraints);
         this.pack();
         this.setLocationRelativeTo(null); // Center application
     }
@@ -235,56 +182,6 @@ public class App extends JFrame {
     }
 
     private void initListeners() {
-
-        // Session Button Action Listener
-        startSessionButton.addActionListener(
-                e -> {
-                    if (startSessionButton.getText().equals("Start Session")) {
-
-                        // Open session input dialog
-                        SessionInputDialog dialog = new SessionInputDialog(this);
-                        dialog.setVisible(true);
-
-                        // Check if the user confirmed the dialog
-                        if (dialog.isConfirmed()) {
-                            String sessionTitle = dialog.getSessionTitle();
-                            String sessionDescription = dialog.getSessionDescription();
-
-                            // Ensure title and description are not empty
-                            if (sessionTitle.isEmpty()) {
-                                JOptionPane.showMessageDialog(App.this,
-                                        "Please fill in both fields.",
-                                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                                return;
-                            }
-
-                            // Start new session
-                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, onnxRunner);
-
-                            // If session started successfully, update UI and begin logging
-                            if (sessionStarted) {
-                                startSessionButton.setText("Stop Session");
-                                startSessionButton.setBackground(SUNSET);
-                                settingsButton.setEnabled(false);
-                            } else {
-                                JOptionPane.showMessageDialog(App.this,
-                                        "Failed to start session. Please check the console for more information.",
-                                        "Session Start Failed", JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
-
-                    } else if (startSessionButton.getText().equals("Stop Session")) {
-                        startSessionButton.setText("Start Session");
-                        startSessionButton.setBackground(OCEAN);
-                        sessionHandler.endSession();
-                        settingsButton.setEnabled(true);
-                    }
-                }
-        );
-
-        // Settings Listener
-        settingsButton.addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
-
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {
             @Override
@@ -317,7 +214,7 @@ public class App extends JFrame {
                 new ComponentAdapter() {
                     @Override
                     public void componentResized(ComponentEvent e) {
-                        trackerPanel.setPreferredSize(new Dimension(App.this.getWidth() / 3, trackerPanel.getHeight()));
+                        loggingPanel.setPreferredSize(new Dimension(App.this.getWidth() / 3, loggingPanel.getHeight()));
                     }
                 }
         );
@@ -335,7 +232,7 @@ public class App extends JFrame {
             }
 
             // Camera fetcher thread task
-            cameraFetcher = new CameraFetcher(this.cameraFeed, camera, onnxRunner, sessionHandler);
+            CameraFetcher cameraFetcher = new CameraFetcher(this.cameraPanel.getCameraFeed(), camera, onnxRunner, sessionHandler);
             cameraFetcherThread = new Thread(cameraFetcher);
             cameraFetcherThread.start();
 
