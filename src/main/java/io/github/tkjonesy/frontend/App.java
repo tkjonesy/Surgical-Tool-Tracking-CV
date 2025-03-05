@@ -2,7 +2,6 @@ package io.github.tkjonesy.frontend;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.LayoutStyle.ComponentPlacement;
 
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
@@ -15,12 +14,12 @@ import java.io.InputStream;
 import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
+import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
 import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.SplashScreen;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.MacOSCameraGrabber;
 import io.github.tkjonesy.frontend.models.cameraGrabber.WindowsCameraGrabber;
-import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
 import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.models.LogHandler;
 import io.github.tkjonesy.utils.models.SessionHandler;
@@ -72,6 +71,7 @@ public class App extends JFrame {
         AVAILABLE_CAMERAS = grabber.getCameraNames();
     }
 
+    @Getter
     private final SessionHandler sessionHandler;
 
     @Getter
@@ -85,15 +85,11 @@ public class App extends JFrame {
     private Thread cameraFetcherThread;
     @Getter
     private JLabel cameraFeed;
-    private JToggleButton startSessionButton;
-    private JButton settingsButton;
     @Getter
     @Setter
     private JTextPane logTextPane;
     private JPanel trackerPanel;
 
-    private static final Color SUNSET = new Color(255, 40, 79);
-    private static final Color OCEAN = new Color(55, 90, 129);
     private static final Color CHARCOAL = new Color(30, 31, 34);
 
     public App() {
@@ -189,29 +185,7 @@ public class App extends JFrame {
         trackerPanel.setLayout(trackingPanelLayout);
 
         // Bottom Button Panel
-        JPanel bottomPanel = new JPanel();
-
-        startSessionButton = new JToggleButton("Start Session");
-        startSessionButton.setBackground(OCEAN);
-        settingsButton = new JButton("Settings");
-
-        GroupLayout bottomPanelLayout = new GroupLayout(bottomPanel);
-        bottomPanelLayout.setAutoCreateContainerGaps(true);
-        bottomPanelLayout.setHorizontalGroup(
-                bottomPanelLayout.createSequentialGroup()
-                        .addComponent(startSessionButton)
-                        .addPreferredGap(ComponentPlacement.UNRELATED)
-                        .addComponent(settingsButton)
-        );
-        bottomPanelLayout.setVerticalGroup(
-                bottomPanelLayout.createSequentialGroup()
-                        .addGroup(
-                                bottomPanelLayout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                                        .addComponent(startSessionButton)
-                                        .addComponent(settingsButton)
-                        )
-        );
-        bottomPanel.setLayout(bottomPanelLayout);
+        ButtonPanel buttonPanel = new ButtonPanel(instance);
 
         // Window Layout
         this.setLayout(new GridBagLayout());
@@ -220,7 +194,7 @@ public class App extends JFrame {
         GridBagConstraints bottomPanelConstraints = createConstraints(0, 1, 1, 0.05);
         bottomPanelConstraints.gridwidth = 2;
         bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
-        this.add(bottomPanel, bottomPanelConstraints);
+        this.add(buttonPanel, bottomPanelConstraints);
         this.pack();
         this.setLocationRelativeTo(null); // Center application
     }
@@ -236,56 +210,6 @@ public class App extends JFrame {
     }
 
     private void initListeners() {
-
-        // Session Button Action Listener
-        startSessionButton.addActionListener(
-                e -> {
-                    if (startSessionButton.getText().equals("Start Session")) {
-
-                        // Open session input dialog
-                        SessionInputDialog dialog = new SessionInputDialog(this);
-                        dialog.setVisible(true);
-
-                        // Check if the user confirmed the dialog
-                        if (dialog.isConfirmed()) {
-                            String sessionTitle = dialog.getSessionTitle();
-                            String sessionDescription = dialog.getSessionDescription();
-
-                            // Ensure title and description are not empty
-                            if (sessionTitle.isEmpty()) {
-                                JOptionPane.showMessageDialog(App.this,
-                                        "Please fill in both fields.",
-                                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
-                                return;
-                            }
-
-                            // Start new session
-                            boolean sessionStarted = sessionHandler.startNewSession(sessionTitle, sessionDescription, onnxRunner);
-
-                            // If session started successfully, update UI and begin logging
-                            if (sessionStarted) {
-                                startSessionButton.setText("Stop Session");
-                                startSessionButton.setBackground(SUNSET);
-                                settingsButton.setEnabled(false);
-                            } else {
-                                JOptionPane.showMessageDialog(App.this,
-                                        "Failed to start session. Please check the console for more information.",
-                                        "Session Start Failed", JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
-
-                    } else if (startSessionButton.getText().equals("Stop Session")) {
-                        startSessionButton.setText("Start Session");
-                        startSessionButton.setBackground(OCEAN);
-                        sessionHandler.endSession();
-                        settingsButton.setEnabled(true);
-                    }
-                }
-        );
-
-        // Settings Listener
-        settingsButton.addActionListener(e -> SwingUtilities.invokeLater(() -> new SettingsWindow(this)));
-
         // Window Event Listener
         this.addWindowListener(new WindowAdapter() {
             @Override
