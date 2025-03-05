@@ -74,33 +74,37 @@ public class YoloErrorHandlingTest {
      */
     @Test
     public void givenGpuFailure_whenCreatingYolo_thenCudaFlagIsFalseAndErrorDialogDisplayed() throws Exception {
-        try (MockedStatic<OrtEnvironment> envStatic = mockStatic(OrtEnvironment.class);
-             MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
-            dummySettings.setUseGPU(true);
+        OrtEnvironment mockEnv = mock(OrtEnvironment.class);
 
-            // Given: A mock OrtEnvironment with CUDA available and a simulated GPU failure.
-            OrtEnvironment mockEnv = mock(OrtEnvironment.class);
+        try (MockedStatic<OrtEnvironment> envStatic = mockStatic(OrtEnvironment.class)) {
             envStatic.when(OrtEnvironment::getEnvironment).thenReturn(mockEnv);
             envStatic.when(OrtEnvironment::getAvailableProviders)
                     .thenReturn(EnumSet.of(OrtProvider.CUDA, OrtProvider.CPU));
+
+            // Given: A mock OrtEnvironment that throws an OrtException when createSession is called.
             when(mockEnv.createSession(eq(DUMMY_MODEL_PATH), any()))
                     .thenThrow(new OrtException("Simulated GPU failure"));
 
-            // When: Creating a Yolo instance.
-            try {
-                new Yolo(DUMMY_MODEL_PATH, DUMMY_LABEL_PATH) {
-                    @Override
-                    public List<Detection> run(Mat img) {
-                        return List.of();
-                    }
-                };
-            } catch (Exception ignore) { }
+            try (MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
+                dummySettings.setUseGPU(true);
 
-            // Then: The CUDA flag should be false and an error dialog should be displayed.
-            assertThat(Yolo.isCudaAvailable()).isFalse();
-            errorDialogStatic.verify(() -> ErrorDialogManager.displayErrorDialog(
-                    argThat(message -> message != null && message.contains("Simulated GPU failure"))
-            ), times(1));
+                // When: Creating a Yolo instance.
+                try {
+                    new Yolo(DUMMY_MODEL_PATH, DUMMY_LABEL_PATH) {
+                        @Override
+                        public List<Detection> run(Mat img) {
+                            return List.of();
+                        }
+                    };
+                } catch (Exception ignore) {
+                }
+
+                // Then: The CUDA flag should be false and an error dialog should be displayed.
+                assertThat(Yolo.isCudaAvailable()).isFalse();
+                errorDialogStatic.verify(() -> ErrorDialogManager.displayErrorDialog(
+                        argThat(message -> message != null && message.contains("Simulated GPU failure"))
+                ), times(1));
+            }
         }
     }
 
