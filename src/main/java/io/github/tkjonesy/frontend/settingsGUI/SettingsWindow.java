@@ -350,7 +350,6 @@ public class SettingsWindow extends JDialog {
         this.gpuDeviceSelector = advancedPanel.getGpuDeviceSelector();
         this.nmsThresholdSlider = advancedPanel.getNmsThresholdSlider();
         this.optimizationLevelComboBox = advancedPanel.getOptimizationLevelComboBox();
-        this.numInputElementsSpinner = advancedPanel.getNumInputElementsSpinner();
         this.inputSizeSpinner = advancedPanel.getInputSizeSpinner();
         this.inputShapeTextField = advancedPanel.getInputShapeTextField();
 
@@ -667,16 +666,6 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
-        addSettingChangeListener(numInputElementsSpinner, (ChangeListener)
-                e -> {
-                    int value = (int) numInputElementsSpinner.getValue();
-                    System.out.println("Num input elements: " + value);
-                    settingsUpdates.put("numInputElements", value);
-                    if(settings.getNumInputElements() == value)
-                        settingsUpdates.remove("numInputElements");
-                }
-        );
-
         addSettingChangeListener(inputSizeSpinner, (ChangeListener)
                 e -> {
                     int value = (int) inputSizeSpinner.getValue();
@@ -687,16 +676,34 @@ public class SettingsWindow extends JDialog {
                 }
         );
 
-        addSettingChangeListener(inputShapeTextField, (PropertyChangeListener)
+        inputShapeTextField.addActionListener(
                 e -> {
-                    String newValue = inputShapeTextField.getText().trim();
-                    String currentValue = Arrays.toString(settings.getInputShape()).replaceAll("[\\[\\] ]", " ").trim();
+                    String newValue = inputShapeTextField.getText().trim().replaceAll(" ", "");
+                    String currentValue = Arrays.toString(settings.getInputShape()).replaceAll("[\\[\\] ]", " ").trim().replaceAll(" ", "");
+
+                    System.out.println("Current value: " + currentValue);
+                    System.out.println("New value: " + newValue);
 
                     if (!newValue.equals(currentValue)) {
+
+                        long[] inputShape = Arrays.stream(newValue.split(","))
+                                .mapToLong(Long::parseLong)
+                                .toArray();
+
+                        long numInputElements = Arrays.stream(inputShape).reduce(1, (a, b) -> a * b);
+
+                        settingsUpdates.put("inputShape", inputShape);
+                        settingsUpdates.put("numInputElements", (int) numInputElements);
+
                         System.out.println("Input shape changed: " + newValue);
-                        settingsUpdates.put("inputShape", newValue);
+                        System.out.println("Number of input elements: " + numInputElements);
+
+                        updateApplyButtonState();
                     } else {
                         settingsUpdates.remove("inputShape");
+                        settingsUpdates.remove("numInputElements");
+
+                        updateApplyButtonState();
                     }
                 }
         );
