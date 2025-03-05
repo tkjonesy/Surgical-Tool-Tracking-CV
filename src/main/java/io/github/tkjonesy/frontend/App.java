@@ -43,8 +43,13 @@ public class App extends JFrame {
 
     @Getter
     private static App instance;
-    private static final Logger logger = LogManager.getLogger(App.class);
+    @Getter
+    private static OnnxRunner onnxRunner = null;
+    @Getter
+    @Setter
+    private static VideoCapture camera;
 
+    private static final Logger logger = LogManager.getLogger(App.class);
     public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
     private static final SplashScreen splashScreen;
     static {
@@ -73,20 +78,13 @@ public class App extends JFrame {
         AVAILABLE_CAMERAS = grabber.getCameraNames();
     }
 
-    @Getter
-    private final SessionHandler sessionHandler;
-
-    @Getter
-    private static OnnxRunner onnxRunner = null;
-    private final ProgramSettings settings;
-
-    @Getter
-    @Setter
-    private static VideoCapture camera;
     private Thread cameraFetcherThread;
-
     private CameraPanel cameraPanel;
     private LoggingPanel loggingPanel;
+
+    @Getter
+    private final SessionHandler sessionHandler;
+    private final ProgramSettings settings;
 
     public App() {
         instance = this;
