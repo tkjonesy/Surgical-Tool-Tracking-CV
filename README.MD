@@ -1,36 +1,26 @@
-# Surgical Tool Tracking With Computer Vision
+# AIM(s): Artificial Intelligence Monitoring for Surgery
 
-## Description
-Welcome to the Senior Design Surgical Tool Tracking repository. This repository contains the source code for our software and an installation guide for future use. This project will identify surgical instruments and track their usage during surgery.
+Welcome to the Spring 2025 Senior Design AIM(s) repository! This repository 
+contains an overview of our project, including the source code for our software 
+as well as relevant guides for installation and developer usage. 
 
-## Table of Contents
+## Table of Contents<!-- TOC -->
+* [What is AIM(s)?](#what-is-aims)
+* [Installing the Software](#installing-the-software)
+* [Developer Instructions](#developer-instructions)
+* [Team Members](#team-members)
+<!-- TOC -->
 
-- [Getting Started](#getting-started)
-- [Running The Code](#running-the-code)
-- [Example](#example)
-- [Team Members](#team-members)
+## What is AIM(s)?
+The goal of AIM(s) is to help combat surgical waste and excess costs within the operating room by tracking disposable staple loads utilized in robotic surgeries to close the incisions. Prior to surgery, the necessary equipment for that operation must be laid out for the surgical team. These tool types and amounts are then indicated in a predetermined checklist. The staple loads are one-use only; once opened, they must be used or thrown away as they are now unsterile. Since there is a standardized amount to be opened, issues arise where not all the loads are used. Additionally, workers are less likely to report their mistakes, leading to concerns with human error.
 
-## Getting Started
-Clone the repository:<br>
-`git clone https://github.com/tkjonesy/Surgical-Tool-Tracking-CV.git`
+AIM(s) is a full system solution that can be integrated into the operating room, utilizing AI to track in real time the number of loads that are used throughout a surgery. The results of such are logged throughout the operation and output to a report for further analysis and post-processing. At approximately $250 per load with 1200 surgeries annually, this tool can quickly save thousands of dollars for the hospital and reduce unnecessary waste in surgery.
 
-## Running the Code
-### Using IntelliJ
-1. Create a new run configuration (Application) with the following settings:
-   - Main class: `io.github.tkjonesy.frontend.App`
-   - VM Options: `-Djava.library.path=.\src\main\resources`
-2. Run the application
-### Using command line
+## Installing the Software
 TBD
 
-### Using Docker
-TBD
-
-### Using .JAR
-TBD
-
-## Example
-TBD
+## Developer Instructions
+If you would like use this code for your own project, please reference the [developer instructions](DeveloperInstructions.md).
 
 ## Team Members
 Rachel Leiner, rachel.leiner@ucf.edu<br>
