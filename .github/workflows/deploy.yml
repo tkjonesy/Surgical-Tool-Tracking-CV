@@ -24,7 +24,7 @@ jobs:
         run: mvn clean package
 
       - name: Upload JAR
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-jar
           path: target/*.jar
@@ -60,7 +60,7 @@ jobs:
           --win-upgrade-uuid "123e4567-e89b-12d3-a456-426614174000"
 
       - name: Upload Installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-installer
           path: AIMs.exe
@@ -93,7 +93,7 @@ jobs:
           --type dmg
 
       - name: Upload Installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: macos-installer
           path: AIMs.dmg
