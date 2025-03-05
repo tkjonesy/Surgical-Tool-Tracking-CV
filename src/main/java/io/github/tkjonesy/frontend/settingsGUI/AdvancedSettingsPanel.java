@@ -25,7 +25,6 @@ public class AdvancedSettingsPanel extends JPanel {
     private final JSlider nmsThresholdSlider;
     private final JTextField nmsThresholdTextField;
     private final JComboBox<String> optimizationLevelComboBox;
-    private final JSpinner numInputElementsSpinner;
     private final JSpinner inputSizeSpinner;
     private final JTextField inputShapeTextField;
 
@@ -93,11 +92,6 @@ public class AdvancedSettingsPanel extends JPanel {
         optimizationLevelComboBox.setSelectedItem(settings.getOptimizationLevel().name());
         optimizationLevelComboBox.setToolTipText("Choose the level of ONNX Runtime optimizations.");
 
-        // Num Input Elements (Spinner)
-        JLabel numInputElementsLabel = new JLabel("Num Input Elements:");
-        numInputElementsSpinner = new JSpinner(new SpinnerNumberModel(settings.getNumInputElements(), 1, Integer.MAX_VALUE, 1));
-        numInputElementsSpinner.setToolTipText("Total number of input elements.");
-
         // Input Size (Spinner)
         JLabel inputSizeLabel = new JLabel("Input Size:");
         inputSizeSpinner = new JSpinner(new SpinnerNumberModel(settings.getInputSize(), 1, Integer.MAX_VALUE, 1));
@@ -136,10 +130,6 @@ public class AdvancedSettingsPanel extends JPanel {
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(optimizationLevelComboBox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                         .addGroup(layout.createSequentialGroup()
-                                .addComponent(numInputElementsLabel)
-                                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(numInputElementsSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-                        .addGroup(layout.createSequentialGroup()
                                 .addComponent(inputSizeLabel)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(inputSizeSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
@@ -167,9 +157,6 @@ public class AdvancedSettingsPanel extends JPanel {
                                 .addComponent(optimizationLabel)
                                 .addComponent(optimizationLevelComboBox))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                .addComponent(numInputElementsLabel)
-                                .addComponent(numInputElementsSpinner))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                 .addComponent(inputSizeLabel)

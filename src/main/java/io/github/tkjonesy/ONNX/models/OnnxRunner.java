@@ -5,6 +5,7 @@ import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.ONNX.YoloV8;
 import io.github.tkjonesy.utils.ErrorDialogManager;
+import io.github.tkjonesy.utils.models.LogHandler;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.*;
 
@@ -119,8 +120,8 @@ public class OnnxRunner {
             detectionList = inferenceSession.run(frame);
 
         } catch (OrtException ortException) {
-
             logQueue.addRedLog("Error running inference: " + ortException.getMessage());
+            LogHandler.forceProcessNextLog();
             System.err.println("Error running inference: " + ortException.getMessage());
         }
 

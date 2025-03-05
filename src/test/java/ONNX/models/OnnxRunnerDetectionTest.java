@@ -9,13 +9,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import testingUtils.TestingPaths;
+import _testingUtils.TestingPaths;
 
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
-import static testingUtils.HelperMethods.setPrivateField;
+import static _testingUtils.HelperMethods.setPrivateField;
 
 /**
  * Test class for verifying the detection handling logic in the {@link OnnxRunner} class.

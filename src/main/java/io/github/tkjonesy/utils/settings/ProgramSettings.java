@@ -76,12 +76,12 @@ public class ProgramSettings {
     private float nmsThreshold;
     @SettingsLabel(value = "optimizationLevel", type = OrtSession.SessionOptions.OptLevel.class) // all, extended, basic, no
     private OrtSession.SessionOptions.OptLevel optimizationLevel;
-    @SettingsLabel(value = "numInputElements", type = Integer.class)
-    private int numInputElements;
     @SettingsLabel(value = "inputSize", type = Integer.class)
     private int inputSize;
     @SettingsLabel(value = "inputShape", type = long[].class)
     private long[] inputShape;
+    @SettingsLabel(value = "numInputElements", type = Integer.class)
+    private int numInputElements;
 
     // -------------------------------------------------------------------------
 

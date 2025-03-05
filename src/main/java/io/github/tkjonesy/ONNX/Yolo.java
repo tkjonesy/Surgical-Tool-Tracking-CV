@@ -1,14 +1,12 @@
 package io.github.tkjonesy.ONNX;
 
 import ai.onnxruntime.*;
-
-import io.github.tkjonesy.frontend.App;
+import ai. onnxruntime. OrtSession. SessionOptions;
 import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import lombok.Getter;
 import org.bytedeco.opencv.opencv_core.Mat;
 
-import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -34,9 +32,9 @@ public abstract class Yolo {
 
         EnumSet<OrtProvider> availableProviders = OrtEnvironment.getAvailableProviders();
         System.out.println("Available providers: " + availableProviders);
-
+        
         boolean useGPU = availableProviders.contains(OrtProvider.CUDA) && ProgramSettings.getCurrentSettings().isUseGPU();
-        OrtSession.SessionOptions sessionOptions = createSessionOptions(useGPU);
+        SessionOptions sessionOptions = createSessionOptions(useGPU);
 
         try {
             System.out.println("Attempting to create ONNX session...");
@@ -52,11 +50,6 @@ public abstract class Yolo {
             isCudaAvailable = false;
             sessionOptions = createSessionOptions(false);
             this.session = this.env.createSession(modelPath, sessionOptions);
-        }
-
-        // Ensure CUDA is not marked as available on MacOS
-        if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-            isCudaAvailable = false;
         }
 
         // Get the input information
@@ -75,9 +68,9 @@ public abstract class Yolo {
         }
     }
 
-    public OrtSession.SessionOptions createSessionOptions(boolean useGPU) throws OrtException {
-        OrtSession.SessionOptions sessionOptions = new OrtSession.SessionOptions();
-        sessionOptions.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT);
+    public SessionOptions createSessionOptions(boolean useGPU) throws OrtException {
+        SessionOptions sessionOptions = new SessionOptions();
+        sessionOptions.setOptimizationLevel(SessionOptions.OptLevel.ALL_OPT);
 
         if (useGPU) {
             try {

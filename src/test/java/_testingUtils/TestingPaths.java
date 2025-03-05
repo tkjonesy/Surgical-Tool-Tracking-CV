@@ -1,4 +1,4 @@
-package testingUtils;
+package _testingUtils;
 
 public class TestingPaths {
 
