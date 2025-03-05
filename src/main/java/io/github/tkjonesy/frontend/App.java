@@ -88,6 +88,20 @@ public class App extends JFrame {
     private final SessionHandler sessionHandler;
     private final ProgramSettings settings;
 
+    private CameraFetcher cameraFetcher;
+    @Getter
+    @Setter
+    private static VideoCapture camera;
+    private Thread cameraFetcherThread;
+    @Getter
+    private JLabel cameraFeed;
+    @Getter
+    @Setter
+    private JTextPane logTextPane;
+    private JPanel trackerPanel;
+
+    private static final Color CHARCOAL = new Color(30, 31, 34);
+
     public App() {
         instance = this;
 
