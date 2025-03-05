@@ -1,21 +1,17 @@
 package io.github.tkjonesy.frontend.mainGUI;
 
-import io.github.tkjonesy.frontend.App;
 import lombok.Getter;
 
 import javax.swing.*;
 import java.awt.*;
 
+@Getter
 public class LoggingPanel extends JPanel {
     private static final Color CHARCOAL = new Color(30, 31, 34);
 
-    private final App appInstance;
+    private final JTextPane logTextPane;
 
-    @Getter
-    private JTextPane logTextPane;
-
-    public LoggingPanel(App appInstance) {
-        this.appInstance = appInstance;
+    public LoggingPanel() {
         this.setBorder(BorderFactory.createTitledBorder("Tracking Log"));
         this.logTextPane = new JTextPane();
         this.logTextPane.setEditable(false);

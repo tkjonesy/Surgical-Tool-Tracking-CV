@@ -148,7 +148,7 @@ public class App extends JFrame {
 
         // GUI Panels
         cameraPanel = new CameraPanel(new BorderLayout(), instance);
-        loggingPanel = new LoggingPanel(instance);
+        loggingPanel = new LoggingPanel();
         ButtonPanel buttonPanel = new ButtonPanel(instance);
 
         // Window Layout
