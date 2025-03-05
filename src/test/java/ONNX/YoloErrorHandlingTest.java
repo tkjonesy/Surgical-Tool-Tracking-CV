@@ -9,6 +9,7 @@ import static org.mockito.Mockito.*;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtProvider;
+import ai.onnxruntime.OrtSession;
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
 import io.github.tkjonesy.utils.ErrorDialogManager;
@@ -17,6 +18,7 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -59,6 +61,45 @@ public class YoloErrorHandlingTest {
     }
 
     /**
+     * <b>Given</b> that CUDA is available and `useGPU` is enabled,
+     * <b>when</b> `createSessionOptions` is invoked and `addCUDA` fails,
+     * <b>then</b> an error dialog is displayed via the ErrorDialogManager and the session falls back to CPU.
+     *
+     * <p>
+     * <b>Pass Condition:</b> {@code ErrorDialogManager.displayErrorDialog(...)} is called at least once
+     * with a message containing "Failed to add CUDA provider".
+     * <br>
+     * <b>Fail Condition:</b> No error dialog is displayed, or the session does not fall back to CPU.
+     * </p>
+     * @throws Exception if Yolo creation fails unexpectedly
+     */
+    @Test
+    public void givenSessionOptions_whenAddCudaFails_thenErrorDialogIsDisplayed() throws Exception {
+        System.out.println("Running test: givenSessionOptions_whenAddCudaFails_thenErrorDialogIsDisplayed");
+
+        try (MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class);
+             MockedConstruction<OrtSession.SessionOptions> mockSessionOptionsConstruction =
+                     mockConstruction(OrtSession.SessionOptions.class, (mock, context) -> {
+                         doThrow(new OrtException("Simulated addCUDA failure")).when(mock).addCUDA(anyInt());
+                     })) {
+
+            // Create a Yolo mock (since we only need the method)
+            Yolo mockYolo = mock(Yolo.class, CALLS_REAL_METHODS);
+
+            // Call `createSessionOptions()`
+            OrtSession.SessionOptions resultOptions = mockYolo.createSessionOptions(true);
+
+            // Verify that the error dialog was triggered
+            errorDialogStatic.verify(() -> ErrorDialogManager.displayErrorDialog(
+                    argThat(message -> message.contains("Simulated addCUDA failure"))
+            ), times(1));
+
+            // Ensure the method still completes execution
+            assertThat(resultOptions).isNotNull();
+        }
+    }
+
+    /**
      * <b>Given</b> that a GPU failure is simulated during Yolo construction (i.e. createSession throws an OrtException),
      * <b>when</b> a Yolo instance is created,
      * <b>then</b> the CUDA availability flag is set to false and an error dialog is displayed.
@@ -73,26 +114,30 @@ public class YoloErrorHandlingTest {
      * @throws Exception if Yolo creation fails unexpectedly
      */
     @Test
-    public void givenGpuFailure_whenCreatingYolo_thenCudaFlagIsFalseAndErrorDialogDisplayed() throws Exception {
+    public void givenGpuSessionFailure_whenCreatingYolo_thenCudaFlagIsFalseAndErrorDialogDisplayed() throws Exception {
+        System.out.println("Running test: givenGpuSessionFailure_whenCreatingYolo_thenCudaFlagIsFalseAndErrorDialogDisplayed");
+
+        dummySettings.setUseGPU(true);
+
+        // Mock objects
         OrtEnvironment mockEnv = mock(OrtEnvironment.class);
-        ProgramSettings mockSettings = mock(ProgramSettings.class);
+        OrtSession mockSession = mock(OrtSession.class);
 
         try (MockedStatic<OrtEnvironment> envStatic = mockStatic(OrtEnvironment.class);
-             MockedStatic<ProgramSettings> settingsStatic = mockStatic(ProgramSettings.class);
-             MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
-
-            // Mock ProgramSettings
-            settingsStatic.when(ProgramSettings::getCurrentSettings).thenReturn(mockSettings);
-            when(mockSettings.isUseGPU()).thenReturn(true);
-            when(mockSettings.getGpuDeviceId()).thenReturn(0);
+             MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class);
+             MockedConstruction<OrtSession.SessionOptions> mockSessionOptionsConstruction =
+                     mockConstruction(OrtSession.SessionOptions.class, (mock, context) -> {
+                         doNothing().when(mock).addCUDA(anyInt()); // `addCUDA()` succeeds
+                     })) {
 
             // Mock OrtEnvironment
             envStatic.when(OrtEnvironment::getEnvironment).thenReturn(mockEnv);
             envStatic.when(OrtEnvironment::getAvailableProviders)
                     .thenReturn(EnumSet.of(OrtProvider.CUDA, OrtProvider.CPU));
 
+            // Simulate `createSession()` failing when using GPU
             when(mockEnv.createSession(eq(DUMMY_MODEL_PATH), any()))
-                    .thenThrow(new OrtException("Simulated GPU failure"));
+                    .thenThrow(new OrtException("Simulated GPU session creation failure"));
 
             // When: Creating a Yolo instance
             try {
@@ -104,10 +149,12 @@ public class YoloErrorHandlingTest {
                 };
             } catch (Exception ignore) { }
 
-            // Then: The CUDA flag should be false and an error dialog should be displayed.
+            // Then: The CUDA flag should be false
             assertThat(Yolo.isCudaAvailable()).isFalse();
+
+            // Verify that the error dialog was triggered for GPU session failure
             errorDialogStatic.verify(() -> ErrorDialogManager.displayErrorDialog(
-                    argThat(message -> message != null && message.contains("Simulated GPU failure"))
+                    argThat(message -> message.contains("Failed to create session with GPU"))
             ), times(1));
         }
     }
