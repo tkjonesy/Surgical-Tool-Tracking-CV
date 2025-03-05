@@ -1,11 +1,11 @@
-package ONNX;
+package ONNX.models;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.*;
-import static utils.HelperMethods.setPrivateField;
+import static testingUtils.HelperMethods.setPrivateField;
 
 import ai.onnxruntime.OrtException;
 import io.github.tkjonesy.ONNX.Yolo;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.MockedStatic;
-import utils.TestingPaths;
+import testingUtils.TestingPaths;
 
 import java.lang.reflect.Field;
 

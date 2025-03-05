@@ -23,7 +23,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import utils.TestingPaths;
+import testingUtils.TestingPaths;
 
 import java.util.*;
 
@@ -57,12 +57,14 @@ public class YoloErrorHandlingTest {
     private ai.onnxruntime.OrtSession dummyCpuSession;
 
     @BeforeAll
-    public static void setupProgramSettings() {
+    public static void setupProgramSettings() throws ClassNotFoundException {
         ProgramSettings dummySettings = new ProgramSettings();
         dummySettings.setUseGPU(true);
         dummySettings.setModelPath(DUMMY_MODEL_PATH);
         dummySettings.setLabelPath(DUMMY_LABEL_PATH);
         ProgramSettings.setCurrentSettings(dummySettings);
+
+        Class.forName("io.github.tkjonesy.ONNX.Yolo");
     }
 
     /**

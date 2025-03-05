@@ -1,4 +1,4 @@
-package ONNX;
+package ONNX.models;
 
 import io.github.tkjonesy.ONNX.Detection;
 import io.github.tkjonesy.ONNX.Yolo;
@@ -9,13 +9,13 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
-import utils.TestingPaths;
+import testingUtils.TestingPaths;
 
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
-import static utils.HelperMethods.setPrivateField;
+import static testingUtils.HelperMethods.setPrivateField;
 
 /**
  * Test class for verifying the detection handling logic in the {@link OnnxRunner} class.
