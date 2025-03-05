@@ -90,10 +90,6 @@ public class App extends JFrame {
 
     private CameraFetcher cameraFetcher;
     @Getter
-    @Setter
-    private static VideoCapture camera;
-    private Thread cameraFetcherThread;
-    @Getter
     private JLabel cameraFeed;
     @Getter
     @Setter
