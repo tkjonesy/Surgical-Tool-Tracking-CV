@@ -75,12 +75,18 @@ public class YoloErrorHandlingTest {
     @Test
     public void givenGpuFailure_whenCreatingYolo_thenCudaFlagIsFalseAndErrorDialogDisplayed() throws Exception {
         OrtEnvironment mockEnv = mock(OrtEnvironment.class);
-        dummySettings.setUseGPU(true);
+        ProgramSettings mockSettings = mock(ProgramSettings.class);
 
         try (MockedStatic<OrtEnvironment> envStatic = mockStatic(OrtEnvironment.class);
+             MockedStatic<ProgramSettings> settingsStatic = mockStatic(ProgramSettings.class);
              MockedStatic<ErrorDialogManager> errorDialogStatic = mockStatic(ErrorDialogManager.class)) {
 
-            // Given: OrtEnvironment is mocked to simulate GPU failure.
+            // Mock ProgramSettings
+            settingsStatic.when(ProgramSettings::getCurrentSettings).thenReturn(mockSettings);
+            when(mockSettings.isUseGPU()).thenReturn(true);
+            when(mockSettings.getGpuDeviceId()).thenReturn(0);
+
+            // Mock OrtEnvironment
             envStatic.when(OrtEnvironment::getEnvironment).thenReturn(mockEnv);
             envStatic.when(OrtEnvironment::getAvailableProviders)
                     .thenReturn(EnumSet.of(OrtProvider.CUDA, OrtProvider.CPU));
