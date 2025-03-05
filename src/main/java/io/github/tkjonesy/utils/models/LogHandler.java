@@ -11,9 +11,9 @@ import javax.swing.*;
 public class LogHandler {
 
     @Getter
-    private final JTextPane logTextPane;
+    private static JTextPane logTextPane;
     @Getter
-    private final LogQueue logQueue;
+    private static final LogQueue logQueue = new LogQueue();
 
     // New method to set FileSession after initialization
     @Setter
@@ -21,11 +21,10 @@ public class LogHandler {
     private Timer timer;
 
     // This StringBuilder accumulates the log messages in HTML format
-    private final StringBuilder logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
+    private static final StringBuilder logHtmlContent = new StringBuilder("<html><body style='color:white;'>");
 
     public LogHandler(JTextPane textPane) {
         this.logTextPane = textPane;
-        this.logQueue = new LogQueue();
 
         startLogProcessing();
     }
@@ -40,12 +39,19 @@ public class LogHandler {
         saveLogToFile(log);
     }
 
+    public static void forceProcessNextLog(){
+        Log nextLog = logQueue.getNextLog();
+        if(nextLog != null){
+            appendLogToPane(nextLog);
+        }
+    }
+
     /**
      * Appends a new log entry as colored HTML text to the log text pane.
      *
      * @param log The log entry to display.
      */
-    private void appendLogToPane(Log log) {
+    private static void appendLogToPane(Log log) {
         // Get the color of the log type as a hex code
         String colorHex = "#" + Integer.toHexString(log.getLogType().getColor().getRGB()).substring(2);
 
