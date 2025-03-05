@@ -15,6 +15,8 @@ import java.util.HashMap;
 
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
+import io.github.tkjonesy.frontend.mainGUI.CameraPanel;
+import io.github.tkjonesy.frontend.mainGUI.LoggingPanel;
 import io.github.tkjonesy.frontend.models.*;
 import io.github.tkjonesy.frontend.models.SplashScreen;
 import io.github.tkjonesy.frontend.models.cameraGrabber.CameraGrabber;
@@ -78,19 +80,13 @@ public class App extends JFrame {
     private static OnnxRunner onnxRunner = null;
     private final ProgramSettings settings;
 
-    private CameraFetcher cameraFetcher;
     @Getter
     @Setter
     private static VideoCapture camera;
     private Thread cameraFetcherThread;
-    @Getter
-    private JLabel cameraFeed;
-    @Getter
-    @Setter
-    private JTextPane logTextPane;
-    private JPanel trackerPanel;
 
-    private static final Color CHARCOAL = new Color(30, 31, 34);
+    private CameraPanel cameraPanel;
+    private LoggingPanel loggingPanel;
 
     public App() {
         instance = this;
@@ -122,7 +118,7 @@ public class App extends JFrame {
         initListeners();
 
         // Initialize the session handler, log handler, and ONNX runner
-        LogHandler logHandler = new LogHandler(logTextPane);
+        LogHandler logHandler = new LogHandler(loggingPanel.getLogTextPane());
         this.sessionHandler = new SessionHandler(logHandler);
         onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
@@ -150,51 +146,19 @@ public class App extends JFrame {
             this.setIconImage(appIcon.getImage());
         } catch (Exception ignored) {}
 
-        // Camera Panel
-        JPanel cameraPanel = new JPanel(new BorderLayout());
-        cameraPanel.setBorder(BorderFactory.createTitledBorder("Camera"));
-        cameraFeed = new JLabel("");
-        cameraFeed.setMinimumSize(new Dimension(320, 240));
-        cameraPanel.add(cameraFeed, BorderLayout.CENTER);
-
-
-        // Log tracker Panel
-        trackerPanel = new JPanel();
-        trackerPanel.setBorder(BorderFactory.createTitledBorder("Tracking Log"));
-        this.logTextPane = new JTextPane();
-        this.logTextPane.setEditable(false);
-        this.logTextPane.setContentType("text/html");
-        this.logTextPane.setBackground(CHARCOAL);
-
-        // Log tracker scroll pane for text area
-        JScrollPane scrollPane = new JScrollPane(logTextPane);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        // Set the layout for tracking panel using GroupLayout
-        GroupLayout trackingPanelLayout = new GroupLayout(trackerPanel);
-        trackingPanelLayout.setAutoCreateContainerGaps(true);
-        trackingPanelLayout.setHorizontalGroup(
-                trackingPanelLayout.createSequentialGroup()
-                        .addComponent(scrollPane)
-        );
-        trackingPanelLayout.setVerticalGroup(
-                trackingPanelLayout.createSequentialGroup()
-                        .addComponent(scrollPane)
-        );
-        trackerPanel.setLayout(trackingPanelLayout);
-
-        // Bottom Button Panel
+        // GUI Panels
+        cameraPanel = new CameraPanel(new BorderLayout(), instance);
+        loggingPanel = new LoggingPanel(instance);
         ButtonPanel buttonPanel = new ButtonPanel(instance);
 
         // Window Layout
         this.setLayout(new GridBagLayout());
         this.add(cameraPanel, createConstraints(0, 0, 0.5, 1));
-        this.add(trackerPanel, createConstraints(1, 0, 0.5, 0.5));
-        GridBagConstraints bottomPanelConstraints = createConstraints(0, 1, 1, 0.05);
-        bottomPanelConstraints.gridwidth = 2;
-        bottomPanelConstraints.fill = GridBagConstraints.VERTICAL;
-        this.add(buttonPanel, bottomPanelConstraints);
+        this.add(loggingPanel, createConstraints(1, 0, 0.5, 0.5));
+        GridBagConstraints buttonPanelConstraints = createConstraints(0, 1, 1, 0.05);
+        buttonPanelConstraints.gridwidth = 2;
+        buttonPanelConstraints.fill = GridBagConstraints.VERTICAL;
+        this.add(buttonPanel, buttonPanelConstraints);
         this.pack();
         this.setLocationRelativeTo(null); // Center application
     }
@@ -242,7 +206,7 @@ public class App extends JFrame {
                 new ComponentAdapter() {
                     @Override
                     public void componentResized(ComponentEvent e) {
-                        trackerPanel.setPreferredSize(new Dimension(App.this.getWidth() / 3, trackerPanel.getHeight()));
+                        loggingPanel.setPreferredSize(new Dimension(App.this.getWidth() / 3, loggingPanel.getHeight()));
                     }
                 }
         );
@@ -260,7 +224,7 @@ public class App extends JFrame {
             }
 
             // Camera fetcher thread task
-            cameraFetcher = new CameraFetcher(this.cameraFeed, camera, onnxRunner, sessionHandler);
+            CameraFetcher cameraFetcher = new CameraFetcher(this.cameraPanel.getCameraFeed(), camera, onnxRunner, sessionHandler);
             cameraFetcherThread = new Thread(cameraFetcher);
             cameraFetcherThread.start();
 

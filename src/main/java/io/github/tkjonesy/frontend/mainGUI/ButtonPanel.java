@@ -17,7 +17,6 @@ public class ButtonPanel extends JPanel {
     private static final Color SUNSET = new Color(255, 40, 79);
 
     public ButtonPanel(App appInstance) {
-        super();
         this.appInstance = appInstance;
         initializeComponents();
         initializeListeners();

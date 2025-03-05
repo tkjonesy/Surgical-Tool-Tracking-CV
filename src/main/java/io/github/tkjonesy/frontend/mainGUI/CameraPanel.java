@@ -8,22 +8,15 @@ import java.awt.*;
 
 @Getter
 public class CameraPanel extends JPanel {
-    private final App parent;
-    private JLabel cameraFeed;
+    private final App appInstance;
+    private final JLabel cameraFeed;
 
-    public CameraPanel(LayoutManager layoutManager, App parent){
+    public CameraPanel(LayoutManager layoutManager, App appInstance){
         super(layoutManager);
-        this.parent = parent;
-        initializeComponents();
-        setupLayout();
-    }
-
-    private void initializeComponents() {
+        this.appInstance = appInstance;
+        this.setBorder(BorderFactory.createTitledBorder("Camera"));
         cameraFeed = new JLabel("");
         cameraFeed.setMinimumSize(new Dimension(320, 240));
-    }
-
-    private void setupLayout() {
         this.add(cameraFeed, BorderLayout.CENTER);
     }
 }
