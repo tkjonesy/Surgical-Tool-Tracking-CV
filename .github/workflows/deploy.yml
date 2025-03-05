@@ -1,15 +1,12 @@
 name: Release on PR Merge
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
-    types:
-      - closed
+      - auto-deploy-test
 
 jobs:
   package-linux:
-    if: github.event.pull_request.merged == true
     name: Build JAR on Linux
     runs-on: ubuntu-latest
 
@@ -33,7 +30,6 @@ jobs:
           path: target/*.jar
 
   build-windows-installer:
-    if: github.event.pull_request.merged == true
     name: Build Installer on Windows
     runs-on: windows-latest
 
@@ -70,7 +66,6 @@ jobs:
           path: AIMs.exe
 
   build-macos-installer:
-    if: github.event.pull_request.merged == true
     name: Build Installer on macOS
     runs-on: macos-latest
 
