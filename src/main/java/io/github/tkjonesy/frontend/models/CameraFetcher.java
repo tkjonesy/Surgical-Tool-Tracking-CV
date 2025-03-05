@@ -106,11 +106,12 @@ public class CameraFetcher implements Runnable {
                 }
                 if (!Thread.currentThread().isInterrupted()) {
                     camera.read(frame);
-                    Mat inferenceFrame = frame.clone();
 
                     if(settings.isMirrorCamera()){
                         opencv_core.flip(frame, frame, 1);
                     }
+
+                    Mat inferenceFrame = frame.clone();
 
                     // Every Nth frame, run object detection
                     if (++currentFrame % settings.getProcessEveryNthFrame() == 0) {
