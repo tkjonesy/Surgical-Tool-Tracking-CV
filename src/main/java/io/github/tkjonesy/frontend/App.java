@@ -12,7 +12,10 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import com.github.sarxos.webcam.Webcam;
+import com.github.sarxos.webcam.WebcamDevice;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
 import io.github.tkjonesy.frontend.mainGUI.CameraPanel;
@@ -68,16 +71,25 @@ public class App extends JFrame {
         opencv_core.setNumThreads(1);
 
         // Load the camera devices from the user's system
-        CameraGrabber grabber;
-        if(System.getProperty("os.name").toLowerCase().contains("mac")) {
-            grabber = new MacOSCameraGrabber();
-        } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
-            grabber = new WindowsCameraGrabber();
-        }else{
-            throw new UnsupportedOperationException("Unsupported OS");
-        }
+//        CameraGrabber grabber;
+//        if(System.getProperty("os.name").toLowerCase().contains("mac")) {
+//            grabber = new MacOSCameraGrabber();
+//        } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
+//            grabber = new WindowsCameraGrabber();
+//        }else{
+//            throw new UnsupportedOperationException("Unsupported OS");
+//        }
+//
+//        AVAILABLE_CAMERAS = grabber.getCameraNames();
 
-        AVAILABLE_CAMERAS = grabber.getCameraNames();
+        AtomicInteger cameraId = new AtomicInteger(0);
+        AVAILABLE_CAMERAS = new HashMap<>();
+        Webcam.getWebcams().forEach(camera -> {
+            WebcamDevice device = camera.getDevice();
+            System.out.println("Found camera: " + device.getName());
+            AVAILABLE_CAMERAS.put(device.getName(), cameraId.getAndIncrement());
+        });
+
     }
 
     private Thread cameraFetcherThread;

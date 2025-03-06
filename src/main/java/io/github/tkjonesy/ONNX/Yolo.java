@@ -40,7 +40,7 @@ public abstract class Yolo {
             System.out.println("Attempting to create ONNX session...");
             this.session = this.env.createSession(modelPath, sessionOptions);
 
-            isCudaAvailable = useGPU && availableProviders.contains(OrtProvider.CUDA);
+            isCudaAvailable = availableProviders.contains(OrtProvider.CUDA);
             System.out.println("Session created successfully. CUDA available: " + isCudaAvailable);
 
         } catch (OrtException e) {
