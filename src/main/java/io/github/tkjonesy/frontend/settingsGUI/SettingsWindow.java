@@ -5,6 +5,7 @@ import ai.onnxruntime.OrtSession;
 import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import io.github.tkjonesy.utils.settings.SettingsLoader;
+import lombok.Getter;
 
 import javax.swing.*;
 import javax.swing.LayoutStyle.ComponentPlacement;
@@ -26,9 +27,12 @@ import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 public class SettingsWindow extends JDialog {
 
     private ProgramSettings settings = ProgramSettings.getCurrentSettings();
-    private final HashMap<String, Object> settingsUpdates = new HashMap<>();
+    @Getter
+    private static final HashMap<String, Object> settingsUpdates = new HashMap<>();
 
-    private JButton confirmButton, cancelButton, applyButton;
+    private JButton confirmButton;
+    private JButton cancelButton;
+    private static JButton applyButton;
 
     private JComboBox<String> cameraSelector;
     private JSpinner cameraFpsSpinner;
@@ -92,139 +96,7 @@ public class SettingsWindow extends JDialog {
         /*----------------+
         | CAMERA SETTINGS |
         +----------------*/
-        // Components
-        JPanel cameraPanel = new JPanel();
-        JLabel cameraSelectorLabel = new JLabel("Camera Selection");
-        this.cameraSelector = new JComboBox<>();
-        JLabel cameraFpsLabel = new JLabel("Camera Frames Per Second");
-        this.cameraFpsSpinner = new JSpinner(new SpinnerNumberModel(settings.getCameraFps(), 0, 60, 1));
-        JLabel cameraFpsWarningLabel = new JLabel("");
-
-        // Populate camera selection menu with list of available cameras.
-        Set<String> cameraNames = AVAILABLE_CAMERAS.keySet();
-        int itemIndex = 0;
-        for(String cameraName: cameraNames) {
-            cameraSelector.addItem(cameraName);
-            // Automatically set the selected camera to whatever camera is selected in the settings file.
-            if(AVAILABLE_CAMERAS.get(cameraName) == settings.getCameraDeviceId())
-                cameraSelector.setSelectedIndex(itemIndex);
-            itemIndex++;
-        }
-
-        // Camera FPS details
-        cameraFpsSpinner.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
-        cameraFpsLabel.setToolTipText("<html><body style='width:200px'>Set the frame rate—the number of times per second the camera image updates—for the selected camera. Higher values are smoother, but may reduce performance. Default is 30.</body></html>");
-        cameraFpsWarningLabel.setForeground(Color.RED);
-        cameraFpsSpinner.addChangeListener(
-                e -> {
-                    if((int) cameraFpsSpinner.getValue() <= 30)
-                        cameraFpsWarningLabel.setText("");
-                    else {
-                        cameraFpsWarningLabel.setText("<html><body style='width:200px'><b>NOTE: Values over 30 may not be supported by all cameras. Setting this value higher than 30 will not make the recording smoother if the camera does not have a refresh rate this high. Additionally, values over 60 may cause extreme performance issues.</b></body></html>");
-                    }
-                }
-        );
-
-        // Camera Rotation (Slider)
-        JLabel cameraRotationLabel = new JLabel("Camera Rotation:");
-        this.cameraRotationSlider = new JSlider(0, 270, settings.getCameraRotation());
-        cameraRotationSlider.setMajorTickSpacing(90);  // Only allow 0, 90, 180, 270
-        cameraRotationSlider.setSnapToTicks(true);
-        cameraRotationSlider.setPaintTicks(true);
-        cameraRotationSlider.setPaintLabels(true);
-
-        // Define custom labels for the tick positions
-        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
-        labelTable.put(0, new JLabel("0"));
-        labelTable.put(90, new JLabel("90"));
-        labelTable.put(180, new JLabel("180"));
-        labelTable.put(270, new JLabel("270"));
-        cameraRotationSlider.setLabelTable(labelTable);
-
-        // Mirror camera checkbox
-        JLabel mirrorCameraLabel = new JLabel("Mirror Camera");
-        this.mirrorCameraCheckbox = new JCheckBox();
-        this.mirrorCameraCheckbox.setSelected(settings.isMirrorCamera());
-
-        // Preserve aspect ratio checkbox
-        JLabel preserveAspectRatioLabel = new JLabel("Preserve Aspect Ratio");
-        this.preserveAspectRatioCheckbox = new JCheckBox();
-        this.preserveAspectRatioCheckbox.setSelected(settings.isPreserveAspectRatio());
-
-        // Layout
-        GroupLayout cameraSettingsLayout = new GroupLayout(cameraPanel);
-        cameraSettingsLayout.setAutoCreateContainerGaps(true);
-
-        cameraSettingsLayout.setHorizontalGroup(
-                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addGroup(
-                                cameraSettingsLayout.createSequentialGroup()
-                                        .addComponent(cameraSelectorLabel)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cameraSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        )
-                        .addGroup(
-                                cameraSettingsLayout.createSequentialGroup()
-                                        .addComponent(cameraFpsLabel)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cameraFpsSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cameraFpsWarningLabel)
-                        )
-                        .addGroup(
-                                cameraSettingsLayout.createSequentialGroup()
-                                        .addComponent(cameraRotationLabel)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cameraRotationSlider, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE) // Slider
-                        )
-                        .addGroup(
-                                cameraSettingsLayout.createSequentialGroup()
-                                        .addComponent(mirrorCameraLabel)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(mirrorCameraCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        )
-                        .addGroup(
-                                cameraSettingsLayout.createSequentialGroup()
-                                        .addComponent(preserveAspectRatioLabel)
-                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(preserveAspectRatioCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        )
-        );
-
-        cameraSettingsLayout.setVerticalGroup(
-                cameraSettingsLayout.createSequentialGroup()
-                        .addGroup(
-                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(cameraSelectorLabel)
-                                        .addComponent(cameraSelector)
-                        )
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(
-                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(cameraFpsLabel)
-                                        .addComponent(cameraFpsSpinner)
-                                        .addComponent(cameraFpsWarningLabel)
-                        )
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(
-                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(cameraRotationLabel)
-                                        .addComponent(cameraRotationSlider)
-                        )
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(
-                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(mirrorCameraLabel)
-                                        .addComponent(mirrorCameraCheckbox)
-                        )
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(
-                                cameraSettingsLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                                        .addComponent(preserveAspectRatioLabel)
-                                        .addComponent(preserveAspectRatioCheckbox)
-                        )
-        );
-        cameraPanel.setLayout(cameraSettingsLayout);
+        JPanel cameraPanel = new CameraSettingsPanel(settings, AVAILABLE_CAMERAS);
 
         /*-----------------+
         | STORAGE SETTINGS |
@@ -410,62 +282,13 @@ public class SettingsWindow extends JDialog {
     }
 
     // Method to enable/disable the Apply button
-    private void updateApplyButtonState() {
+    private static void updateApplyButtonState() {
         applyButton.setEnabled(!settingsUpdates.isEmpty());
     }
 
     private void initListeners() {
 
         // CAMERA LISTENERS -----------------------------------------------
-        addSettingChangeListener(cameraSelector, (ActionListener)
-                e -> {
-                    String value = (String) cameraSelector.getSelectedItem();
-                    System.out.println("Camera: " + cameraSelector.getSelectedItem());
-                    settingsUpdates.put("cameraDeviceId", AVAILABLE_CAMERAS.get(value));
-                    if(settings.getCameraDeviceId() == AVAILABLE_CAMERAS.get(value))
-                        settingsUpdates.remove("cameraDeviceId");
-                }
-        );
-
-        addSettingChangeListener(cameraFpsSpinner, (ChangeListener)
-                e -> {
-                    int value = (int) cameraFpsSpinner.getValue();
-                    System.out.println("Camera FPS: " + cameraFpsSpinner.getValue());
-                    settingsUpdates.put("cameraFps", value);
-                    if(settings.getCameraFps() == value)
-                        settingsUpdates.remove("cameraFps");
-                }
-        );
-
-        addSettingChangeListener(cameraRotationSlider, (ChangeListener)
-                e -> {
-                    int value = cameraRotationSlider.getValue();
-                    System.out.println("Camera rotation: " + cameraRotationSlider.getValue());
-                    settingsUpdates.put("cameraRotation", value);
-                    if(settings.getCameraRotation() == value)
-                        settingsUpdates.remove("cameraRotation");
-                }
-        );
-
-        addSettingChangeListener(mirrorCameraCheckbox, (ActionListener)
-                e -> {
-                    boolean value = mirrorCameraCheckbox.isSelected();
-                    System.out.println("Mirror camera: " + mirrorCameraCheckbox.isSelected());
-                    settingsUpdates.put("mirrorCamera", value);
-                    if(settings.isMirrorCamera() == value)
-                        settingsUpdates.remove("mirrorCamera");
-                }
-        );
-
-        addSettingChangeListener(preserveAspectRatioCheckbox, (ActionListener)
-                e -> {
-                    boolean value = preserveAspectRatioCheckbox.isSelected();
-                    System.out.println("Preserve aspect ratio: " + preserveAspectRatioCheckbox.isSelected());
-                    settingsUpdates.put("preserveAspectRatio", value);
-                    if(settings.isPreserveAspectRatio() == value)
-                        settingsUpdates.remove("preserveAspectRatio");
-                }
-        );
 
         // STORAGE LISTENERS -----------------------------------------------
         addSettingChangeListener(customSaveOption, (ActionListener)
@@ -715,7 +538,7 @@ public class SettingsWindow extends JDialog {
         });
     }
 
-    private <T extends EventListener> void addSettingChangeListener(JComponent component, T listener) {
+    public static <T extends EventListener> void addSettingChangeListener(JComponent component, T listener) {
         if (component instanceof AbstractButton button && listener instanceof ActionListener actionListener) {
             button.addActionListener(e -> {
                 actionListener.actionPerformed(e);

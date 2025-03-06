@@ -13,4 +13,8 @@ public class ErrorDialogManager {
         System.exit(1);
     }
 
+    public static void displayWarningDialog(String message){
+        JOptionPane.showMessageDialog(null, message, "Warning", JOptionPane.WARNING_MESSAGE);
+    }
+
 }
