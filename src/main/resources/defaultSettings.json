@@ -1,5 +1,5 @@
 {
-  "cameraDeviceId": 0,
+  "cameraName": "",
   "cameraFps": 30,
   "cameraRotation": 0,
   "mirrorCamera": true,

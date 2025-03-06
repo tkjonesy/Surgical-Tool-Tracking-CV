@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 import static io.github.tkjonesy.frontend.settingsGUI.SettingsWindow.addSettingChangeListener;
@@ -33,7 +34,7 @@ public class CameraSettingsPanel extends JPanel implements SettingsUI {
     private final JCheckBox preserveAspectRatioCheckbox;
     private final JLabel cameraFpsWarningLabel;
 
-    public CameraSettingsPanel(ProgramSettings settings, HashMap<String, Integer> availableCameras) {
+    public CameraSettingsPanel(ProgramSettings settings, Map<String, Integer> availableCameras) {
         // Components
         this.cameraSelectorLabel = new JLabel("Camera Selection");
         this.cameraSelector = new JComboBox<>();
@@ -45,7 +46,7 @@ public class CameraSettingsPanel extends JPanel implements SettingsUI {
         int itemIndex = 0;
         for(String cameraName : availableCameras.keySet()) {
             cameraSelector.addItem(cameraName);
-            if(availableCameras.get(cameraName) == settings.getCameraDeviceId()) {
+            if(cameraName.equals(settings.getCameraName())) {
                 cameraSelector.setSelectedIndex(itemIndex);
             }
             itemIndex++;
@@ -94,9 +95,9 @@ public class CameraSettingsPanel extends JPanel implements SettingsUI {
                 e -> {
                     String value = (String) cameraSelector.getSelectedItem();
                     System.out.println("Camera: " + cameraSelector.getSelectedItem());
-                    settingsUpdates.put("cameraDeviceId", AVAILABLE_CAMERAS.get(value));
-                    if(settings.getCameraDeviceId() == AVAILABLE_CAMERAS.get(value))
-                        settingsUpdates.remove("cameraDeviceId");
+                    settingsUpdates.put("cameraName", value);
+                    if(settings.getCameraName().equals(value))
+                        settingsUpdates.remove("cameraName");
                 }
         );
 

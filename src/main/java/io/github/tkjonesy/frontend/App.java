@@ -11,12 +11,12 @@ import java.awt.event.WindowEvent;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.github.sarxos.webcam.Webcam;
-import com.github.sarxos.webcam.WebcamDevice;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 import io.github.tkjonesy.frontend.mainGUI.ButtonPanel;
 import io.github.tkjonesy.frontend.mainGUI.CameraPanel;
@@ -38,6 +38,7 @@ import lombok.Setter;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bytedeco.javacv.VideoInputFrameGrabber;
 import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
@@ -58,7 +59,7 @@ public class App extends JFrame {
     private static VideoCapture camera;
 
     private static final Logger logger = LogManager.getLogger(App.class);
-    public static final HashMap<String, Integer> AVAILABLE_CAMERAS;
+    public static Map<String, Integer> AVAILABLE_CAMERAS;
     private static final SplashScreen splashScreen;
     static {
 
@@ -72,23 +73,6 @@ public class App extends JFrame {
         System.getProperty("org.bytedeco.javacpp.maxphysicalbytes", "0");
         System.getProperty("org.bytedeco.javacpp.maxbytes", "0");
         opencv_core.setNumThreads(1);
-
-        // Load the camera devices from the user's system
-//        CameraGrabber grabber;
-//        if(System.getProperty("os.name").toLowerCase().contains("mac")) {
-//            grabber = new MacOSCameraGrabber();
-//        } else if(System.getProperty("os.name").toLowerCase().contains("windows")) {
-//            grabber = new WindowsCameraGrabber();
-//        }else{
-//            throw new UnsupportedOperationException("Unsupported OS");
-//        }
-//
-//        AVAILABLE_CAMERAS = grabber.getCameraNames();
-
-        AVAILABLE_CAMERAS = getCameraDevices();
-        for(String key : AVAILABLE_CAMERAS.keySet()){
-            System.out.println(key + " : " + AVAILABLE_CAMERAS.get(key));
-        }
     }
 
     private Thread cameraFetcherThread;
@@ -111,6 +95,11 @@ public class App extends JFrame {
 
     public App() {
         instance = this;
+
+        AVAILABLE_CAMERAS = getCameraDevices();
+        for(String key : AVAILABLE_CAMERAS.keySet()){
+            System.out.println(key + " : " + AVAILABLE_CAMERAS.get(key));
+        }
 
         // Initialize the directories for AIMs
         try{
@@ -141,7 +130,7 @@ public class App extends JFrame {
         this.sessionHandler = new SessionHandler(logHandler);
         onnxRunner = new OnnxRunner(logHandler.getLogQueue());
 
-        updateCamera(settings.getCameraDeviceId());
+        updateCamera(settings.getCameraName());
 
         // Close the splash screen and display the application
         splashScreen.closeSplash();
@@ -231,11 +220,26 @@ public class App extends JFrame {
         );
     }
 
-    public void updateCamera(int cameraId) {
-        if(camera!=null && camera.isOpened()){
-            camera.release();
+    public void updateCamera(String cameraName) {
+        System.out.println("Updating camera to: " + cameraName);
+        int cameraId = 0;
+        if(AVAILABLE_CAMERAS.containsKey(cameraName)){
+            System.out.println("Camera name found in available cameras.");
+            cameraId = AVAILABLE_CAMERAS.get(cameraName);
+        }else{
+            System.out.println("Camera name not found in available cameras. Using first available camera.");
+            for(String key : AVAILABLE_CAMERAS.keySet()){
+                if(AVAILABLE_CAMERAS.get(key) == 0){
+                    System.out.println("Using camera: " + key);
+                    settings.setCameraName(key);
+                    SettingsLoader.saveSettings(settings);
+                    break;
+                }
+            }
         }
         try{
+            cameraId=1;
+            System.out.println("----- Opening camera with ID: " + cameraId);
             camera = new VideoCapture(cameraId);
             if (!camera.isOpened()) {
                 cameraId = 0;
@@ -243,6 +247,7 @@ public class App extends JFrame {
                 if (!camera.isOpened()) {
                     throw new CvException("Unable to open camera with ID: " + cameraId);
                 }
+
             }
 
             // Camera fetcher thread task
@@ -267,37 +272,76 @@ public class App extends JFrame {
         SwingUtilities.invokeLater(App::new);
     }
 
-    public static HashMap<String, Integer> getCameraDevices() {
-        HashMap<String, Integer> cameraMap = new HashMap<>();
+    public static Map<String, Integer> getCameraDevices() {
+        Map<String, Integer> cameraMap = new LinkedHashMap<>(); // Preserve order from FFmpeg output
         String os = System.getProperty("os.name").toLowerCase();
         String command;
 
         try {
-            String ffmpegExecutablePath = Loader.load(ffmpeg.class);
+            String ffmpegPath = Loader.load(ffmpeg.class);
 
             if (os.contains("win")) {
-                // Windows: Use FFmpeg to list DirectShow devices
-                command = ffmpegExecutablePath + " -list_devices true -f dshow -i dummy";
+                command = "cmd.exe /c " + ffmpegPath + " -list_devices true -f dshow -i dummy";
             } else if (os.contains("mac")) {
-                command = ffmpegExecutablePath + " -f avfoundation -list_devices true -i \"\"";
+                command = "bash -c \"" + ffmpegPath + " -f avfoundation -list_devices true -i \\\"\\\"\"";
             } else {
-                command = "v4l2-ctl --list-devices";
+                command = "bash -c \"" + ffmpegPath + " v4l2-ctl --list-devices\"";
             }
 
-            Process process = Runtime.getRuntime().exec(command);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            System.out.println("Executing: " + command);
+
+            ProcessBuilder processBuilder;
+            if (os.contains("win")) {
+                processBuilder = new ProcessBuilder("cmd.exe", "/c", ffmpegPath, "-list_devices", "true", "-f", "dshow", "-i", "dummy");
+            } else {
+                processBuilder = new ProcessBuilder("bash", "-c", command);
+            }
+            processBuilder.redirectErrorStream(true); // Merge stderr and stdout
+
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
             String line;
-            int index = 0;
-
-            // Regex pattern to match only video devices (lines containing "(video)")
-            Pattern videoDevicePattern = Pattern.compile("\"([^\"]+)\" \\(video\\)");
+            boolean isMacVideoSection = false;
+            Pattern macPattern = Pattern.compile("\\[(\\d+)] (.+)"); // Matches [index] Camera Name
 
             while ((line = reader.readLine()) != null) {
-                Matcher matcher = videoDevicePattern.matcher(line);
-                if (matcher.find()) {
-                    String deviceName = matcher.group(1);
-                    cameraMap.put(deviceName, index++);
+                System.out.println("FFmpeg Output: " + line); // Debugging: Compare with terminal output
+                if (os.contains("mac")) {
+                    if (line.contains("AVFoundation video devices:")) {
+                        isMacVideoSection = true;
+                        continue;
+                    }
+                    if (line.contains("AVFoundation audio devices:")) {
+                        break; // Stop at audio section
+                    }
+                    if (isMacVideoSection) {
+                        Matcher matcher = macPattern.matcher(line.trim()); // Ensures proper spacing
+                        if (matcher.find()) {
+                            int deviceIndex = Integer.parseInt(matcher.group(1));
+                            String deviceName = matcher.group(2).trim();
+
+                            // Ignore non-camera video devices
+                            if (!deviceName.toLowerCase().contains("capture screen") &&
+                                    !deviceName.toLowerCase().contains("microphone")) {
+
+                                // Store the camera name while ensuring index ordering is correct
+                                if (!cameraMap.containsKey(deviceName)) {
+                                    cameraMap.put(deviceName, deviceIndex);
+                                    System.out.println("Found camera: " + deviceName + " at index: " + deviceIndex);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Windows parsing: Ensure only video devices are captured
+                    if (line.toLowerCase().contains("(video)")) {
+                        String deviceName = line.replaceAll("\"", "").replace(" (video)", "").trim();
+                        if (!cameraMap.containsKey(deviceName)) {
+                            cameraMap.put(deviceName, cameraMap.size());
+                            System.out.println("Found camera: " + deviceName);
+                        }
+                    }
                 }
             }
 

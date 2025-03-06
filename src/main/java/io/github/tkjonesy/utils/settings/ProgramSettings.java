@@ -5,6 +5,7 @@ import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.annotations.SettingsLabel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,17 +14,18 @@ import java.util.HashMap;
 
 @SuppressWarnings("unused")
 @Getter
+@ToString
 public class ProgramSettings {
     private static final Logger logger = LogManager.getLogger(ProgramSettings.class);
-
 
     @Setter
     @Getter
     private static ProgramSettings currentSettings;
 
     // Camera variables
-    @SettingsLabel(value = "cameraDeviceId", type = Integer.class)
-    private int cameraDeviceId;
+    @Setter
+    @SettingsLabel(value = "cameraName", type = String.class)
+    private String cameraName;
     @SettingsLabel(value = "cameraFps", type = Integer.class)
     private int cameraFps;
     @SettingsLabel(value = "cameraRotation", type = Integer.class)
@@ -92,7 +94,7 @@ public class ProgramSettings {
             if(key.equals("modelPath") || key.equals("labelPath") || key.equals("useGPU")){
                 updateONNX = true;
             }
-            if(key.equals("cameraDeviceId")){
+            if(key.equals("cameraName")){
                 updateCamera = true;
             }
             if(key.equals("bufferThreshold")){
@@ -106,7 +108,7 @@ public class ProgramSettings {
             App.getOnnxRunner().setBufferThreshold(bufferThreshold);
         }
         if(updateCamera){
-            App.getInstance().updateCamera((int)newSettings.get("cameraDeviceId"));
+            App.getInstance().updateCamera((String) newSettings.get("cameraName"));
         }
 
         SettingsLoader.saveSettings(this);
@@ -135,31 +137,6 @@ public class ProgramSettings {
                 }
             }
         }
-    }
-
-    @Override
-    public String toString(){
-        return "ProgramSettings{" +
-                "cameraDeviceId=" + cameraDeviceId +
-                ", cameraFps=" + cameraFps +
-                ", cameraRotation=" + cameraRotation +
-                ", mirrorCamera=" + mirrorCamera +
-                ", preserveAspectRatio=" + preserveAspectRatio +
-                ", fileDirectory='" + fileDirectory + '\'' +
-                ", saveVideo=" + saveVideo +
-                ", saveLogsTEXT=" + saveLogsTEXT +
-                ", saveLogsCSV=" + saveLogsCSV +
-                ", modelPath='" + modelPath + '\'' +
-                ", labelPath='" + labelPath + '\'' +
-                ", showBoundingBoxes=" + showBoundingBoxes +
-                ", processEveryNthFrame=" + processEveryNthFrame +
-                ", bufferThreshold=" + bufferThreshold +
-                ", confThreshold=" + confThreshold +
-                ", useGPU=" + useGPU +
-                ", gpuDeviceId=" + gpuDeviceId +
-                ", nmsThreshold=" + nmsThreshold +
-                ", optimizationLevel=" + optimizationLevel +
-                '}';
     }
 
 }
