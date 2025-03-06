@@ -34,34 +34,6 @@ public class SettingsWindow extends JDialog {
     private JButton cancelButton;
     private static JButton applyButton;
 
-    private JComboBox<String> cameraSelector;
-    private JSpinner cameraFpsSpinner;
-    private JSlider cameraRotationSlider;
-    private JCheckBox mirrorCameraCheckbox;
-    private JCheckBox preserveAspectRatioCheckbox;
-
-    private JButton folderSelectorButton;
-    private JLabel selectedFolderLabel;
-    private File[] selectedFolder;
-    private JRadioButtonMenuItem defaultSaveOption;
-    private JRadioButtonMenuItem customSaveOption;
-    private JCheckBox saveVideoCheckbox;
-    private JCheckBox saveLogsTextCheckbox;
-    private JCheckBox saveLogsCSVCheckbox;
-
-    private JSpinner processEveryNthFrameSpinner;
-    private JSpinner bufferThresholdSpinner;
-    private JSlider confThresholdSlider;
-    private JTextField rInputTextField;
-    private JTextField gInputTextField;
-    private JTextField bInputTextField;
-    private int[] boundingBoxColor;
-    private JCheckBox boundingBoxCheckbox;
-    private JCheckBox showLabelsCheckbox;
-    private JCheckBox showConfidencesCheckbox;
-
-    private JComboBox<String> modelSelector, labelSelector;
-
     private JCheckBox useGPUCheckbox;
     private JComboBox<String> gpuDeviceSelector;
     private JSlider nmsThresholdSlider;
@@ -96,85 +68,13 @@ public class SettingsWindow extends JDialog {
         /*----------------+
         | CAMERA SETTINGS |
         +----------------*/
-        JPanel cameraPanel = new CameraSettingsPanel(settings, AVAILABLE_CAMERAS);
+        CameraSettingsPanel cameraPanel = new CameraSettingsPanel(settings, AVAILABLE_CAMERAS);
 
         /*-----------------+
         | STORAGE SETTINGS |
         +-----------------*/
 
-        JPanel storagePanel = new JPanel();
-        JLabel storageSelectorLabel = new JLabel("File Save Location");
-        ButtonGroup storageSelectorGroup = new ButtonGroup();
-        this.defaultSaveOption = new JRadioButtonMenuItem("Default");
-        defaultSaveOption.setToolTipText("Save to default location: " + Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
-        this.customSaveOption = new JRadioButtonMenuItem("Custom");
-        customSaveOption.setToolTipText("Save to custom location");
-        storageSelectorGroup.add(defaultSaveOption);
-        storageSelectorGroup.add(customSaveOption);
-        String settingsFileDirectory = settings.getFileDirectory();
-
-        if(settingsFileDirectory==null)
-            settingsFileDirectory = Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY;
-
-        if(settingsFileDirectory.equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
-            defaultSaveOption.setSelected(true);
-        else
-            customSaveOption.setSelected(true);
-
-        // TODO: Do not let the directory enter the ROOT directory
-        // Logic for folder selector
-        selectedFolder = new File[1]; // This is so jank, I don't want to talk about it holy cow. This is the work-around for keeping this final to make the linter stfu but still make the value re-assignable
-        this.folderSelectorButton = new JButton("Choose Folder...");
-        this.folderSelectorButton.setToolTipText("Select a folder to save files to");
-        this.selectedFolderLabel = new JLabel(settingsFileDirectory);
-
-        folderSelectorButton.setEnabled(!defaultSaveOption.isSelected());
-
-        // Record video checkbox
-        JLabel saveVideoLabel = new JLabel("Record video");
-        this.saveVideoCheckbox = new JCheckBox();
-        this.saveVideoCheckbox.setSelected(settings.isSaveVideo());
-
-        // Save logs to text checkbox
-        JLabel saveLogsTextLabel = new JLabel("Save logs to text");
-        this.saveLogsTextCheckbox = new JCheckBox();
-        this.saveLogsTextCheckbox.setSelected(settings.isSaveLogsTEXT());
-
-        // Save logs to csv checkbox
-        JLabel saveLogsCSVLabel = new JLabel("Save logs to csv");
-        this.saveLogsCSVCheckbox = new JCheckBox();
-        this.saveLogsCSVCheckbox.setSelected(settings.isSaveLogsCSV());
-
-        GroupLayout storageLayout = new GroupLayout(storagePanel);
-        storageLayout.setAutoCreateContainerGaps(true);
-        storageLayout.setHorizontalGroup(
-                storageLayout.createSequentialGroup()
-                        .addGroup(
-                                storageLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                                        .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(defaultSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(customSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addGroup(
-                                                storageLayout.createSequentialGroup()
-                                                        .addComponent(folderSelectorButton, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                                        .addComponent(selectedFolderLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        )
-                        )
-        );
-        storageLayout.setVerticalGroup(
-                storageLayout.createSequentialGroup()
-                        .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(ComponentPlacement.RELATED)
-                        .addComponent(defaultSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(ComponentPlacement.RELATED)
-                        .addComponent(customSaveOption, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addGroup(
-                                storageLayout.createParallelGroup()
-                                        .addComponent(folderSelectorButton, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(selectedFolderLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        )
-        );
-        storagePanel.setLayout(storageLayout);
+        StorageSettingsPanel storagePanel = new StorageSettingsPanel();
 
         /*---------------+
         | MODEL SETTINGS |
@@ -267,69 +167,6 @@ public class SettingsWindow extends JDialog {
         // CAMERA LISTENERS -----------------------------------------------
 
         // STORAGE LISTENERS -----------------------------------------------
-        addSettingChangeListener(customSaveOption, (ActionListener)
-                e -> {
-                    folderSelectorButton.setEnabled(true);
-                    settingsUpdates.put("fileDirectory", selectedFolderLabel.getText());
-                    System.out.println("File directory: " + selectedFolderLabel.getText());
-                    if(settings.getFileDirectory().equals(selectedFolderLabel.getText()))
-                        settingsUpdates.remove("fileDirectory");
-                }
-        );
-
-        addSettingChangeListener(defaultSaveOption, (ActionListener)
-                e -> {
-                    folderSelectorButton.setEnabled(false);
-                    selectedFolderLabel.setText(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
-                    settingsUpdates.put("fileDirectory", Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
-                    if(settings.getFileDirectory().equals(Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY))
-                        settingsUpdates.remove("fileDirectory");
-                }
-        );
-
-        addSettingChangeListener(folderSelectorButton, (ActionListener)
-                e -> {
-                    JFileChooser folderChooser = new JFileChooser();
-                    folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                    folderChooser.setAcceptAllFileFilterUsed(false);
-
-                    int returnVal = folderChooser.showOpenDialog(SettingsWindow.this);
-                    if (returnVal == JFileChooser.APPROVE_OPTION) {
-                        selectedFolder[0] = folderChooser.getSelectedFile();
-                        selectedFolderLabel.setText(selectedFolder[0].getAbsolutePath());
-                        System.out.println("Selected Folder: " + selectedFolder[0].getAbsolutePath());
-                        settingsUpdates.put("fileDirectory", selectedFolder[0].getAbsolutePath());
-                    }
-                }
-        );
-
-        addSettingChangeListener(saveVideoCheckbox, (ActionListener)
-                e -> {
-                    boolean value = saveVideoCheckbox.isSelected();
-                    System.out.println("Save video: " + saveVideoCheckbox.isSelected());
-                    settingsUpdates.put("saveVideo", value);
-                    if(settings.isSaveVideo() == value)
-                        settingsUpdates.remove("saveVideo");
-                }
-        );
-        addSettingChangeListener(saveLogsTextCheckbox, (ActionListener)
-                e -> {
-                    boolean value = saveLogsTextCheckbox.isSelected();
-                    System.out.println("Save logs to text: " + saveLogsTextCheckbox.isSelected());
-                    settingsUpdates.put("saveLogsTEXT", value);
-                    if(settings.isSaveLogsTEXT() == value)
-                        settingsUpdates.remove("saveLogsTEXT");
-                }
-        );
-        addSettingChangeListener(saveLogsCSVCheckbox, (ActionListener)
-                e -> {
-                    boolean value = saveLogsCSVCheckbox.isSelected();
-                    System.out.println("Save logs to csv: " + saveLogsCSVCheckbox.isSelected());
-                    settingsUpdates.put("saveLogsCSV", value);
-                    if(settings.isSaveLogsCSV() == value)
-                        settingsUpdates.remove("saveLogsCSV");
-                }
-        );
 
         // MODEL LISTENERS -----------------------------------------------
 
