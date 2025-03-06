@@ -1,26 +1,37 @@
-package io.github.tkjonesy.frontend.settingsGUI;
+package io.github.tkjonesy.frontend.settingsGUI.panels;
 
+import io.github.tkjonesy.frontend.settingsGUI.SettingsUI;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
 import io.github.tkjonesy.frontend.settingsGUI.listenersANDevents.AISettingsListener;
 import io.github.tkjonesy.frontend.settingsGUI.listenersANDevents.BoundingBoxColorChangeEvent;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import lombok.Getter;
 
 import javax.swing.*;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 
+import static io.github.tkjonesy.frontend.settingsGUI.SettingsWindow.updateApplyButtonState;
 import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
+import static io.github.tkjonesy.frontend.settingsGUI.SettingsWindow.addSettingChangeListener;
 
 
-@Getter
-public class AISettingsPanel extends JPanel {
+public class AISettingsPanel extends JPanel implements SettingsUI {
+    private static final ProgramSettings settings = ProgramSettings.getCurrentSettings();
+    private static final HashMap<String, Object> settingsUpdates = SettingsWindow.getSettingsUpdates();
 
-    private final JComboBox<String> modelSelector;
-    private final JComboBox<String> labelSelector;
+    private final JLabel modelLabel;
+    private final JLabel labelLabel;
+    private final JLabel colorLabel;
+    private final JLabel processNthLabel;
+    private final JLabel bufferThresholdLabel;
+    private final JLabel confThresholdLabel;
+    private final JLabel noticeLabel;
+    private final JButton openFolderButton;
 
     private int[] boundingBoxColor = new int[3];
     private final JTextField rInputTextField;
@@ -28,6 +39,8 @@ public class AISettingsPanel extends JPanel {
     private final JTextField bInputTextField;
     private final JButton colorPreviewButton;
 
+    private final JComboBox<String> modelSelector;
+    private final JComboBox<String> labelSelector;
     private final JCheckBox boundingBoxCheckbox;
     private final JCheckBox showLabelsCheckbox;
     private final JCheckBox showConfidencesCheckbox;
@@ -39,28 +52,21 @@ public class AISettingsPanel extends JPanel {
     private final List<AISettingsListener> listeners = new ArrayList<>();
 
     public AISettingsPanel() {
-        final ProgramSettings settings = ProgramSettings.getCurrentSettings();
+        this.noticeLabel = new JLabel("<html><b>Only YOLOv8+ models in .onnx format are supported.</b></html>");
+        this.noticeLabel.setForeground(Color.GRAY);
 
-        // Notice label
-        JLabel noticeLabel = new JLabel("<html><b>Only YOLOv8+ models in .onnx format are supported.</b></html>");
-        noticeLabel.setForeground(Color.GRAY);
-
-        // Open Directory Button
-        JButton openFolderButton = new JButton("Open AI Models Folder");
+        this.openFolderButton = new JButton("Open AI Models Folder");
         openFolderButton.addActionListener(e -> openAIDirectory());
 
-        // Model selector
-        JLabel modelLabel = new JLabel("AI Model:");
-        modelSelector = new JComboBox<>(getFilesWithExtension(".onnx"));
+        this.modelLabel = new JLabel("AI Model:");
+        this.modelSelector = new JComboBox<>(getFilesWithExtension(".onnx"));
         modelSelector.setSelectedItem(new File(settings.getModelPath()).getName());
 
-        // Label Selector
-        JLabel labelLabel = new JLabel("Label File:");
-        labelSelector = new JComboBox<>(getFilesWithExtension(".names"));
+        this.labelLabel = new JLabel("Label File:");
+        this.labelSelector = new JComboBox<>(getFilesWithExtension(".names"));
         labelSelector.setSelectedItem(new File(settings.getLabelPath()).getName());
 
-        // Color Chooser
-        JLabel colorLabel = new JLabel("Bounding box color (RGB):");
+        this.colorLabel = new JLabel("Bounding box color (RGB):");
 
         int r = settings.getBoundingBoxColor()[0];
         int g = settings.getBoundingBoxColor()[1];
@@ -74,7 +80,6 @@ public class AISettingsPanel extends JPanel {
         gInputTextField.addActionListener(e -> updateBoundingBoxColor());
         bInputTextField.addActionListener(e -> updateBoundingBoxColor());
 
-        // Small color preview button
         this.colorPreviewButton = new JButton() {
             @Override
             public Dimension getPreferredSize() {
@@ -86,53 +91,44 @@ public class AISettingsPanel extends JPanel {
         colorPreviewButton.setMaximumSize(new Dimension(30, 30));
         colorPreviewButton.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-
-        // Open Color Picker Popup
         colorPreviewButton.addActionListener(e -> openColorChooser());
 
-        // Bounding box details
         this.boundingBoxCheckbox = new JCheckBox("Bounding Boxes:", settings.isShowBoundingBoxes());
-        boundingBoxCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
-        boundingBoxCheckbox.setToolTipText("When this is on, the bounding boxes will be drawn in the viewing window");
-
-        // Show labels
         this.showLabelsCheckbox = new JCheckBox("Show Labels:", settings.isShowLabels());
-        showLabelsCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
-        showLabelsCheckbox.setToolTipText("When this is on, the labels will be drawn in the viewing window");
-
-        // Show confidences
         this.showConfidencesCheckbox = new JCheckBox("Show Confidences:", settings.isShowConfidences());
-        showConfidencesCheckbox.setHorizontalTextPosition(SwingConstants.LEFT);
-        showConfidencesCheckbox.setToolTipText("When this is on, the confidences will be drawn in the viewing window");
 
-        // Process Every Nth Frame (Spinner)
-        JLabel processNthLabel = new JLabel("Process Every Nth Frame:");
-        processEveryNthFrameSpinner = new JSpinner(new SpinnerNumberModel(settings.getProcessEveryNthFrame(), 15, 1000, 1));
-        processEveryNthFrameSpinner.setToolTipText("Controls how often the AI processes frames. Higher values improve performance.");
+        this.processNthLabel = new JLabel("Process Every Nth Frame:");
+        this.processEveryNthFrameSpinner = new JSpinner(new SpinnerNumberModel(settings.getProcessEveryNthFrame(), 15, 1000, 1));
 
-        // Buffer threshold (Spinner)
-        JLabel bufferThresholdLabel = new JLabel("Buffer Threshold:");
+        this.bufferThresholdLabel = new JLabel("Buffer Threshold:");
         this.bufferThresholdSpinner = new JSpinner(new SpinnerNumberModel(settings.getBufferThreshold(), 0, 100, 1));
-        bufferThresholdSpinner.setToolTipText("Controls the number of inferences in a row before a label is considered valid.");
 
-        // Confidence Threshold (Slider + Editable TextField)
-        JLabel confThresholdLabel = new JLabel("Confidence Threshold:");
+        this.confThresholdLabel = new JLabel("Confidence Threshold:");
         this.confThresholdSlider = new JSlider(0, 100, (int) (settings.getConfThreshold() * 100));
-        confThresholdSlider.setMajorTickSpacing(10);
-        confThresholdSlider.setMinorTickSpacing(5);
-        confThresholdSlider.setPaintTicks(true);
-        confThresholdSlider.setPaintLabels(true);
+        this.confThresholdSlider.setMajorTickSpacing(10);
+        this.confThresholdSlider.setMinorTickSpacing(5);
+        this.confThresholdSlider.setPaintTicks(true);
+        this.confThresholdSlider.setPaintLabels(true);
 
-        // Editable text field for threshold value
         this.confThresholdTextField = new JTextField(String.format("%.2f", settings.getConfThreshold()), 4);
-        confThresholdTextField.setHorizontalAlignment(JTextField.CENTER);
-        confThresholdTextField.setToolTipText("Enter a value between 0.01 and 1.00");
+        this.confThresholdTextField.setHorizontalAlignment(JTextField.CENTER);
 
-        // Sync slider to text field
-        confThresholdSlider.addChangeListener(e -> {
-            double value = confThresholdSlider.getValue() / 100.0;
-            confThresholdTextField.setText(String.format("%.2f", value));
-        });
+        setLayout();
+        initListeners();
+    }
+
+
+    @Override
+    public void initListeners() {
+        this.addAISettingsListener(
+                newColor -> {
+                    System.out.println("Bounding box color changed: " + Arrays.toString(newColor));
+                    settingsUpdates.put("boundingBoxColor", newColor);
+                    if(Arrays.equals(settings.getBoundingBoxColor(), newColor))
+                        settingsUpdates.remove("boundingBoxColor");
+                    updateApplyButtonState();
+                }
+        );
 
         // Sync text field to slider (with validation)
         confThresholdTextField.addActionListener(e -> {
@@ -152,29 +148,113 @@ public class AISettingsPanel extends JPanel {
             }
         });
 
+        addSettingChangeListener(modelSelector, (ActionListener)
+                e -> {
+                    String value = (String) modelSelector.getSelectedItem();
+                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
+                    System.out.println("Model: " + modelSelector.getSelectedItem());
+                    settingsUpdates.put("modelPath", path);
+                    if(settings.getModelPath().equals(path))
+                        settingsUpdates.remove("modelPath");
+                }
+        );
 
-        // Layout using GroupLayout
-        GroupLayout modelLayout = new GroupLayout(this);
-        modelLayout.setAutoCreateContainerGaps(true);
-        modelLayout.setAutoCreateGaps(true);
+        addSettingChangeListener(labelSelector, (ActionListener)
+                e -> {
+                    String value = (String) labelSelector.getSelectedItem();
+                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
+                    System.out.println("Labels: " + labelSelector.getSelectedItem());
+                    settingsUpdates.put("labelPath", path);
+                    if(settings.getLabelPath().equals(path))
+                        settingsUpdates.remove("labelPath");
+                }
+        );
 
-        modelLayout.setHorizontalGroup(
-                modelLayout.createParallelGroup(GroupLayout.Alignment.LEADING)
+        addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
+                e -> {
+                    boolean value = boundingBoxCheckbox.isSelected();
+                    System.out.println("Bounding boxes: " + boundingBoxCheckbox.isSelected());
+                    settingsUpdates.put("showBoundingBoxes", value);
+                    if(settings.isShowBoundingBoxes() == value)
+                        settingsUpdates.remove("showBoundingBoxes");
+                }
+        );
+
+        addSettingChangeListener(showLabelsCheckbox, (ActionListener)
+                e -> {
+                    boolean value = showLabelsCheckbox.isSelected();
+                    System.out.println("Show labels: " + showLabelsCheckbox.isSelected());
+                    settingsUpdates.put("showLabels", value);
+                    if(settings.isShowLabels() == value)
+                        settingsUpdates.remove("showLabels");
+                }
+        );
+
+        addSettingChangeListener(showConfidencesCheckbox, (ActionListener)
+                e -> {
+                    boolean value = showConfidencesCheckbox.isSelected();
+                    System.out.println("Show confidences: " + showConfidencesCheckbox.isSelected());
+                    settingsUpdates.put("showConfidences", value);
+                    if(settings.isShowConfidences() == value)
+                        settingsUpdates.remove("showConfidences");
+                }
+        );
+
+        addSettingChangeListener(processEveryNthFrameSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) processEveryNthFrameSpinner.getValue();
+                    System.out.println("Process every nth frame: " + processEveryNthFrameSpinner.getValue());
+                    settingsUpdates.put("processEveryNthFrame", value);
+                    if(settings.getProcessEveryNthFrame() == value)
+                        settingsUpdates.remove("processEveryNthFrame");
+                }
+        );
+
+        addSettingChangeListener(bufferThresholdSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) bufferThresholdSpinner.getValue();
+                    System.out.println("Buffer threshold: " + bufferThresholdSpinner.getValue());
+                    settingsUpdates.put("bufferThreshold", value);
+                    if(settings.getBufferThreshold() == value)
+                        settingsUpdates.remove("bufferThreshold");
+                }
+        );
+
+        addSettingChangeListener(confThresholdSlider, (ChangeListener)
+                e -> {
+                    float value = confThresholdSlider.getValue() / 100f;
+                    System.out.println("Confidence threshold: " + value);
+                    settingsUpdates.put("confThreshold", value);
+                    if(settings.getConfThreshold() == value)
+                        settingsUpdates.remove("confThreshold");
+                }
+        );
+    }
+
+    @Override
+    public void setLayout() {
+        GroupLayout layout = new GroupLayout(this);
+        this.setLayout(layout);
+        layout.setAutoCreateContainerGaps(true);
+        layout.setAutoCreateGaps(true);
+
+        layout.setHorizontalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addComponent(noticeLabel)
                         .addComponent(openFolderButton)
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addComponent(modelLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(modelSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addComponent(labelLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(labelSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
-                        .addGroup(modelLayout.createSequentialGroup()
+                        .addGroup(layout.createSequentialGroup()
                                 .addComponent(colorLabel)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(rInputTextField)
@@ -182,34 +262,34 @@ public class AISettingsPanel extends JPanel {
                                 .addComponent(bInputTextField)
                                 .addComponent(colorPreviewButton))
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(boundingBoxCheckbox)
                         )
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(showLabelsCheckbox)
                         )
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(showConfidencesCheckbox)
                         )
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addComponent(processNthLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(processEveryNthFrameSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addComponent(bufferThresholdLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(bufferThresholdSpinner, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
                         .addGroup(
-                                modelLayout.createSequentialGroup()
+                                layout.createSequentialGroup()
                                         .addComponent(confThresholdLabel)
                                         .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                         .addComponent(confThresholdSlider, GroupLayout.PREFERRED_SIZE, 150, GroupLayout.PREFERRED_SIZE)
@@ -218,25 +298,25 @@ public class AISettingsPanel extends JPanel {
                         )
         );
 
-        modelLayout.setVerticalGroup(
-                modelLayout.createSequentialGroup()
+        layout.setVerticalGroup(
+                layout.createSequentialGroup()
                         .addComponent(noticeLabel)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(openFolderButton)
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(modelLabel)
                                         .addComponent(modelSelector)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(labelLabel)
                                         .addComponent(labelSelector)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                 .addComponent(colorLabel)
                                 .addComponent(rInputTextField)
                                 .addComponent(gInputTextField)
@@ -244,49 +324,45 @@ public class AISettingsPanel extends JPanel {
                                 .addComponent(colorPreviewButton))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(boundingBoxCheckbox)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(showLabelsCheckbox)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(showConfidencesCheckbox)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(processNthLabel)
                                         .addComponent(processEveryNthFrameSpinner)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(bufferThresholdLabel)
                                         .addComponent(bufferThresholdSpinner)
                         )
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(
-                                modelLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                         .addComponent(confThresholdLabel)
                                         .addComponent(confThresholdSlider)
                                         .addComponent(confThresholdTextField)
                         )
 
         );
-        this.setLayout(modelLayout);
-
     }
 
-    // Get files with specific extension from a directory
     private String[] getFilesWithExtension(String extension) {
         File dir = new File(AIMS_MODELS_DIRECTORY);
         if (!dir.exists() || !dir.isDirectory()) return new String[]{};
-
         List<String> files = new ArrayList<>();
         for (File file : Objects.requireNonNull(dir.listFiles())) {
             if (file.isFile() && file.getName().endsWith(extension)) {
@@ -294,6 +370,20 @@ public class AISettingsPanel extends JPanel {
             }
         }
         return files.toArray(new String[0]);
+    }
+
+    private void openAIDirectory() {
+        File dir = new File(AIMS_MODELS_DIRECTORY);
+        if (!dir.exists()) {
+            JOptionPane.showMessageDialog(this, "AI Models directory does not exist!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            Desktop.getDesktop().open(dir);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Failed to open AI Models directory!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     // Open Color Chooser Dialog
@@ -371,25 +461,6 @@ public class AISettingsPanel extends JPanel {
         }
     }
 
-
-    // Open AI Models Directory in File Explorer
-    private void openAIDirectory() {
-        File dir = new File(AIMS_MODELS_DIRECTORY);
-        if (!dir.exists()) {
-            JOptionPane.showMessageDialog(this, "AI Models directory does not exist!", "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        try {
-            Desktop.getDesktop().open(dir);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Failed to open AI Models directory!", "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    /**
-     * Registers a listener for AI settings changes.
-     */
     public void addAISettingsListener(AISettingsListener listener) {
         listeners.add(listener);
     }
