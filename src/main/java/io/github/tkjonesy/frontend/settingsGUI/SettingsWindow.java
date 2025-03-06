@@ -1,6 +1,5 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
-
 import io.github.tkjonesy.frontend.settingsGUI.panels.AISettingsPanel;
 import io.github.tkjonesy.frontend.settingsGUI.panels.AdvancedSettingsPanel;
 import io.github.tkjonesy.frontend.settingsGUI.panels.CameraSettingsPanel;
@@ -229,3 +228,5 @@ public class SettingsWindow extends JDialog implements SettingsUI {
         settingsUpdates.clear();
     }
 }
+
+// Credit for the original settings GUI code goes to @HunterHerbst

@@ -22,8 +22,6 @@ public class StorageSettingsPanel extends JPanel implements SettingsUI {
     private final JLabel saveLogsTextLabel;
     private final JLabel saveLogsCSVLabel;
 
-    private final ButtonGroup storageSelectorGroup;
-
     private final JButton folderSelectorButton;
     private final JLabel selectedFolderLabel;
     private final File[] selectedFolder;
@@ -40,7 +38,7 @@ public class StorageSettingsPanel extends JPanel implements SettingsUI {
         this.saveLogsTextLabel = new JLabel("Save Logs as Text");
         this.saveLogsCSVLabel = new JLabel("Save Logs as CSV");
 
-        this.storageSelectorGroup = new ButtonGroup();
+        ButtonGroup storageSelectorGroup = new ButtonGroup();
 
         this.defaultSaveOption = new JRadioButtonMenuItem("Default");
         defaultSaveOption.setToolTipText("Save to default location: " + Paths.DEFAULT_AIMS_SESSIONS_DIRECTORY);
@@ -153,7 +151,7 @@ public class StorageSettingsPanel extends JPanel implements SettingsUI {
         this.setLayout(layout);
         layout.setAutoCreateContainerGaps(true);
         layout.setHorizontalGroup(
-                layout.createSequentialGroup()
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                         .addGroup(
                                 layout.createParallelGroup(GroupLayout.Alignment.LEADING)
                                         .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
@@ -164,8 +162,29 @@ public class StorageSettingsPanel extends JPanel implements SettingsUI {
                                                         .addComponent(folderSelectorButton, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                                                         .addComponent(selectedFolderLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                                         )
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(saveVideoLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(saveVideoCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        )
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(saveLogsTextLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(saveLogsTextCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        )
+                                        .addGroup(
+                                                layout.createSequentialGroup()
+                                                        .addComponent(saveLogsCSVLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(saveLogsCSVCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        )
                         )
+
+
         );
+
         layout.setVerticalGroup(
                 layout.createSequentialGroup()
                         .addComponent(storageSelectorLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
@@ -178,6 +197,23 @@ public class StorageSettingsPanel extends JPanel implements SettingsUI {
                                         .addComponent(folderSelectorButton, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                                         .addComponent(selectedFolderLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
                         )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(saveVideoLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(saveVideoCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(saveLogsTextLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(saveLogsTextCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
+                        .addGroup(
+                                layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                                        .addComponent(saveLogsCSVLabel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(saveLogsCSVCheckbox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+                        )
         );
+
     }
 }
