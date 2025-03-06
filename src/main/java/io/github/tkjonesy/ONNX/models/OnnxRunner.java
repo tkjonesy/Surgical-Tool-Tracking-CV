@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.bytedeco.opencv.opencv_core.Mat;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -117,14 +118,17 @@ public class OnnxRunner {
         List<Detection> detectionList = new ArrayList<>();
 
         try {
+            Instant start = Instant.now();
             detectionList = inferenceSession.run(frame);
+            Instant end = Instant.now();
+            long timeElapsed = end.toEpochMilli() - start.toEpochMilli();
+            System.out.println("Inference time: " + timeElapsed + "ms");
 
         } catch (OrtException ortException) {
             logQueue.addRedLog("Error running inference: " + ortException.getMessage());
             LogHandler.forceProcessNextLog();
             System.err.println("Error running inference: " + ortException.getMessage());
         }
-
         return new OnnxOutput(detectionList);
     }
 
