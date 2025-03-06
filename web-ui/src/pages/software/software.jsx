@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import {Link} from "react-router-dom";
 import "../../index.css";
 
-function Home() {
+function Software() {
     return (
         <div className="header">
-            Home Page
+            Software Page
         </div>
     )
 }
 
-export default Home;
+export default Software;

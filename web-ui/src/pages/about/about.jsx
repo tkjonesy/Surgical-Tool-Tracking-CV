@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {Link} from "react-router-dom";
-import "./about.css";
+import "../../index.css";
 
 function About() {
     return (
