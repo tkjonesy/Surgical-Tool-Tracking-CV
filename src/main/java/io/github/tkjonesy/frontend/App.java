@@ -9,10 +9,11 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamDevice;
@@ -41,6 +42,8 @@ import org.bytedeco.opencv.opencv_videoio.VideoCapture;
 import org.bytedeco.opencv.global.opencv_core;
 import org.bytedeco.javacpp.Loader;
 import org.opencv.core.CvException;
+
+import org.bytedeco.ffmpeg.ffmpeg;
 
 import static io.github.tkjonesy.utils.settings.SettingsLoader.initializeAIMsDirectories;
 
@@ -82,14 +85,10 @@ public class App extends JFrame {
 //
 //        AVAILABLE_CAMERAS = grabber.getCameraNames();
 
-        AtomicInteger cameraId = new AtomicInteger(0);
-        AVAILABLE_CAMERAS = new HashMap<>();
-        Webcam.getWebcams().forEach(camera -> {
-            WebcamDevice device = camera.getDevice();
-            System.out.println("Found camera: " + device.getName());
-            AVAILABLE_CAMERAS.put(device.getName(), cameraId.getAndIncrement());
-        });
-
+        AVAILABLE_CAMERAS = getCameraDevices();
+        for(String key : AVAILABLE_CAMERAS.keySet()){
+            System.out.println(key + " : " + AVAILABLE_CAMERAS.get(key));
+        }
     }
 
     private Thread cameraFetcherThread;
@@ -233,6 +232,9 @@ public class App extends JFrame {
     }
 
     public void updateCamera(int cameraId) {
+        if(camera!=null && camera.isOpened()){
+            camera.release();
+        }
         try{
             camera = new VideoCapture(cameraId);
             if (!camera.isOpened()) {
@@ -263,5 +265,47 @@ public class App extends JFrame {
         }
 
         SwingUtilities.invokeLater(App::new);
+    }
+
+    public static HashMap<String, Integer> getCameraDevices() {
+        HashMap<String, Integer> cameraMap = new HashMap<>();
+        String os = System.getProperty("os.name").toLowerCase();
+        String command;
+
+        try {
+            String ffmpegExecutablePath = Loader.load(ffmpeg.class);
+
+            if (os.contains("win")) {
+                // Windows: Use FFmpeg to list DirectShow devices
+                command = ffmpegExecutablePath + " -list_devices true -f dshow -i dummy";
+            } else if (os.contains("mac")) {
+                command = ffmpegExecutablePath + " -f avfoundation -list_devices true -i \"\"";
+            } else {
+                command = "v4l2-ctl --list-devices";
+            }
+
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            String line;
+            int index = 0;
+
+            // Regex pattern to match only video devices (lines containing "(video)")
+            Pattern videoDevicePattern = Pattern.compile("\"([^\"]+)\" \\(video\\)");
+
+            while ((line = reader.readLine()) != null) {
+                Matcher matcher = videoDevicePattern.matcher(line);
+                if (matcher.find()) {
+                    String deviceName = matcher.group(1);
+                    cameraMap.put(deviceName, index++);
+                }
+            }
+
+            process.waitFor();
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return cameraMap;
     }
 }

@@ -6,6 +6,7 @@ import io.github.tkjonesy.ONNX.models.OnnxOutput;
 import io.github.tkjonesy.ONNX.models.OnnxRunner;
 
 import io.github.tkjonesy.frontend.App;
+import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.models.FileSession;
 import io.github.tkjonesy.utils.models.SessionHandler;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
@@ -105,7 +106,12 @@ public class CameraFetcher implements Runnable {
                     camera = App.getCamera();
                 }
                 if (!Thread.currentThread().isInterrupted()) {
-                    camera.read(frame);
+                    try{
+                        camera.read(frame);
+                    }catch (Exception e){
+                        ErrorDialogManager.displayErrorDialog("Error reading from camera. Please check the camera connection.");
+                        this.cancel();
+                    }
 
                     if(settings.isMirrorCamera()){
                         opencv_core.flip(frame, frame, 1);
