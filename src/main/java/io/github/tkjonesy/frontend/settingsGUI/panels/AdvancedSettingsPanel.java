@@ -1,12 +1,15 @@
-package io.github.tkjonesy.frontend.settingsGUI;
+package io.github.tkjonesy.frontend.settingsGUI.panels;
 
-import io.github.tkjonesy.ONNX.Yolo;
+import ai.onnxruntime.OrtSession;
 import io.github.tkjonesy.ONNX.YoloV8;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsUI;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import lombok.Getter;
 
 import javax.swing.*;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,11 +19,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Getter
-public class AdvancedSettingsPanel extends JPanel {
+import static io.github.tkjonesy.frontend.settingsGUI.SettingsWindow.addSettingChangeListener;
+import static io.github.tkjonesy.frontend.settingsGUI.SettingsWindow.updateApplyButtonState;
+
+
+public class AdvancedSettingsPanel extends JPanel implements SettingsUI {
+    private final ProgramSettings settings = ProgramSettings.getCurrentSettings();
+    private static  final HashMap<String, Object> settingsUpdates = SettingsWindow.getSettingsUpdates();
+
+    private final JLabel noticeLabel;
+    private final JLabel useGPULabel;
+    private final JLabel nmsThresholdLabel;
+    private final JLabel optimizationLabel;
+    private final JLabel inputSizeLabel;
+    private final JLabel inputShapeLabel;
 
     private final HashMap<String, Integer> gpuDevices = new HashMap<>();
-    private final JCheckBox useGPUCheckBox;
+    private final JCheckBox useGPUCheckbox;
     private final JComboBox<String> gpuDeviceSelector;
     private final JSlider nmsThresholdSlider;
     private final JTextField nmsThresholdTextField;
@@ -29,21 +44,20 @@ public class AdvancedSettingsPanel extends JPanel {
     private final JTextField inputShapeTextField;
 
     public AdvancedSettingsPanel() {
-        final ProgramSettings settings = ProgramSettings.getCurrentSettings();
 
         // Notice label
-        JLabel noticeLabel = new JLabel("<html><b>Only modify these settings if you truly understand their impact.</b></html>");
+        this.noticeLabel = new JLabel("<html><b>Only modify these settings if you truly understand their impact.</b></html>");
         noticeLabel.setForeground(Color.RED);
 
         // Use GPU (Checkbox)
-        JLabel useGPULabel = new JLabel("Use GPU:");
-        useGPUCheckBox = new JCheckBox("");
-        useGPUCheckBox.setSelected(settings.isUseGPU() && YoloV8.isCudaAvailable());
-        useGPUCheckBox.setToolTipText("Enable GPU for inferencing.");
+        this.useGPULabel = new JLabel("Use GPU:");
+        useGPUCheckbox = new JCheckBox("");
+        useGPUCheckbox.setSelected(settings.isUseGPU() && YoloV8.isCudaAvailable());
+        useGPUCheckbox.setToolTipText("Enable GPU for inferencing.");
         if (!YoloV8.isCudaAvailable()) {
-            useGPUCheckBox.setEnabled(false);
-            useGPUCheckBox.setSelected(false);
-            useGPUCheckBox.setToolTipText("GPU is not available.");
+            useGPUCheckbox.setEnabled(false);
+            useGPUCheckbox.setSelected(false);
+            useGPUCheckbox.setToolTipText("GPU is not available.");
         }
 
         // GPU Device Selector (Dropdown)
@@ -51,16 +65,16 @@ public class AdvancedSettingsPanel extends JPanel {
         gpuDeviceSelector = new JComboBox<>(availableGPUs.toArray(new String[0]));
         gpuDeviceSelector.setSelectedIndex(settings.getGpuDeviceId());
         gpuDeviceSelector.setToolTipText("Select the GPU device to use (0 for default).");
-        gpuDeviceSelector.setVisible(useGPUCheckBox.isSelected());
+        gpuDeviceSelector.setVisible(useGPUCheckbox.isSelected());
 
-        useGPUCheckBox.addItemListener(e -> {
-            gpuDeviceSelector.setVisible(useGPUCheckBox.isSelected());
+        useGPUCheckbox.addItemListener(e -> {
+            gpuDeviceSelector.setVisible(useGPUCheckbox.isSelected());
             revalidate();
             repaint();
         });
 
         // NMS Threshold (Slider + TextField)
-        JLabel nmsThresholdLabel = new JLabel("NMS Threshold:");
+        this.nmsThresholdLabel = new JLabel("NMS Threshold:");
         nmsThresholdSlider = new JSlider(0, 100, (int) (settings.getNmsThreshold() * 100));
         nmsThresholdSlider.setMajorTickSpacing(10);
         nmsThresholdSlider.setMinorTickSpacing(5);
@@ -87,26 +101,145 @@ public class AdvancedSettingsPanel extends JPanel {
         });
 
         // Optimization Level (Dropdown)
-        JLabel optimizationLabel = new JLabel("Optimization Level:");
+        this.optimizationLabel = new JLabel("Optimization Level:");
         optimizationLevelComboBox = new JComboBox<>(new String[]{"ALL_OPT", "EXTENDED_OPT", "BASIC_OPT", "NO_OPT"});
         optimizationLevelComboBox.setSelectedItem(settings.getOptimizationLevel().name());
         optimizationLevelComboBox.setToolTipText("Choose the level of ONNX Runtime optimizations.");
 
         // Input Size (Spinner)
-        JLabel inputSizeLabel = new JLabel("Input Size:");
+        this.inputSizeLabel = new JLabel("Input Size:");
         inputSizeSpinner = new JSpinner(new SpinnerNumberModel(settings.getInputSize(), 1, Integer.MAX_VALUE, 1));
         inputSizeSpinner.setToolTipText("The input image size (e.g., 640 for YOLO).");
 
         // Input Shape (TextField)
-        JLabel inputShapeLabel = new JLabel("Input Shape:");
+        this.inputShapeLabel = new JLabel("Input Shape:");
         inputShapeTextField = new JTextField(
                 Arrays.stream(settings.getInputShape()).mapToObj(String::valueOf).collect(Collectors.joining(", ")),
                 20
         );
         inputShapeTextField.setToolTipText("Comma-separated input shape (e.g., 1,3,640,640)");
 
-        // Layout using GroupLayout
+        setLayout();
+        initListeners();
+    }
+
+    // Detect available GPUs using nvidia-smi
+    private List<String> detectAvailableGPUs() {
+        List<String> gpuList = new ArrayList<>();
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("nvidia-smi", "--query-gpu=name", "--format=csv,noheader");
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            int index = 0;
+
+            while ((line = reader.readLine()) != null) {
+                gpuList.add("GPU " + index + ": " + line.trim());
+                index++;
+            }
+            reader.close();
+        } catch (IOException e) {
+            System.err.println("Error detecting GPUs: " + e.getMessage());
+            gpuList.add("No GPU detected");
+        }
+
+        return gpuList;
+    }
+
+    @Override
+    public void initListeners() {
+        addSettingChangeListener(useGPUCheckbox, (ActionListener)
+                e -> {
+                    boolean value = useGPUCheckbox.isSelected();
+                    System.out.println("Use GPU: " + useGPUCheckbox.isSelected());
+                    settingsUpdates.put("useGPU", value);
+                    if(settings.isUseGPU() == value)
+                        settingsUpdates.remove("useGPU");
+                }
+        );
+
+
+        addSettingChangeListener(gpuDeviceSelector, (ActionListener)
+                e -> {
+                    String value = (String) gpuDeviceSelector.getSelectedItem();
+                    System.out.println("GPU device: " + value);
+                    assert value != null;
+                    settingsUpdates.put("gpuDeviceId", Integer.parseInt(value));
+                    if(settings.getGpuDeviceId() == Integer.parseInt(value))
+                        settingsUpdates.remove("gpuDeviceId");
+                }
+        );
+
+        addSettingChangeListener(nmsThresholdSlider, (ChangeListener)
+                e -> {
+                    float value = nmsThresholdSlider.getValue() / 100f;
+                    System.out.println("NMS threshold: " + value);
+                    settingsUpdates.put("nmsThreshold", value);
+                    if(settings.getNmsThreshold() == value)
+                        settingsUpdates.remove("nmsThreshold");
+                }
+        );
+
+        addSettingChangeListener(optimizationLevelComboBox, (ActionListener)
+                e -> {
+                    String value = (String) optimizationLevelComboBox.getSelectedItem();
+                    System.out.println("Optimization level: " + value);
+                    settingsUpdates.put("optimizationLevel", OrtSession.SessionOptions.OptLevel.valueOf(value));
+                    if(settings.getOptimizationLevel().toString().equals(value))
+                        settingsUpdates.remove("optimizationLevel");
+                }
+        );
+
+        addSettingChangeListener(inputSizeSpinner, (ChangeListener)
+                e -> {
+                    int value = (int) inputSizeSpinner.getValue();
+                    System.out.println("Input size: " + value);
+                    settingsUpdates.put("inputSize", value);
+                    if(settings.getInputSize() == value)
+                        settingsUpdates.remove("inputSize");
+                }
+        );
+
+        inputShapeTextField.addActionListener(
+                e -> {
+                    String newValue = inputShapeTextField.getText().trim().replaceAll(" ", "");
+                    String currentValue = Arrays.toString(settings.getInputShape()).replaceAll("[\\[\\] ]", " ").trim().replaceAll(" ", "");
+
+                    System.out.println("Current value: " + currentValue);
+                    System.out.println("New value: " + newValue);
+
+                    if (!newValue.equals(currentValue)) {
+
+                        long[] inputShape = Arrays.stream(newValue.split(","))
+                                .mapToLong(Long::parseLong)
+                                .toArray();
+
+                        long numInputElements = Arrays.stream(inputShape).reduce(1, (a, b) -> a * b);
+
+                        settingsUpdates.put("inputShape", inputShape);
+                        settingsUpdates.put("numInputElements", (int) numInputElements);
+
+                        System.out.println("Input shape changed: " + newValue);
+                        System.out.println("Number of input elements: " + numInputElements);
+
+                        updateApplyButtonState();
+                    } else {
+                        settingsUpdates.remove("inputShape");
+                        settingsUpdates.remove("numInputElements");
+
+                        updateApplyButtonState();
+                    }
+                }
+        );
+    }
+
+    @Override
+    public void setLayout() {
         GroupLayout layout = new GroupLayout(this);
+        this.setLayout(layout);
         layout.setAutoCreateContainerGaps(true);
         layout.setAutoCreateGaps(true);
 
@@ -116,7 +249,7 @@ public class AdvancedSettingsPanel extends JPanel {
                         .addGroup(layout.createSequentialGroup()
                                 .addComponent(useGPULabel)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(useGPUCheckBox)
+                                .addComponent(useGPUCheckbox)
                                 .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(gpuDeviceSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
                         .addGroup(layout.createSequentialGroup()
@@ -145,7 +278,7 @@ public class AdvancedSettingsPanel extends JPanel {
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
                                 .addComponent(useGPULabel)
-                                .addComponent(useGPUCheckBox)
+                                .addComponent(useGPUCheckbox)
                                 .addComponent(gpuDeviceSelector))
                         .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
@@ -166,33 +299,5 @@ public class AdvancedSettingsPanel extends JPanel {
                                 .addComponent(inputShapeLabel)
                                 .addComponent(inputShapeTextField))
         );
-
-        this.setLayout(layout);
-    }
-
-    // Detect available GPUs using nvidia-smi
-    private List<String> detectAvailableGPUs() {
-        List<String> gpuList = new ArrayList<>();
-
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder("nvidia-smi", "--query-gpu=name", "--format=csv,noheader");
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            int index = 0;
-
-            while ((line = reader.readLine()) != null) {
-                gpuList.add("GPU " + index + ": " + line.trim());
-                index++;
-            }
-            reader.close();
-        } catch (IOException e) {
-            System.err.println("Error detecting GPUs: " + e.getMessage());
-            gpuList.add("No GPU detected");
-        }
-
-        return gpuList;
     }
 }

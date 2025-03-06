@@ -1,9 +1,10 @@
-package io.github.tkjonesy.frontend.settingsGUI;
+package io.github.tkjonesy.frontend.settingsGUI.panels;
 
+import io.github.tkjonesy.frontend.settingsGUI.SettingsUI;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
 import io.github.tkjonesy.frontend.settingsGUI.listenersANDevents.AISettingsListener;
 import io.github.tkjonesy.frontend.settingsGUI.listenersANDevents.BoundingBoxColorChangeEvent;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import lombok.Getter;
 
 import javax.swing.*;
 import javax.swing.event.ChangeListener;

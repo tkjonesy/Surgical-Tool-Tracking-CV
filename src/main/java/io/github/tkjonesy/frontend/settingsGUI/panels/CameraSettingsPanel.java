@@ -1,5 +1,7 @@
-package io.github.tkjonesy.frontend.settingsGUI;
+package io.github.tkjonesy.frontend.settingsGUI.panels;
 
+import io.github.tkjonesy.frontend.settingsGUI.SettingsUI;
+import io.github.tkjonesy.frontend.settingsGUI.SettingsWindow;
 import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
 import javax.swing.*;

@@ -1,10 +1,12 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
 
-import ai.onnxruntime.OrtSession;
+import io.github.tkjonesy.frontend.settingsGUI.panels.AISettingsPanel;
+import io.github.tkjonesy.frontend.settingsGUI.panels.AdvancedSettingsPanel;
+import io.github.tkjonesy.frontend.settingsGUI.panels.CameraSettingsPanel;
+import io.github.tkjonesy.frontend.settingsGUI.panels.StorageSettingsPanel;
 import io.github.tkjonesy.utils.Paths;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import io.github.tkjonesy.utils.settings.SettingsLoader;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -17,42 +19,34 @@ import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
 import java.util.*;
-
-import static io.github.tkjonesy.utils.Paths.AIMS_MODELS_DIRECTORY;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 
-public class SettingsWindow extends JDialog {
+public class SettingsWindow extends JDialog implements SettingsUI {
 
-    private ProgramSettings settings = ProgramSettings.getCurrentSettings();
+    private final ProgramSettings settings = ProgramSettings.getCurrentSettings();
     @Getter
     private static final HashMap<String, Object> settingsUpdates = new HashMap<>();
 
     private JButton confirmButton;
     private JButton cancelButton;
     private static JButton applyButton;
+    private JPanel buttonPanel;
 
-    private JCheckBox useGPUCheckbox;
-    private JComboBox<String> gpuDeviceSelector;
-    private JSlider nmsThresholdSlider;
-    private JComboBox<String> optimizationLevelComboBox;
-    private JSpinner numInputElementsSpinner;
-    private JSpinner inputSizeSpinner;
-    private JTextField inputShapeTextField;
+    private JTabbedPane settingSelector;
 
     private static final Color OCEAN = new Color(55, 90, 129);
 
     public SettingsWindow(JFrame parent) {
         super(parent, "AIM Settings", true);
         initComponents();
+        setLayout();
         initListeners();
         this.setVisible(true);
     }
 
     private void initComponents() {
-
         // Sizing, and exit actions
         this.setMinimumSize(new Dimension(640, 480));
         this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -65,47 +59,66 @@ public class SettingsWindow extends JDialog {
             throw new RuntimeException(e);
         }
 
-        /*----------------+
-        | CAMERA SETTINGS |
-        +----------------*/
         CameraSettingsPanel cameraPanel = new CameraSettingsPanel(settings, AVAILABLE_CAMERAS);
-
-        /*-----------------+
-        | STORAGE SETTINGS |
-        +-----------------*/
-
         StorageSettingsPanel storagePanel = new StorageSettingsPanel();
-
-        /*---------------+
-        | MODEL SETTINGS |
-        +---------------*/
         AISettingsPanel modelPanel = new AISettingsPanel();
-
-        /*------------------+
-        | ADVANCED SETTINGS |
-        +------------------*/
-
         AdvancedSettingsPanel advancedPanel = new AdvancedSettingsPanel();
-        this.useGPUCheckbox = advancedPanel.getUseGPUCheckBox();
-        this.gpuDeviceSelector = advancedPanel.getGpuDeviceSelector();
-        this.nmsThresholdSlider = advancedPanel.getNmsThresholdSlider();
-        this.optimizationLevelComboBox = advancedPanel.getOptimizationLevelComboBox();
-        this.inputSizeSpinner = advancedPanel.getInputSizeSpinner();
-        this.inputShapeTextField = advancedPanel.getInputShapeTextField();
 
-        /*--------------+
-        | BUTTON LAYOUT |
-        +--------------*/
-        // Components
-        JPanel buttonPanel = new JPanel();
+        this.buttonPanel = new JPanel();
         confirmButton = new JButton("OK");
         confirmButton.setBackground(OCEAN);
         cancelButton = new JButton("Cancel");
         applyButton = new JButton("Apply");
         applyButton.setEnabled(false);
 
+        this.settingSelector = new JTabbedPane(SwingConstants.LEFT);
+        settingSelector.addTab("Camera", cameraPanel);
+        settingSelector.addTab("Storage", storagePanel);
+        settingSelector.addTab("AI Model", modelPanel);
+        settingSelector.addTab("Advanced", advancedPanel);
+    }
 
-        // Layout
+    // Method to enable/disable the Apply button
+    public static void updateApplyButtonState() {
+        applyButton.setEnabled(!settingsUpdates.isEmpty());
+    }
+
+    public void initListeners() {
+        confirmButton.addActionListener(e -> {handleCloseAttempt();});
+
+        cancelButton.addActionListener(e -> {handleCancelAttempt();});
+
+        applyButton.addActionListener(e -> {applyChanges();});
+
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                handleCloseAttempt();
+            }
+        });
+    }
+
+    @Override
+    public void setLayout() {
+        GroupLayout windowLayout = new GroupLayout(this.getContentPane());
+        windowLayout.setAutoCreateContainerGaps(true);
+        windowLayout.setHorizontalGroup(
+                windowLayout.createSequentialGroup()
+                        .addGroup(
+                                windowLayout.createParallelGroup()
+                                        .addComponent(settingSelector)
+                                        .addComponent(buttonPanel)
+                        )
+        );
+        windowLayout.setVerticalGroup(
+                windowLayout.createSequentialGroup()
+                        .addComponent(settingSelector)
+                        .addComponent(buttonPanel)
+        );
+        this.setLayout(windowLayout);
+        this.pack();
+        this.setLocationRelativeTo(null);
+
         GroupLayout buttonPanelLayout = new GroupLayout(buttonPanel);
         buttonPanelLayout.setAutoCreateContainerGaps(true);
         buttonPanelLayout.setHorizontalGroup(
@@ -124,150 +137,6 @@ public class SettingsWindow extends JDialog {
                         .addComponent(applyButton)
         );
         buttonPanel.setLayout(buttonPanelLayout);
-
-        /*----------------------+
-        | SETTINGS MENU SIDEBAR |
-        +----------------------*/
-        JTabbedPane settingSelector = new JTabbedPane(SwingConstants.LEFT);
-        settingSelector.addTab("Camera", cameraPanel);
-        settingSelector.addTab("Storage", storagePanel);
-        settingSelector.addTab("AI Model", modelPanel);
-        settingSelector.addTab("Advanced", advancedPanel);
-
-        /*--------------+
-        | WINDOW LAYOUT |
-        +--------------*/
-        GroupLayout layout = new GroupLayout(this.getContentPane());
-        layout.setAutoCreateContainerGaps(true);
-        layout.setHorizontalGroup(
-                layout.createSequentialGroup()
-                        .addGroup(
-                                layout.createParallelGroup()
-                                        .addComponent(settingSelector)
-                                        .addComponent(buttonPanel)
-                        )
-        );
-        layout.setVerticalGroup(
-                layout.createSequentialGroup()
-                        .addComponent(settingSelector)
-                        .addComponent(buttonPanel)
-        );
-        this.setLayout(layout);
-        this.pack();
-        this.setLocationRelativeTo(null); // Center application
-    }
-
-    // Method to enable/disable the Apply button
-    public static void updateApplyButtonState() {
-        applyButton.setEnabled(!settingsUpdates.isEmpty());
-    }
-
-    private void initListeners() {
-
-        // CAMERA LISTENERS -----------------------------------------------
-
-        // STORAGE LISTENERS -----------------------------------------------
-
-        // MODEL LISTENERS -----------------------------------------------
-
-        // ADVANCED LISTENERS -----------------------------------------------
-        addSettingChangeListener(useGPUCheckbox, (ActionListener)
-                e -> {
-                    boolean value = useGPUCheckbox.isSelected();
-                    System.out.println("Use GPU: " + useGPUCheckbox.isSelected());
-                    settingsUpdates.put("useGPU", value);
-                    if(settings.isUseGPU() == value)
-                        settingsUpdates.remove("useGPU");
-                }
-        );
-
-
-        addSettingChangeListener(gpuDeviceSelector, (ActionListener)
-                e -> {
-                    String value = (String) gpuDeviceSelector.getSelectedItem();
-                    System.out.println("GPU device: " + value);
-                    assert value != null;
-                    settingsUpdates.put("gpuDeviceId", Integer.parseInt(value));
-                    if(settings.getGpuDeviceId() == Integer.parseInt(value))
-                        settingsUpdates.remove("gpuDeviceId");
-                }
-        );
-
-        addSettingChangeListener(nmsThresholdSlider, (ChangeListener)
-                e -> {
-                    float value = nmsThresholdSlider.getValue() / 100f;
-                    System.out.println("NMS threshold: " + value);
-                    settingsUpdates.put("nmsThreshold", value);
-                    if(settings.getNmsThreshold() == value)
-                        settingsUpdates.remove("nmsThreshold");
-                }
-        );
-
-        addSettingChangeListener(optimizationLevelComboBox, (ActionListener)
-                e -> {
-                    String value = (String) optimizationLevelComboBox.getSelectedItem();
-                    System.out.println("Optimization level: " + value);
-                    settingsUpdates.put("optimizationLevel", OrtSession.SessionOptions.OptLevel.valueOf(value));
-                    if(settings.getOptimizationLevel().toString().equals(value))
-                        settingsUpdates.remove("optimizationLevel");
-                }
-        );
-
-        addSettingChangeListener(inputSizeSpinner, (ChangeListener)
-                e -> {
-                    int value = (int) inputSizeSpinner.getValue();
-                    System.out.println("Input size: " + value);
-                    settingsUpdates.put("inputSize", value);
-                    if(settings.getInputSize() == value)
-                        settingsUpdates.remove("inputSize");
-                }
-        );
-
-        inputShapeTextField.addActionListener(
-                e -> {
-                    String newValue = inputShapeTextField.getText().trim().replaceAll(" ", "");
-                    String currentValue = Arrays.toString(settings.getInputShape()).replaceAll("[\\[\\] ]", " ").trim().replaceAll(" ", "");
-
-                    System.out.println("Current value: " + currentValue);
-                    System.out.println("New value: " + newValue);
-
-                    if (!newValue.equals(currentValue)) {
-
-                        long[] inputShape = Arrays.stream(newValue.split(","))
-                                .mapToLong(Long::parseLong)
-                                .toArray();
-
-                        long numInputElements = Arrays.stream(inputShape).reduce(1, (a, b) -> a * b);
-
-                        settingsUpdates.put("inputShape", inputShape);
-                        settingsUpdates.put("numInputElements", (int) numInputElements);
-
-                        System.out.println("Input shape changed: " + newValue);
-                        System.out.println("Number of input elements: " + numInputElements);
-
-                        updateApplyButtonState();
-                    } else {
-                        settingsUpdates.remove("inputShape");
-                        settingsUpdates.remove("numInputElements");
-
-                        updateApplyButtonState();
-                    }
-                }
-        );
-
-
-        confirmButton.addActionListener(e -> {handleCloseAttempt();});
-
-        cancelButton.addActionListener(e -> {handleCancelAttempt();});
-
-        applyButton.addActionListener(e -> {applyChanges();});
-
-        this.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                handleCloseAttempt();
-            }
-        });
     }
 
     public static <T extends EventListener> void addSettingChangeListener(JComponent component, T listener) {
