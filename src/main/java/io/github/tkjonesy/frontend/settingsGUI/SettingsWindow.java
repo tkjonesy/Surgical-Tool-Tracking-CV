@@ -179,31 +179,7 @@ public class SettingsWindow extends JDialog {
         /*---------------+
         | MODEL SETTINGS |
         +---------------*/
-
         AISettingsPanel modelPanel = new AISettingsPanel();
-        this.modelSelector = modelPanel.getModelSelector();
-        this.labelSelector = modelPanel.getLabelSelector();
-        this.rInputTextField = modelPanel.getRInputTextField();
-        this.gInputTextField = modelPanel.getGInputTextField();
-        this.bInputTextField = modelPanel.getBInputTextField();
-        this.boundingBoxColor = settings.getBoundingBoxColor();
-        this.boundingBoxCheckbox = modelPanel.getBoundingBoxCheckbox();
-        this.showLabelsCheckbox = modelPanel.getShowLabelsCheckbox();
-        this.showConfidencesCheckbox = modelPanel.getShowConfidencesCheckbox();
-        this.bufferThresholdSpinner = modelPanel.getBufferThresholdSpinner();
-        this.processEveryNthFrameSpinner = modelPanel.getProcessEveryNthFrameSpinner();
-        this.confThresholdSlider = modelPanel.getConfThresholdSlider();
-
-        modelPanel.addAISettingsListener(
-                newColor -> {
-                    System.out.println("Bounding box color changed: " + Arrays.toString(newColor));
-                    settingsUpdates.put("boundingBoxColor", newColor);
-                    if(Arrays.equals(settings.getBoundingBoxColor(), newColor))
-                        settingsUpdates.remove("boundingBoxColor");
-                    updateApplyButtonState();
-                }
-        );
-
 
         /*------------------+
         | ADVANCED SETTINGS |
@@ -282,7 +258,7 @@ public class SettingsWindow extends JDialog {
     }
 
     // Method to enable/disable the Apply button
-    private static void updateApplyButtonState() {
+    public static void updateApplyButtonState() {
         applyButton.setEnabled(!settingsUpdates.isEmpty());
     }
 
@@ -356,87 +332,6 @@ public class SettingsWindow extends JDialog {
         );
 
         // MODEL LISTENERS -----------------------------------------------
-        addSettingChangeListener(modelSelector, (ActionListener)
-                e -> {
-                    String value = (String) modelSelector.getSelectedItem();
-                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
-                    System.out.println("Model: " + modelSelector.getSelectedItem());
-                    settingsUpdates.put("modelPath", path);
-                    if(settings.getModelPath().equals(path))
-                        settingsUpdates.remove("modelPath");
-                }
-        );
-
-        addSettingChangeListener(labelSelector, (ActionListener)
-                e -> {
-                    String value = (String) labelSelector.getSelectedItem();
-                    String path = AIMS_MODELS_DIRECTORY + "/" + value;
-                    System.out.println("Labels: " + labelSelector.getSelectedItem());
-                    settingsUpdates.put("labelPath", path);
-                    if(settings.getLabelPath().equals(path))
-                        settingsUpdates.remove("labelPath");
-                }
-        );
-
-        addSettingChangeListener(boundingBoxCheckbox, (ActionListener)
-                e -> {
-                    boolean value = boundingBoxCheckbox.isSelected();
-                    System.out.println("Bounding boxes: " + boundingBoxCheckbox.isSelected());
-                    settingsUpdates.put("showBoundingBoxes", value);
-                    if(settings.isShowBoundingBoxes() == value)
-                        settingsUpdates.remove("showBoundingBoxes");
-                }
-        );
-
-        addSettingChangeListener(showLabelsCheckbox, (ActionListener)
-                e -> {
-                    boolean value = showLabelsCheckbox.isSelected();
-                    System.out.println("Show labels: " + showLabelsCheckbox.isSelected());
-                    settingsUpdates.put("showLabels", value);
-                    if(settings.isShowLabels() == value)
-                        settingsUpdates.remove("showLabels");
-                }
-        );
-
-        addSettingChangeListener(showConfidencesCheckbox, (ActionListener)
-                e -> {
-                    boolean value = showConfidencesCheckbox.isSelected();
-                    System.out.println("Show confidences: " + showConfidencesCheckbox.isSelected());
-                    settingsUpdates.put("showConfidences", value);
-                    if(settings.isShowConfidences() == value)
-                        settingsUpdates.remove("showConfidences");
-                }
-        );
-
-        addSettingChangeListener(processEveryNthFrameSpinner, (ChangeListener)
-                e -> {
-                    int value = (int) processEveryNthFrameSpinner.getValue();
-                    System.out.println("Process every nth frame: " + processEveryNthFrameSpinner.getValue());
-                    settingsUpdates.put("processEveryNthFrame", value);
-                    if(settings.getProcessEveryNthFrame() == value)
-                        settingsUpdates.remove("processEveryNthFrame");
-                }
-        );
-
-        addSettingChangeListener(bufferThresholdSpinner, (ChangeListener)
-                e -> {
-                    int value = (int) bufferThresholdSpinner.getValue();
-                    System.out.println("Buffer threshold: " + bufferThresholdSpinner.getValue());
-                    settingsUpdates.put("bufferThreshold", value);
-                    if(settings.getBufferThreshold() == value)
-                        settingsUpdates.remove("bufferThreshold");
-                }
-        );
-
-        addSettingChangeListener(confThresholdSlider, (ChangeListener)
-                e -> {
-                    float value = confThresholdSlider.getValue() / 100f;
-                    System.out.println("Confidence threshold: " + value);
-                    settingsUpdates.put("confThreshold", value);
-                    if(settings.getConfThreshold() == value)
-                        settingsUpdates.remove("confThreshold");
-                }
-        );
 
         // ADVANCED LISTENERS -----------------------------------------------
         addSettingChangeListener(useGPUCheckbox, (ActionListener)

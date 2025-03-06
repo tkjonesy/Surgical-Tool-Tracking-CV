@@ -1,21 +1,17 @@
 package io.github.tkjonesy.frontend.settingsGUI;
 
-import io.github.tkjonesy.frontend.App;
 import io.github.tkjonesy.utils.ErrorDialogManager;
 import io.github.tkjonesy.utils.settings.ProgramSettings;
-import lombok.Getter;
 import javax.swing.*;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.Set;
 
 import static io.github.tkjonesy.frontend.App.AVAILABLE_CAMERAS;
 import static io.github.tkjonesy.frontend.settingsGUI.SettingsWindow.addSettingChangeListener;
 
-@Getter
 public class CameraSettingsPanel extends JPanel implements SettingsUI {
 
     private static final ProgramSettings settings = ProgramSettings.getCurrentSettings();
