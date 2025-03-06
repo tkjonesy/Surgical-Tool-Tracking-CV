@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: AIMs.exe
+          path: target/AIMs.exe
 
   build-macos-installer:
     name: Build Installer on macOS
@@ -96,7 +96,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-installer
-          path: AIMs.dmg
+          path: target/AIMs.dmg
 
   release:
     needs: [package-linux, build-windows-installer, build-macos-installer]
