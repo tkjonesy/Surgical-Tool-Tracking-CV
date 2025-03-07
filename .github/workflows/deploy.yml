@@ -125,7 +125,8 @@ jobs:
         with:
           files: |
             linux-jar/*.jar
-            windows-installer/AIMs.exe
-            macos-installer/AIMs.dmg
+            windows-installer/AIMs-*.exe
+            macos-installer/AIMs-*.dmg
           name: AIMs v1.0.${{ github.run_number }}
+          tag_name: v1.0.${{ github.run_number }}
           body: Automatic Release triggered by PR Merge
