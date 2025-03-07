@@ -50,6 +50,7 @@ jobs:
         run: |
           jpackage --name "AIMs" `
           --input target/ `
+          --dest target/ `
           --main-jar AIMs-1.0-SNAPSHOT.jar `
           --main-class io.github.tkjonesy.frontend.App `
           --icon "src/main/resources/aims_logo.icns" `
@@ -63,7 +64,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: target/AIMs.exe
+          path: target/AIMs-*.exe
 
   build-macos-installer:
     name: Build Installer on macOS
@@ -86,6 +87,7 @@ jobs:
         run: |
           jpackage \
           --input target/ \
+          --dest target/ \
           --name "AIMs" \
           --main-jar AIMs-1.0-SNAPSHOT.jar \
           --main-class io.github.tkjonesy.frontend.App \
@@ -96,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-installer
-          path: target/AIMs.dmg
+          path: target/AIMs-*.dmg
 
   release:
     needs: [package-linux, build-windows-installer, build-macos-installer]
