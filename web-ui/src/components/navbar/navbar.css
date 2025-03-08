@@ -12,9 +12,10 @@
     height: 64px;
 }
 
-ul {
+.nav-list {
     list-style: none;
     display: flex;
+    margin: 10px;
 }
 
 .nav-item {
@@ -24,8 +25,12 @@ ul {
 }
 
 .link-special {
-    color: white;
+    color: #505050;
     text-decoration: none;
+}
+
+.active {
+    color: white
 }
 
 .button {

@@ -1,4 +1,4 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, NavLink } from "react-router-dom";
 import { useState } from "react";
 import './navbar.css';
 import external from '../../assets/external.png'
@@ -32,19 +32,19 @@ const NavBar = () => {
 
         <ul className="nav-list">
           <li className="nav-item">
-            <Link className="link-special" to="/">Home</Link>
+            <NavLink className={({ isActive }) => isActive ? "link-special active" : "link-special"} to="/">Home</NavLink>
           </li>
           <li className="nav-item">
-            <Link className="link-special" to="/software">Software</Link>
+            <NavLink className={({ isActive }) => isActive ? "link-special active" : "link-special"} to="/software">Software</NavLink>
           </li>
           <li className="nav-item">
-            <Link className="link-special" to="/model">AI Model</Link>
+            <NavLink className={({ isActive }) => isActive ? "link-special active" : "link-special"} to="/model">AI Model</NavLink>
           </li>
           <li className="nav-item">
-            <Link className="link-special" to="/other">Other Applications</Link>
+            <NavLink className={({ isActive }) => isActive ? "link-special active" : "link-special"} to="/other">Other Applications</NavLink>
           </li>
           <li className="nav-item">
-            <Link className="link-special" to="/about">About</Link>
+            <NavLink className={({ isActive }) => isActive ? "link-special active" : "link-special"} to="/about">About</NavLink>
           </li>
         </ul>
 

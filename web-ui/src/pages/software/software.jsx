@@ -4,9 +4,13 @@ import "../../index.css";
 
 function Software() {
     return (
-        <div className="header">
-            Software Page
-        </div>
+        <>
+            <div className="page-container">
+                <div className="header">
+                    Software Page
+                </div>
+            </div>
+        </>
     )
 }
 

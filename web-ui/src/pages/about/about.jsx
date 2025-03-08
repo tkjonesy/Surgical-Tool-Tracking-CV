@@ -4,9 +4,13 @@ import "../../index.css";
 
 function About() {
     return (
-        <div className="header">
-            About Page
-        </div>
+        <>
+            <div className="page-container">
+                <div className="header">
+                    About Page
+                </div>
+            </div>
+        </>
     )
 }
 

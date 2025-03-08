@@ -4,9 +4,13 @@ import "../../index.css";
 
 function Other() {
     return (
-        <div className="header">
-            Other Page
-        </div>
+        <>
+            <div className="page-container">
+                <div className="header">
+                    Other Page
+                </div>
+            </div>
+        </>
     )
 }
 
