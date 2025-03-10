@@ -56,7 +56,7 @@ jobs:
           --dest target/ `
           --main-jar AIMs-1.0-SNAPSHOT.jar `
           --main-class io.github.tkjonesy.frontend.App `
-          --icon "src/main/resources/aims_logo.icns" `
+          --icon "src/main/resources/logo.png" `
           --type exe `
           --win-shortcut `
           --win-dir-chooser `
