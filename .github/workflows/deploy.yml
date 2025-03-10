@@ -120,13 +120,17 @@ jobs:
         with:
           name: macos-installer
 
+      - name: TEST - View directory
+        run: ls
+
+
       - name: Create Github Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            linux-jar/*.jar
-            windows-installer/AIMs-*.exe
-            macos-installer/AIMs-*.dmg
+            linux-jar.zip
+            windows-installer.zip
+            macos-installer.zip
           name: AIMs v1.0.${{ github.run_number }}
           tag_name: v1.0.${{ github.run_number }}
           body: Automatic Release triggered by PR Merge
